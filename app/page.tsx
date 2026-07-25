@@ -1,5 +1,6 @@
 import LibraryPanel from "./components/LibraryPanel";
 import SiteHeader from "./components/SiteHeader";
+import AnatomyHero from "./components/AnatomyHero";
 import {
   BrandMark,
   IconArrowRight,
@@ -8,7 +9,6 @@ import {
   IconClock,
   IconFile,
   IconGlobe,
-  IconLayers,
   IconLinkedin,
   IconMail,
   IconPin,
@@ -155,7 +155,8 @@ export default async function Home({
               </dl>
             </div>
 
-            <div className="hero-visual" aria-hidden="true">
+            <AnatomyHero />
+            {/* <div className="hero-visual" aria-hidden="true">
               <div className="hero-glow" />
               <div className="hero-grid-dots" />
 
@@ -196,7 +197,7 @@ export default async function Home({
                   <span>Structured curriculum</span>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
 
           <div className="credential-strip">

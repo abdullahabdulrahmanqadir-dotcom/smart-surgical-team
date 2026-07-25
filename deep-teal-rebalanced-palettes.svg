@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1320" viewBox="0 0 1800 1320">
+  <rect width="1800" height="1320" fill="#F8F6F1"/>
+  <style>
+    .title { font-family: Georgia, 'Times New Roman', serif; fill:#263E3D; font-size:76px; }
+    .subtitle { font-family: Arial, Helvetica, sans-serif; fill:#6B7770; font-size:23px; letter-spacing:2px; }
+    .label { font-family: Georgia, 'Times New Roman', serif; fill:#263E3D; font-size:38px; }
+    .hex { font-family: Arial, Helvetica, sans-serif; fill:#263E3D; font-size:19px; letter-spacing:1.2px; }
+    .note { font-family: Arial, Helvetica, sans-serif; fill:#79817A; font-size:19px; }
+  </style>
+  <text x="100" y="118" class="title">Deep Teal, Rebalanced</text>
+  <text x="102" y="162" class="subtitle">THREE WARMER PALETTES · LESS BLUE · MORE DIMENSION</text>
+
+  <g transform="translate(100 245)">
+    <text x="0" y="0" class="label">Moss &amp; Clay</text>
+    <text x="0" y="34" class="note">Earthy, grounded, and quietly botanical</text>
+    <rect x="0" y="70" width="210" height="190" fill="#40322A"/><rect x="230" y="70" width="210" height="190" fill="#167A78"/><rect x="460" y="70" width="210" height="190" fill="#CDEBE5"/><rect x="690" y="70" width="210" height="190" fill="#F5F2EA"/><rect x="920" y="70" width="210" height="190" fill="#C9824B"/><rect x="1150" y="70" width="210" height="190" fill="#71805A"/><rect x="1380" y="70" width="210" height="190" fill="#D3AB63"/>
+    <text x="105" y="295" text-anchor="middle" class="hex">#40322A</text><text x="335" y="295" text-anchor="middle" class="hex">#167A78</text><text x="565" y="295" text-anchor="middle" class="hex">#CDEBE5</text><text x="795" y="295" text-anchor="middle" class="hex">#F5F2EA</text><text x="1025" y="295" text-anchor="middle" class="hex">#C9824B</text><text x="1255" y="295" text-anchor="middle" class="hex">#71805A</text><text x="1485" y="295" text-anchor="middle" class="hex">#D3AB63</text>
+  </g>
+
+  <g transform="translate(100 625)">
+    <text x="0" y="0" class="label">Plum &amp; Saffron</text>
+    <text x="0" y="34" class="note">A confident, creative take with glowing warmth</text>
+    <rect x="0" y="70" width="210" height="190" fill="#4B2D3C"/><rect x="230" y="70" width="210" height="190" fill="#167A78"/><rect x="460" y="70" width="210" height="190" fill="#CDEBE5"/><rect x="690" y="70" width="210" height="190" fill="#F5F2EA"/><rect x="920" y="70" width="210" height="190" fill="#C9824B"/><rect x="1150" y="70" width="210" height="190" fill="#D79A32"/><rect x="1380" y="70" width="210" height="190" fill="#A96A5A"/>
+    <text x="105" y="295" text-anchor="middle" class="hex">#4B2D3C</text><text x="335" y="295" text-anchor="middle" class="hex">#167A78</text><text x="565" y="295" text-anchor="middle" class="hex">#CDEBE5</text><text x="795" y="295" text-anchor="middle" class="hex">#F5F2EA</text><text x="1025" y="295" text-anchor="middle" class="hex">#C9824B</text><text x="1255" y="295" text-anchor="middle" class="hex">#D79A32</text><text x="1485" y="295" text-anchor="middle" class="hex">#A96A5A</text>
+  </g>
+
+  <g transform="translate(100 1005)">
+    <text x="0" y="0" class="label">Olive &amp; Rose</text>
+    <text x="0" y="34" class="note">Soft, contemporary, and elegantly organic</text>
+    <rect x="0" y="70" width="210" height="190" fill="#414431"/><rect x="230" y="70" width="210" height="190" fill="#167A78"/><rect x="460" y="70" width="210" height="190" fill="#CDEBE5"/><rect x="690" y="70" width="210" height="190" fill="#F5F2EA"/><rect x="920" y="70" width="210" height="190" fill="#C9824B"/><rect x="1150" y="70" width="210" height="190" fill="#A85F68"/><rect x="1380" y="70" width="210" height="190" fill="#B69B45"/>
+    <text x="105" y="295" text-anchor="middle" class="hex">#414431</text><text x="335" y="295" text-anchor="middle" class="hex">#167A78</text><text x="565" y="295" text-anchor="middle" class="hex">#CDEBE5</text><text x="795" y="295" text-anchor="middle" class="hex">#F5F2EA</text><text x="1025" y="295" text-anchor="middle" class="hex">#C9824B</text><text x="1255" y="295" text-anchor="middle" class="hex">#A85F68</text><text x="1485" y="295" text-anchor="middle" class="hex">#B69B45</text>
+  </g>
+</svg>

@@ -1,0 +1,114 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+type Tissue = "thyroid" | "trachea" | "artery" | "vessels";
+
+const tissueImages: Record<Tissue, string> = {
+  thyroid: "/hero-histology-thyroid.png",
+  trachea: "/hero-histology-trachea.png",
+  artery: "/hero-histology-artery.png",
+  vessels: "/hero-histology-vessels.png",
+};
+
+const route = [
+  { x: 37, y: 49 },
+  { x: 64, y: 52 },
+  { x: 51, y: 61 },
+  { x: 51, y: 75 },
+  { x: 30, y: 79 },
+  { x: 70, y: 79 },
+];
+
+function tissueAt(x: number, y: number): Tissue {
+  if (y > 69 && x < 39) return "artery";
+  if (y > 69 && x > 62) return "vessels";
+  if (y > 63 && x > 39 && x < 62) return "trachea";
+  return "thyroid";
+}
+
+function idlePosition(time: number) {
+  const duration = 3600;
+  const index = Math.floor(time / duration) % route.length;
+  const current = route[index];
+  const next = route[(index + 1) % route.length];
+  const progress = (time % duration) / duration;
+  const eased = progress * progress * (3 - 2 * progress);
+  return { x: current.x + (next.x - current.x) * eased, y: current.y + (next.y - current.y) * eased };
+}
+
+export default function AnatomyHero() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef(false);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const position = useRef({ ...route[0] });
+  const target = useRef({ ...route[0] });
+  const [view, setView] = useState({ ...route[0], tissue: "thyroid" as Tissue });
+
+  useEffect(() => {
+    let frame = 0;
+    const start = performance.now();
+    const animate = (now: number) => {
+      if (!activeRef.current) target.current = idlePosition(now - start);
+      position.current.x += (target.current.x - position.current.x) * 0.12;
+      position.current.y += (target.current.y - position.current.y) * 0.12;
+      const { x, y } = position.current;
+      setView({ x, y, tissue: tissueAt(x, y) });
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    };
+  }, []);
+
+  const updateTarget = (event: React.PointerEvent<HTMLDivElement>) => {
+    const bounds = rootRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    target.current = {
+      x: Math.max(8, Math.min(92, ((event.clientX - bounds.left) / bounds.width) * 100)),
+      y: Math.max(8, Math.min(92, ((event.clientY - bounds.top) / bounds.height) * 100)),
+    };
+  };
+  const pause = () => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    activeRef.current = true;
+  };
+  const resume = () => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => { activeRef.current = false; }, 1250);
+  };
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 8 : 4;
+    const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const delta = moves[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    pause();
+    target.current = { x: Math.max(8, Math.min(92, target.current.x + delta[0])), y: Math.max(8, Math.min(92, target.current.y + delta[1])) };
+  };
+
+  return (
+    <div
+      ref={rootRef}
+      className="anatomy-hero"
+      tabIndex={0}
+      role="img"
+      aria-label="Interactive thyroid, trachea, and neck vessel illustration. Move the pointer or use arrow keys to inspect microscopic tissue."
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") { pause(); updateTarget(event); } }}
+      onPointerMove={(event) => { if (event.pointerType === "mouse" || event.pointerType === "pen") { pause(); updateTarget(event); } }}
+      onPointerLeave={(event) => { if (event.pointerType === "mouse") resume(); }}
+      onPointerDown={(event) => { pause(); rootRef.current?.setPointerCapture(event.pointerId); updateTarget(event); }}
+      onPointerUp={(event) => { if (rootRef.current?.hasPointerCapture(event.pointerId)) rootRef.current.releasePointerCapture(event.pointerId); resume(); }}
+      onPointerCancel={resume}
+      onFocus={pause}
+      onBlur={resume}
+      onKeyDown={handleKeyDown}
+      style={{ "--lens-x": `${view.x}%`, "--lens-y": `${view.y}%`, "--micro-x": `${16 + view.x * 0.68}%`, "--micro-y": `${16 + view.y * 0.68}%`, "--micro-image": `url(${tissueImages[view.tissue]})` } as React.CSSProperties}
+    >
+      <span className="anatomy-hero-base" aria-hidden="true" />
+      <span className="anatomy-hero-lens" aria-hidden="true" />
+    </div>
+  );
+}

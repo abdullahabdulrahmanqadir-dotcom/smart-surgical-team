@@ -586,7 +586,16 @@ input {
   color: var(--text-soft);
 }
 
-/* --- hero visual (no photography: composed UI mock) --- */
+/* --- interactive anatomy hero --- */
+
+.anatomy-hero { position:relative; width:min(100%,540px); min-height:420px; margin-left:auto; overflow:hidden; isolation:isolate; border-radius:2rem; outline:none; touch-action:none; user-select:none; }
+.anatomy-hero:focus-visible { box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 38%,transparent); }
+.anatomy-hero-base { display:block; width:100%; min-height:420px; aspect-ratio:1/1.35; background:url('/hero-anatomy-base.png') center/cover no-repeat; }
+.anatomy-hero-lens { position:absolute; z-index:2; left:var(--lens-x); top:var(--lens-y); width:clamp(7.2rem,14vw,9.2rem); aspect-ratio:1; transform:translate(-50%,-50%); border:2px solid rgba(5,132,143,.88); border-radius:50%; background-image:linear-gradient(135deg,rgba(255,255,255,.32),transparent 32%),var(--micro-image); background-size:auto,205%; background-position:center,var(--micro-x) var(--micro-y); box-shadow:0 12px 28px rgba(4,70,77,.2),inset 0 0 0 3px rgba(255,255,255,.55),inset 0 0 20px rgba(255,255,255,.15); transition:background-image 180ms ease; pointer-events:none; }
+@media (hover:hover) and (pointer:fine) { .anatomy-hero { cursor:none; } }
+@media (prefers-reduced-motion:reduce) { .anatomy-hero-lens { transition:none; } }
+
+/* --- legacy hero visual (no photography: composed UI mock) --- */
 
 .hero-visual {
   position: relative;
