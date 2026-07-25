@@ -1,48 +1,99 @@
+const topics = [
+  ["Thyroid & Parathyroid", "THY"],
+  ["Salivary Gland", "SAL"],
+  ["Laryngeal Surgery", "LAR"],
+  ["Oral Cavity Surgery", "ORL"],
+  ["Oncologic Reconstruction", "ONC"],
+  ["Skull Base Surgery", "SKL"],
+  ["Sinus & Nasal Surgery", "SIN"],
+  ["Pediatric Head & Neck", "PED"],
+];
+
+const libraryItems = [
+  ["Transoral Robotic Surgery for Oropharyngeal Cancer", "Dr. Karzan Ahmed", "18:24", "65%"],
+  ["Selective Neck Dissection: Levels II–IV", "Dr. Shwan Omer", "14:02", "42%"],
+  ["Thyroidectomy: Tips for Safe Parathyroid Preservation", "Dr. Ava Rashid", "22:31", "80%"],
+];
+
+const webinars = [
+  ["MAY", "24", "Role of Imaging in Skull Base Surgery", "Dr. Ava Rashid"],
+  ["JUN", "07", "Reconstruction of Mandibular Defects", "Dr. Karzan Ahmed"],
+  ["JUN", "21", "Updates in Salivary Gland Surgery", "Dr. Shwan Omer"],
+];
+
+const team = [
+  ["KA", "Dr. Karzan Ahmed", "Head & Neck Surgeon\nOncologic Surgery"],
+  ["SO", "Dr. Shwan Omer", "Head & Neck Surgeon\nSkull Base Surgery"],
+  ["AR", "Dr. Ava Rashid", "Head & Neck Surgeon\nReconstructive Surgery"],
+];
+
 export default function Home() {
   return (
     <main>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="Smart Surgical Team home">
+      <header className="site-header mock-header">
+        <a className="brand mock-brand" href="#top" aria-label="Smart Surgical Team home">
           <span className="brand-mark" aria-hidden="true"><i /></span>
-          <span>SMART <b>SURGICAL</b><small>TEAM</small></span>
+          <span>Smart Surgical Team</span>
         </a>
         <nav aria-label="Main navigation">
-          <a href="#library">Library</a><a href="#specialties">Specialties</a><a href="#webinars">Webinars</a><a href="#team">Our team</a>
+          <a href="#library">Browse</a><a href="#topics">Topics <span aria-hidden="true">⌄</span></a><a href="#webinars">Webinars</a><a href="#team">Team</a><a href="#contact">Contact</a>
         </nav>
-        <div className="header-actions"><button className="language" type="button" aria-label="Switch to Sorani Kurdish">کوردی</button><a className="text-link" href="#sign-in">Sign in</a><a className="button button-small" href="#library">Explore library</a></div>
+        <div className="header-actions"><button className="language-switch" type="button"><b>EN</b><span>کوردی</span></button><button className="theme-toggle" type="button" aria-label="Switch colour mode"><i /></button></div>
       </header>
 
-      <section className="hero" id="top">
+      <section className="mock-hero" id="top">
+        <div className="hero-illustration" aria-hidden="true" />
         <div className="hero-copy">
-          <p className="eyebrow">SMART HEALTH TOWER · SULAYMANIAH</p>
-          <h1>Learning that keeps <em>surgery</em> moving forward.</h1>
-          <p className="hero-intro">A calm, practical home for head and neck surgery education—built for clinicians, trainees, and curious patients.</p>
-          <div className="hero-actions"><a className="button" href="#library">Explore the library <span aria-hidden="true">→</span></a><a className="inline-link" href="#webinars">See upcoming sessions <span aria-hidden="true">↗</span></a></div>
-          <div className="hero-proof" aria-label="Platform highlights"><div><strong>5</strong><span>Specialty areas</span></div><div><strong>1</strong><span>Trusted surgical team</span></div><div><strong>∞</strong><span>Questions worth exploring</span></div></div>
+          <h1>Head &amp; Neck<br />Surgery,<br />Guided by Expertise.</h1>
+          <a className="primary-button" href="#library">Explore the Library <span aria-hidden="true">→</span></a>
         </div>
-        <div className="hero-art" aria-hidden="true"><span className="art-orbit orbit-one" /><span className="art-orbit orbit-two" /><span className="art-neck" /><span className="art-head" /><span className="art-contour contour-one" /><span className="art-contour contour-two" /><span className="art-node node-one" /><span className="art-node node-two" /><span className="art-node node-three" /><p>Precision<br />in practice</p></div>
+        <div className="orbit orbit-book" aria-hidden="true">▯</div>
+        <div className="orbit orbit-play" aria-hidden="true">▶</div>
+        <div className="orbit orbit-user" aria-hidden="true">♙</div>
       </section>
 
-      <section className="intro-band" id="main-content"><p className="eyebrow">THE SST LEARNING PLATFORM</p><p className="statement">Understand the procedure. Follow the anatomy. Learn from the people doing the work.</p><a href="#specialties" className="arrow-link">Discover our specialties <span aria-hidden="true">→</span></a></section>
-
-      <section className="library-section" id="library" aria-labelledby="library-heading">
-        <div className="section-heading"><div><p className="eyebrow">CURATED LEARNING</p><h2 id="library-heading">Start with what matters now.</h2></div><a className="arrow-link" href="#sign-in">View all learning <span aria-hidden="true">→</span></a></div>
-        <div className="content-grid">
-          <article className="feature-card"><div className="feature-visual visual-thyroid"><span>01</span><p>THYROID<br />&amp; PARATHYROID</p></div><div className="card-body"><p className="card-meta">SURGICAL VIDEO · 42 MIN</p><h3>Thyroidectomy: a considered approach to safe dissection</h3><p>Key anatomical landmarks, careful planning, and a clear operative sequence.</p><a href="#sign-in" className="card-link">Watch in the library <span aria-hidden="true">→</span></a></div></article>
-          <article className="feature-card compact-card"><div className="feature-visual visual-webinar"><span>LIVE</span><p>CLINICAL<br />CONVERSATIONS</p></div><div className="card-body"><p className="card-meta">WEBINAR · 14 AUG · 18:00</p><h3>What a neck mass asks us to notice</h3><p>A live discussion with the Smart Surgical Team.</p><a href="#webinars" className="card-link">Reserve a place <span aria-hidden="true">→</span></a></div></article>
-          <aside className="member-card" id="sign-in"><p className="eyebrow">YOUR SST SPACE</p><h3>Save learning that stays with you.</h3><p>Members can build a personal library, pick up where they left off, and register for webinars.</p><a className="button button-light" href="#contact">Create an account <span aria-hidden="true">→</span></a><p className="member-note">Google or email sign-in · Free member access</p></aside>
+      <section className="topic-strip" id="topics" aria-labelledby="topics-heading">
+        <div className="topic-title"><span /><h2 id="topics-heading">Browse by Topic</h2></div>
+        <div className="topic-grid">
+          {topics.map(([name, mark]) => <a href="#library" className="topic-card" key={name}><span className="topic-glyph" aria-hidden="true">{mark}</span><b>{name}</b></a>)}
         </div>
+        <a className="view-link" href="#library">View all topics <span aria-hidden="true">→</span></a>
       </section>
 
-      <section className="specialties" id="specialties" aria-labelledby="specialties-heading"><div className="section-heading"><div><p className="eyebrow">FOCUSED EXPERTISE</p><h2 id="specialties-heading">Explore by specialty.</h2></div><p className="section-note">Clear paths into the procedures and questions that shape head and neck care.</p></div><div className="topic-list"><a href="#library"><span>01</span><b>Thyroid &amp; Parathyroid</b><i>Thyroid · Parathyroid</i><em aria-hidden="true">→</em></a><a href="#library"><span>02</span><b>Salivary Glands</b><i>Parotid</i><em aria-hidden="true">→</em></a><a href="#library"><span>03</span><b>Neck &amp; Lymphatic Surgery</b><i>Lymph nodes · Neck masses</i><em aria-hidden="true">→</em></a><a href="#library"><span>04</span><b>Skin &amp; Soft Tissue</b><i>Skin lesions</i><em aria-hidden="true">→</em></a><a href="#library"><span>05</span><b>Upper Aerodigestive Tract</b><i>Oral cavity · Larynx</i><em aria-hidden="true">→</em></a></div></section>
+      <section className="dashboard" id="main-content">
+        <article className="library-panel" id="library">
+          <h2>Content Library</h2>
+          <div className="library-tabs"><button className="selected" type="button">Videos</button><button type="button">Webinars</button><button type="button">E-Posters</button></div>
+          <div className="library-filter"><label><span aria-hidden="true">⌕</span><input aria-label="Search videos" placeholder="Search videos..." /></label><button type="button">All Topics⌄</button></div>
+          <div className="library-list">
+            {libraryItems.map(([title, doctor, duration, progress], index) => <a href="#sign-in" className="library-row" key={title}>
+              <div className={`video-thumb thumb-${index + 1}`}><span className="play-icon" aria-hidden="true">▶</span><small>{duration}</small></div>
+              <div className="library-details"><h3>{title}</h3><p>{doctor}</p><div className="progress"><i style={{ width: progress }} /><span>{progress}</span></div></div>
+            </a>)}
+          </div>
+          <a className="panel-link" href="#sign-in">View all videos <span aria-hidden="true">→</span></a>
+        </article>
 
-      <section className="webinar-section" id="webinars"><div><p className="eyebrow">LIVE LEARNING</p><h2>Bring your questions<br />into the room.</h2><p>Live sessions and on-demand recordings that make space for the details behind every decision.</p><a className="button" href="#contact">See webinars <span aria-hidden="true">→</span></a></div><div className="webinar-date"><span>14</span><b>AUGUST<br />2026</b><i>18:00<br />BAGHDAD</i><p>Neck masses: from first finding to a surgical plan</p></div></section>
+        <article className="featured-panel">
+          <div className="panel-heading"><h2>Featured Surgery</h2><span>Featured</span></div>
+          <a href="#sign-in" className="featured-image"><img src="/anatomy-hero.png" alt="Detailed head and neck anatomy illustration" /><i className="big-play" aria-hidden="true">▶</i><small>24:18</small></a>
+          <h3>Thyroidectomy: Step-by-Step Masterclass</h3><p className="presenter">Dr. Karzan Ahmed</p><p className="feature-copy">A comprehensive walkthrough of thyroid surgery with key technical points and pearls.</p>
+          <div className="slider-dots" aria-label="Featured items"><i className="active" /><i /><i /><i /></div>
+        </article>
+      </section>
 
-      <section className="team-section" id="team"><div><p className="eyebrow">OUR PEOPLE</p><h2>Guided by the<br /><em>team behind the care.</em></h2></div><div className="team-copy"><p>Smart Surgical Team brings together a focused group of surgeons and contributors at Smart Health Tower. We share knowledge in the same spirit we approach care: carefully, openly, and with patients at the centre.</p><a href="#contact" className="arrow-link">Meet the team <span aria-hidden="true">→</span></a></div></section>
+      <section className="lower-grid">
+        <article className="poster-panel"><h2>Latest E-Poster</h2><div className="poster-art"><p>OUTCOMES OF TRANSORAL<br />ROBOTIC SURGERY</p><span>KEY FINDINGS</span><i>High local control rates<br />Low complication profile<br />Improved functional outcomes</i><b>By Dr. Shwan Omer et al.</b></div><a className="panel-link" href="#sign-in">View e-poster <span aria-hidden="true">→</span></a></article>
+        <article className="webinar-panel" id="webinars"><h2>Upcoming Webinars</h2>{webinars.map(([month, date, title, doctor]) => <a href="#sign-in" className="webinar-row" key={title}><div className="date"><b>{month}</b><strong>{date}</strong></div><div><h3>{title}</h3><p>{doctor}</p><small>◷ 19:00 GMT</small></div><i aria-hidden="true">＋</i></a>)}<a className="panel-link" href="#sign-in">View all webinars <span aria-hidden="true">→</span></a></article>
+        <article className="team-panel" id="team"><div className="panel-heading"><h2>Our Expert Team</h2><a href="#contact">View all team →</a></div>{team.map(([initials, name, role]) => <a href="#contact" className="team-row" key={name}><span className="portrait" aria-hidden="true">{initials}</span><div><h3>{name}</h3><p>{role.split("\n").map((line) => <span key={line}>{line}</span>)}</p></div></a>)}</article>
+      </section>
 
-      <section className="contact-section" id="contact"><p className="eyebrow">STAY CONNECTED</p><h2>A better surgical conversation starts here.</h2><p>We are preparing the platform for its first members. Share your email and we’ll let you know when the library opens.</p><form className="interest-form" action="/api/contact" method="post"><label htmlFor="email">Email address</label><input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required /><input type="hidden" name="source" value="launch-interest" /><button className="button" type="submit">Keep me updated <span aria-hidden="true">→</span></button></form></section>
-      <footer><a className="brand" href="#top"><span className="brand-mark" aria-hidden="true"><i /></span><span>SMART <b>SURGICAL</b><small>TEAM</small></span></a><p>Head &amp; Neck Surgery, Guided by Expertise.</p><span>© 2026 Smart Surgical Team · Sulaymaniah, Kurdistan, Iraq</span></footer>
+      <section className="vision-panel"><div className="vision-en"><span className="vision-icon" aria-hidden="true">◉</span><div><h2>Our Vision</h2><p>To be the leading global platform for head and neck surgical education—empowering surgeons and improving patient outcomes through knowledge, collaboration, and innovation.</p></div></div><div className="vision-divider" /><div className="vision-kr" dir="rtl"><h2>چاوەڕوانی / دیدگای ئێمە</h2><p>ببین پێشکەشکەری پلاتفۆرمێکی پێشەنگی پەروەردەی نەشتەرگەری سەر و گەردن بێت، بە بەهێزکردنی نەشتەرگەران و بەشداریکردن لە باشترکردنی ئەنجامەکانی چارەسەری بۆ نەخۆش.</p></div><span className="vision-icon right" aria-hidden="true">◉</span></section>
+
+      <footer id="contact">
+        <div className="footer-main"><div className="footer-brand"><a className="brand mock-brand" href="#top"><span className="brand-mark" aria-hidden="true"><i /></span><span>Smart Surgical Team</span></a><p>A dedicated academic hub for head &amp; neck surgery education. Expert insights. Better outcomes.</p><div className="socials"><a href="#top" aria-label="YouTube">▶</a><a href="#top" aria-label="LinkedIn">in</a><a href="mailto:info@smartsurgicalteam.com" aria-label="Email">✉</a></div></div><div><h3>Quick Links</h3><a href="#library">Browse</a><a href="#topics">Topics</a><a href="#webinars">Webinars</a><a href="#team">Team</a><a href="#contact">Contact</a></div><div><h3>Contact Us</h3><p>✉ info@smartsurgicalteam.com</p><p>⌖ Erbil, Kurdistan Region, Iraq</p><p>◎ smartsurgicalteam.com</p></div><div className="footer-kr" dir="rtl"><h3>کوردی</h3><p>بۆ پەیوەندی کردن و زانیاری زیاتر، تکایە پەیوەندیمان پێوە بکەن.</p><p>✉ info@smartsurgicalteam.com</p></div></div><div className="footer-bottom"><span>© 2026 Smart Surgical Team. All rights reserved.</span><span><a href="#top">Privacy Policy</a><a href="#top">Terms of Use</a></span></div>
+      </footer>
     </main>
   );
 }

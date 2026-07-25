@@ -20,8 +20,9 @@ test("server-renders the Smart Surgical Team home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Smart Surgical Team \| Learning for head &amp; neck surgery<\/title>/i);
-  assert.match(html, /Learning that keeps/);
-  assert.match(html, /Explore the library/);
-  assert.match(html, /Head &amp; Neck Surgery, Guided by Expertise/);
+  assert.match(html, /Head &amp; Neck/);
+  assert.match(html, /Explore the Library/);
+  assert.match(html, /Browse by Topic/);
+  assert.match(html, /Featured Surgery/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
