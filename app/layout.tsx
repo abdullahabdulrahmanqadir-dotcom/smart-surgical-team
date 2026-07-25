@@ -11,7 +11,9 @@ const geistSans = Geist({
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "smart-surgical-team.pages.dev";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+  // Falling back to https on a local dev host makes icon/OG URLs unreachable.
+  const protocol =
+    requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const title = "Smart Surgical Team | Learning for head & neck surgery";
   const description = "A trusted learning platform for head and neck surgery, created by Smart Surgical Team in Sulaymaniah.";
 
@@ -31,7 +33,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light">
+    // data-theme is rewritten by the script below before hydration, so the
+    // server value is expected to differ on a dark-mode visit.
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         <script
           // Applies the stored colour mode before paint so the page never flashes.

@@ -510,85 +510,16 @@ input {
   color: var(--primary);
 }
 
-.hero-lede {
-  margin-top: 1.15rem;
-  max-width: 34rem;
-  font-size: 1.06rem;
-  line-height: 1.65;
-  color: var(--text-muted);
-}
-
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 1.9rem;
-}
-
-.hero-trust {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  margin-top: 1.9rem;
-}
-
-.avatar-stack {
-  display: flex;
-}
-
-.avatar-stack span {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  margin-right: -7px;
-  border-radius: 50%;
-  border: 2px solid var(--bg);
-  background: var(--primary-soft);
-  color: var(--primary);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.avatar-stack .avatar-more {
-  background: var(--primary);
-  color: var(--on-primary);
-}
-
-.hero-trust p {
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-.hero-trust strong {
-  color: var(--text);
-}
-
-.hero-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  margin: 2.25rem 0 0;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--line);
-}
-
-.hero-stats dt {
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--text);
-}
-
-.hero-stats dd {
-  margin: 0.15rem 0 0;
-  font-size: 0.82rem;
-  color: var(--text-soft);
+  margin-top: 2.25rem;
 }
 
 /* --- interactive anatomy hero --- */
 
-.anatomy-hero { position:relative; width:min(100%,540px); min-height:420px; margin-left:auto; overflow:hidden; isolation:isolate; border-radius:2rem; outline:none; touch-action:none; user-select:none; }
+.anatomy-hero { --lens-x:37%; --lens-y:49%; --micro-x:41%; --micro-y:49%; position:relative; width:min(100%,540px); min-height:420px; margin-left:auto; overflow:hidden; isolation:isolate; border-radius:2rem; outline:none; touch-action:none; user-select:none; }
 .anatomy-hero:focus-visible { box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 38%,transparent); }
 .anatomy-hero-base { display:block; width:100%; min-height:420px; aspect-ratio:1/1.35; background:url('/hero-anatomy-base.png') center/cover no-repeat; }
 .anatomy-hero-lens { position:absolute; z-index:2; left:var(--lens-x); top:var(--lens-y); width:clamp(7.2rem,14vw,9.2rem); aspect-ratio:1; transform:translate(-50%,-50%); border:2px solid rgba(5,132,143,.88); border-radius:50%; background-image:linear-gradient(135deg,rgba(255,255,255,.32),transparent 32%),var(--micro-image); background-size:auto,205%; background-position:center,var(--micro-x) var(--micro-y); box-shadow:0 12px 28px rgba(4,70,77,.2),inset 0 0 0 3px rgba(255,255,255,.55),inset 0 0 20px rgba(255,255,255,.15); transition:background-image 180ms ease; pointer-events:none; }
@@ -833,7 +764,7 @@ input {
 .section {
   max-width: var(--content);
   margin: 0 auto;
-  padding: clamp(3rem, 6vw, 4.5rem) var(--gutter);
+  padding: clamp(4.5rem, 8vw, 7.5rem) var(--gutter);
 }
 
 .section-muted {
@@ -848,6 +779,40 @@ input {
   max-width: var(--content);
   margin-inline: auto;
   padding-inline: var(--gutter);
+}
+
+/* Each content group has its own visual pace, rather than reading as one long card wall. */
+.section-topics {
+  position: relative;
+  isolation: isolate;
+}
+
+.section-topics::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 12% 6% 8%;
+  border-radius: 2.5rem;
+  background: radial-gradient(circle at 88% 10%, var(--primary-soft), transparent 38%);
+  opacity: 0.45;
+}
+
+.section-library {
+  position: relative;
+  margin-top: clamp(1rem, 3vw, 3rem);
+  padding-block: clamp(5rem, 9vw, 8.5rem);
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--primary-soft) 36%, transparent), transparent 42%),
+    var(--bg-muted);
+}
+
+.section-explore {
+  padding-top: clamp(5rem, 9vw, 8rem);
+  padding-bottom: clamp(5rem, 9vw, 8rem);
+}
+
+.section-vision {
+  padding-top: clamp(2rem, 5vw, 4rem);
 }
 
 .section-head {
@@ -877,6 +842,20 @@ input {
   max-width: 46ch;
   color: var(--text-muted);
   font-size: 0.95rem;
+}
+
+/* Scroll reveals are intentionally small and only run once. Content remains fully visible without JavaScript. */
+html[data-motion-ready="true"] [data-scroll-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 460ms ease-out var(--reveal-delay, 0ms),
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1) var(--reveal-delay, 0ms);
+}
+
+html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* --- topics --- */
@@ -1959,21 +1938,6 @@ input {
 
   .hero-actions .btn {
     flex: 1 1 100%;
-  }
-
-  .hero-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-  }
-
-  .hero-stats dt {
-    font-size: 1.4rem;
-  }
-
-  .hero-stats dd {
-    font-size: 0.76rem;
-    line-height: 1.4;
   }
 
   .hero-visual {

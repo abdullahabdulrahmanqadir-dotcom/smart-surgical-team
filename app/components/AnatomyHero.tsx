@@ -23,12 +23,17 @@ const route = [
 function tissueAt(x: number, y: number): Tissue {
   if (y > 69 && x < 39) return "artery";
   if (y > 69 && x > 62) return "vessels";
+  // The central upper airway is laryngeal/tracheal cartilage, not thyroid tissue.
+  if (x > 40 && x < 60 && (y < 45 || y > 64)) return "trachea";
   if (y > 63 && x > 39 && x < 62) return "trachea";
   return "thyroid";
 }
 
-function idlePosition(time: number) {
+function idlePosition(rawTime: number) {
   const duration = 3600;
+  // The first rAF timestamp can land just before the captured start time,
+  // which would floor to a negative index and read past the route array.
+  const time = Math.max(0, rawTime);
   const index = Math.floor(time / duration) % route.length;
   const current = route[index];
   const next = route[(index + 1) % route.length];
@@ -43,17 +48,24 @@ export default function AnatomyHero() {
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const position = useRef({ ...route[0] });
   const target = useRef({ ...route[0] });
+  const reducedMotionRef = useRef(false);
   const [view, setView] = useState({ ...route[0], tissue: "thyroid" as Tissue });
 
   useEffect(() => {
+    reducedMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
+    let lastPaint = 0;
     const start = performance.now();
     const animate = (now: number) => {
       if (!activeRef.current) target.current = idlePosition(now - start);
-      position.current.x += (target.current.x - position.current.x) * 0.12;
-      position.current.y += (target.current.y - position.current.y) * 0.12;
-      const { x, y } = position.current;
-      setView({ x, y, tissue: tissueAt(x, y) });
+      const smoothing = reducedMotionRef.current ? 0.035 : 0.12;
+      position.current.x += (target.current.x - position.current.x) * smoothing;
+      position.current.y += (target.current.y - position.current.y) * smoothing;
+      if (now - lastPaint > 30) {
+        const { x, y } = position.current;
+        setView({ x, y, tissue: tissueAt(x, y) });
+        lastPaint = now;
+      }
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
@@ -87,6 +99,7 @@ export default function AnatomyHero() {
     event.preventDefault();
     pause();
     target.current = { x: Math.max(8, Math.min(92, target.current.x + delta[0])), y: Math.max(8, Math.min(92, target.current.y + delta[1])) };
+    resume();
   };
 
   return (
@@ -97,13 +110,11 @@ export default function AnatomyHero() {
       role="img"
       aria-label="Interactive thyroid, trachea, and neck vessel illustration. Move the pointer or use arrow keys to inspect microscopic tissue."
       onPointerEnter={(event) => { if (event.pointerType === "mouse") { pause(); updateTarget(event); } }}
-      onPointerMove={(event) => { if (event.pointerType === "mouse" || event.pointerType === "pen") { pause(); updateTarget(event); } }}
+      onPointerMove={(event) => { pause(); updateTarget(event); }}
       onPointerLeave={(event) => { if (event.pointerType === "mouse") resume(); }}
       onPointerDown={(event) => { pause(); rootRef.current?.setPointerCapture(event.pointerId); updateTarget(event); }}
       onPointerUp={(event) => { if (rootRef.current?.hasPointerCapture(event.pointerId)) rootRef.current.releasePointerCapture(event.pointerId); resume(); }}
       onPointerCancel={resume}
-      onFocus={pause}
-      onBlur={resume}
       onKeyDown={handleKeyDown}
       style={{ "--lens-x": `${view.x}%`, "--lens-y": `${view.y}%`, "--micro-x": `${16 + view.x * 0.68}%`, "--micro-y": `${16 + view.y * 0.68}%`, "--micro-image": `url(${tissueImages[view.tissue]})` } as React.CSSProperties}
     >

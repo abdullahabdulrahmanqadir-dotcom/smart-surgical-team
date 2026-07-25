@@ -1,6 +1,7 @@
 import LibraryPanel from "./components/LibraryPanel";
 import SiteHeader from "./components/SiteHeader";
 import AnatomyHero from "./components/AnatomyHero";
+import ScrollMotion from "./components/ScrollMotion";
 import {
   BrandMark,
   IconArrowRight,
@@ -20,12 +21,6 @@ import {
   topicIcons,
   type TopicIconName,
 } from "./components/icons";
-
-const heroStats = [
-  ["140+", "Surgical videos"],
-  ["24", "Live webinars a year"],
-  ["4", "Subspecialty tracks"],
-];
 
 const credentials = [
   "Smart Health Tower",
@@ -102,6 +97,7 @@ export default async function Home({
       </a>
 
       <SiteHeader />
+      <ScrollMotion />
 
       <main id="top">
         {/* ---------------- Hero ---------------- */}
@@ -116,43 +112,12 @@ export default async function Home({
                 Head &amp; Neck Surgery,{" "}
                 <span className="headline-accent">Guided by Expertise.</span>
               </h1>
-              <p className="hero-lede">
-                A structured learning platform for surgeons, trainees and patients — operative
-                videos, live webinars and e-posters from a practising head and neck team, in English
-                and Kurdish.
-              </p>
-
               <div className="hero-actions">
                 <a className="btn btn-primary btn-lg" href="#library">
                   Explore the Library
                   <IconArrowRight size={18} />
                 </a>
-                <a className="btn btn-outline btn-lg" href="#featured">
-                  <IconPlay size={16} />
-                  Watch a sample lecture
-                </a>
               </div>
-
-              <div className="hero-trust">
-                <span className="avatar-stack" aria-hidden="true">
-                  <span>KA</span>
-                  <span>SO</span>
-                  <span>AR</span>
-                  <span className="avatar-more">+9</span>
-                </span>
-                <p>
-                  Joined by <strong>1,200+</strong> surgeons and trainees across the region.
-                </p>
-              </div>
-
-              <dl className="hero-stats">
-                {heroStats.map(([value, label]) => (
-                  <div key={label}>
-                    <dt>{value}</dt>
-                    <dd>{label}</dd>
-                  </div>
-                ))}
-              </dl>
             </div>
 
             <AnatomyHero />
@@ -211,7 +176,7 @@ export default async function Home({
         </section>
 
         {/* ---------------- Topics ---------------- */}
-        <section className="section" id="topics" aria-labelledby="topics-heading">
+        <section className="section section-topics" id="topics" aria-labelledby="topics-heading">
           <div className="section-head">
             <div>
               <span className="section-kicker">Curriculum</span>
@@ -250,7 +215,7 @@ export default async function Home({
         </section>
 
         {/* ---------------- Library + featured ---------------- */}
-        <section className="section section-muted" id="main-content">
+        <section className="section section-muted section-library" id="main-content">
           <div className="section-head">
             <div>
               <span className="section-kicker">Learn</span>
@@ -310,7 +275,7 @@ export default async function Home({
         </section>
 
         {/* ---------------- Lower grid ---------------- */}
-        <section className="section">
+        <section className="section section-explore">
           <div className="lower-grid">
             <article className="panel">
               <div className="panel-heading">
@@ -411,7 +376,7 @@ export default async function Home({
         </section>
 
         {/* ---------------- Vision ---------------- */}
-        <section className="section" aria-labelledby="vision-heading">
+        <section className="section section-vision" aria-labelledby="vision-heading">
           <div className="vision-panel">
             <div className="vision-block">
               <span className="vision-icon">
