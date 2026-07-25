@@ -43,3 +43,7 @@ next-env.d.ts
 
 # local deployment archives
 smart-surgical-team-site*.tar.gz
+
+# local tooling output
+tsconfig.tsbuildinfo
+.playwright-mcp/
