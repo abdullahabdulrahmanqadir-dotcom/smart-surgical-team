@@ -339,6 +339,43 @@ spec: `docs/superpowers/specs/2026-07-26-topics-progressive-drilldown-design.md`
   RTL `letter-spacing: normal` + Noto fonts + mirrored arrows, single-column
   mobile with no horizontal overflow, console clean.
 
+### Latest implemented change — three-level condition/case drill-down
+
+The client refined the drill-down again: they want a **third level**. Choosing a
+topic opens its **conditions** horizontally (papillary carcinoma, follicular
+carcinoma, goiter, …), and choosing a condition reveals its **case-video boxes**
+to browse. Reference for the content shape: the team's current site,
+`ssthyroid.com/gallery` — each item is a titled surgical case with a short
+clinical history, date, read time and (often) a video.
+
+- `app/lib/topics.ts` gained a third level: `SubTopic` now represents a
+  **condition** and carries `cases: CaseVideo[]`. The thyroid group's conditions
+  come from the client's own `identity/icons/` set (papillary/follicular/
+  medullary carcinoma, goiter, thyroglossal cyst, parathyroid); those five icons
+  were copied into `public/topic-icons/`. **PLACEHOLDER:** each `cases` entry is
+  a *real example* pulled from ssthyroid.com solely to show the populated layout
+  — no real destinations, mark-and-replace in Phase 2. Follicular and medullary
+  carcinoma have no example yet and intentionally show the empty state.
+- `TopicsExplorer.tsx`: Level 2 is a horizontal **condition rail** (tabs) with a
+  per-condition case count; Level 3 is a horizontally-scrolled **case rail** of
+  `CaseCard`s (video/read badge, title, summary, date, read time) with a labelled
+  "example cases … library in preparation" caption, or an honest per-condition
+  "Cases in preparation" empty state.
+- CSS: `.condition-rail`/`.condition-chip`, `.case-rail`/`.case-card`,
+  `.case-empty` added; the old `.subtopic-*`, `.topic-empty-state*`,
+  `.topic-detail-grid/-heading` rules removed. RTL-safe (logical props, tracking
+  tokens; both rails scroll internally so the page never overflows).
+- Verification: build passes; ESLint clean on changed files; `tsc` only the three
+  scaffold errors; **13/13** rendered-route tests pass (new tests assert the
+  condition rail, case cards, the empty state, and that examples are labelled as
+  placeholders). Browser-verified en/ar/ckb incl. RTL tracking/fonts, condition
+  switching, empty vs populated conditions, mobile with no page overflow, console
+  clean.
+
+Open follow-ups: the copied condition PNGs are raw (not optically cropped like
+the topic-icons) — they may need the same transparent-canvas treatment. Case
+cards have no destination yet by design.
+
 ### Next agent
 
 1. Start from the commit recorded after this section on `codex/phase-1a-topics`.

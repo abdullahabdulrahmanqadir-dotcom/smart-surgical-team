@@ -4,9 +4,9 @@ import { useEffect, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
-import type { TopicGroup } from "../lib/topics";
+import type { SubTopic, TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
-import { IconArrowRight, IconFile, IconSparkle } from "./icons";
+import { IconArrowRight, IconFile, IconSparkle, IconPlay } from "./icons";
 
 /**
  * Temporary visual prototypes only. Replace all anatomy model renders with a
@@ -50,6 +50,38 @@ function isPlainClick(event: MouseEvent) {
 
 function firstSub(group: TopicGroup | undefined) {
   return group?.subTopics[0]?.slug ?? null;
+}
+
+/**
+ * A single case-video box. PLACEHOLDER: the case is a real example from the
+ * team's current archive and has no destination yet, so the card is a static
+ * preview rather than a link. Phase 2 turns it into a link to the real video.
+ */
+function CaseCard({ item, t }: { item: NonNullable<SubTopic["cases"]>[number]; t: Dictionary["topics"] }) {
+  return (
+    <article className="case-card">
+      <span className="case-card-type">
+        {item.hasVideo ? (
+          <>
+            <IconPlay size={14} /> {t.caseVideoLabel}
+          </>
+        ) : (
+          <>
+            <IconFile size={14} /> {t.caseReadLabel}
+          </>
+        )}
+      </span>
+      <h4 className="case-card-title">{item.title}</h4>
+      <p className="case-card-summary">{item.summary}</p>
+      <span className="case-card-foot">
+        <span>{item.date}</span>
+        <span aria-hidden="true">·</span>
+        <span>
+          {item.readMinutes} {t.minRead}
+        </span>
+      </span>
+    </article>
+  );
 }
 
 export default function TopicsExplorer({
@@ -103,7 +135,8 @@ export default function TopicsExplorer({
     else open(slug);
   }
 
-  const activeSubName = activeGroup?.subTopics.find((sub) => sub.slug === openSub)?.name;
+  const activeCondition = activeGroup?.subTopics.find((sub) => sub.slug === openSub);
+  const activeCases = activeCondition?.cases ?? [];
   const guideIntro = activeGroup
     ? t.guideIntroActive.replace("{name}", activeGroup.name)
     : t.guideIntro;
@@ -151,7 +184,8 @@ export default function TopicsExplorer({
         })}
       </div>
 
-      {/* Level 2/3 — only the chosen topic's branch is in the flow. */}
+      {/* Level 2/3 — only the chosen topic's branch is in the flow. Conditions
+          run horizontally; the chosen condition's case videos sit below. */}
       {activeGroup ? (
         <div className="topic-branch" key={activeGroup.slug}>
           <div className="topic-branch-head">
@@ -162,57 +196,61 @@ export default function TopicsExplorer({
               <TopicGlyph icon={activeGroup.icon} imageIcon={activeGroup.imageIcon} size={58} />
             </span>
             <div>
-              <p className="section-kicker">{t.focusAreas}</p>
-              <h3>{activeGroup.name}</h3>
+              <p className="section-kicker">{activeGroup.name}</p>
+              <h3>{t.conditions}</h3>
               <p className="topic-branch-intro">{activeGroup.intro}</p>
             </div>
           </div>
 
-          <div className="topic-detail-grid">
-            <div className="subtopic-list">
-              {activeGroup.subTopics.map((sub, index) => {
-                const isOpen = openSub === sub.slug;
-                return (
-                  <button
-                    type="button"
-                    key={sub.slug}
-                    className={`subtopic-item${isOpen ? " is-open" : ""}`}
-                    aria-expanded={isOpen}
-                    aria-controls={`topic-leaf-${activeGroup.slug}`}
-                    onClick={() => setOpenSub(sub.slug)}
-                  >
-                    <span className="subtopic-number" aria-hidden="true">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span className="subtopic-icon" aria-hidden="true">
-                      <TopicGlyph icon={activeGroup.icon} imageIcon={sub.imageIcon} size={46} />
-                    </span>
-                    <span className="subtopic-name">{sub.name}</span>
-                    <IconArrowRight className="subtopic-arrow" size={16} />
-                  </button>
-                );
-              })}
-            </div>
+          {/* Conditions — horizontal, selectable. */}
+          <div className="condition-rail" role="tablist" aria-label={t.conditions}>
+            {activeGroup.subTopics.map((sub) => {
+              const isOpen = openSub === sub.slug;
+              const count = sub.cases?.length ?? 0;
+              return (
+                <button
+                  type="button"
+                  key={sub.slug}
+                  role="tab"
+                  aria-selected={isOpen}
+                  aria-controls={`cases-${activeGroup.slug}`}
+                  className={`condition-chip${isOpen ? " is-open" : ""}`}
+                  onClick={() => setOpenSub(sub.slug)}
+                >
+                  <span className="condition-chip-glyph" aria-hidden="true">
+                    <TopicGlyph icon={activeGroup.icon} imageIcon={sub.imageIcon} size={30} />
+                  </span>
+                  <span className="condition-chip-name">{sub.name}</span>
+                  {count > 0 ? <span className="condition-chip-count">{count}</span> : null}
+                </button>
+              );
+            })}
+          </div>
 
-            {/* Level 3 — honest empty state. The container Phase 2 fills. */}
-            <aside
-              className="topic-empty-state"
-              id={`topic-leaf-${activeGroup.slug}`}
-              role="region"
-              aria-live="polite"
-            >
-              <span className="topic-empty-icon" aria-hidden="true">
-                <IconFile size={26} />
-                <IconSparkle className="topic-empty-sparkle" size={16} />
-              </span>
-              <p className="section-kicker">
-                {activeSubName
-                  ? `${t.collectionKicker} · ${activeSubName}`
-                  : t.collectionKicker}
-              </p>
-              <h2>{t.collectionTitle}</h2>
-              <p>{t.collectionBody}</p>
-            </aside>
+          {/* Case videos for the chosen condition, or an honest empty state. */}
+          <div className="condition-panel" id={`cases-${activeGroup.slug}`} role="tabpanel" aria-live="polite">
+            {activeCases.length > 0 ? (
+              <>
+                <p className="case-caption">{t.exampleCaption}</p>
+                <div className="case-rail">
+                  {activeCases.map((item) => (
+                    <CaseCard item={item} t={t} key={item.slug} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="case-empty">
+                <span className="case-empty-icon" aria-hidden="true">
+                  <IconFile size={22} />
+                  <IconSparkle className="case-empty-sparkle" size={14} />
+                </span>
+                <div>
+                  <p className="section-kicker">{t.collectionKicker}</p>
+                  <h4>{t.caseEmptyTitle}</h4>
+                  <p>{t.caseEmptyBody}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="topic-branch-more">

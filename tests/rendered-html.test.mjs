@@ -131,26 +131,42 @@ test("bare topic index renders the region chooser with no branch opened", async 
   }
 });
 
-test("every topic detail route renders its focus areas and designed empty state", async () => {
+test("every topic detail route opens its condition rail with cases or an empty state", async () => {
+  // [slug, heading, a condition it lists, whether the first condition has cases]
   const routes = [
-    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Parathyroid"],
-    ["salivary-glands", "Salivary Glands", "Parotid"],
-    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses"],
-    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions"],
+    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma", true],
+    ["salivary-glands", "Salivary Glands", "Submandibular", true],
+    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses", false],
+    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions", true],
   ];
 
   for (const locale of ["en", "ar", "ckb"]) {
-    for (const [slug, heading, focusArea] of routes) {
+    for (const [slug, heading, condition, firstHasCases] of routes) {
       const response = await fetchPath(`/${locale}/topics/${slug}`);
       assert.equal(response.status, 200, `${locale}/${slug} should resolve`);
       const html = await response.text();
 
       assert.match(html, new RegExp(heading));
-      assert.match(html, new RegExp(focusArea));
-      assert.match(html, /Programme in preparation/);
+      // The condition rail lists every condition in the group.
+      assert.match(html, /class="condition-chip/, `${locale}/${slug} renders the condition rail`);
+      assert.match(html, new RegExp(condition), `${locale}/${slug} lists ${condition}`);
+      // The first condition is open by default: either real case cards or the
+      // honest per-condition empty state.
+      if (firstHasCases) {
+        assert.match(html, /class="case-card"/, `${locale}/${slug} shows case cards`);
+      } else {
+        assert.match(html, /class="case-empty"/, `${locale}/${slug} shows the empty state`);
+      }
       assert.match(html, new RegExp(`href="/${locale}/topics"`));
     }
   }
+});
+
+test("the thyroid route surfaces a real example case under papillary carcinoma", async () => {
+  const html = await (await fetchPath("/en/topics/thyroid-parathyroid")).text();
+  assert.match(html, /Recurrent Papillary Thyroid Carcinoma/);
+  // Example cases must be labelled as placeholder previews, not real library content.
+  assert.match(html, /Example cases from the team/);
 });
 
 test("thyroid detail uses the supplied, centred transparent anatomical artwork", async () => {
