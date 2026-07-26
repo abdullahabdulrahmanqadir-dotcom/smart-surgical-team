@@ -8,20 +8,25 @@
  * runtime and has nothing to disable for reduced-motion.
  */
 export default function TopicHero({
-  eyebrow,
   title,
   intro,
   children,
 }: {
-  eyebrow: string;
   title: string;
   intro: string;
   children?: React.ReactNode;
 }) {
   return (
     <section className="topic-hero">
-      <div className="topic-hero-art" aria-hidden="true">
-        <svg viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid slice" role="presentation">
+      <div className="topic-hero-inner">
+        <div className="topic-hero-copy">
+          <h1>{title}</h1>
+          <p className="topic-hero-intro">{intro}</p>
+          {children}
+        </div>
+
+        <div className="topic-hero-art" aria-hidden="true">
+          <svg viewBox="0 0 620 420" preserveAspectRatio="xMidYMid slice" role="presentation">
           <defs>
             <linearGradient id="th-fade" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="var(--brand-teal)" stopOpacity="0.55" />
@@ -34,16 +39,16 @@ export default function TopicHero({
             </radialGradient>
           </defs>
 
-          <rect width="1200" height="340" fill="url(#th-glow)" />
+          <rect width="620" height="420" fill="url(#th-glow)" />
 
           {/* Contour field — concentric arcs suggesting anatomical section. */}
           <g fill="none" stroke="url(#th-fade)" strokeWidth="1.1">
             {Array.from({ length: 14 }, (_, i) => (
               <path
                 key={i}
-                d={`M ${-40 + i * 18} 340 C ${180 + i * 26} ${250 - i * 13}, ${520 + i * 20} ${
-                  300 - i * 16
-                }, ${1240} ${120 - i * 8}`}
+                d={`M ${-48 + i * 14} 420 C ${120 + i * 18} ${300 - i * 11}, ${280 + i * 15} ${
+                  350 - i * 14
+                }, ${670} ${135 - i * 9}`}
               />
             ))}
           </g>
@@ -51,25 +56,18 @@ export default function TopicHero({
           {/* Nodes along the field, echoing the home page hero's particles. */}
           <g fill="var(--brand-teal)" opacity="0.35">
             {[
-              [220, 196],
-              [352, 150],
-              [489, 214],
-              [634, 132],
-              [757, 188],
-              [905, 118],
-              [1046, 170],
+              [118, 236],
+              [195, 182],
+              [286, 257],
+              [374, 156],
+              [447, 222],
+              [539, 141],
             ].map(([cx, cy]) => (
               <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.5" />
             ))}
           </g>
         </svg>
-      </div>
-
-      <div className="topic-hero-copy">
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="topic-hero-intro">{intro}</p>
-        {children}
+        </div>
       </div>
     </section>
   );

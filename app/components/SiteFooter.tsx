@@ -1,6 +1,6 @@
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
-import { TOPIC_GROUPS } from "../lib/topics";
+import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import {
   BrandMark,
   IconGlobe,
@@ -77,7 +77,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             page is already Kurdish. */}
         <nav className="footer-col" aria-label={dict.topics.title}>
           <h3>{dict.topics.title}</h3>
-          {TOPIC_GROUPS.map((group) => (
+          {PUBLIC_TOPIC_GROUPS.map((group) => (
             <a key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
               {group.name}
             </a>

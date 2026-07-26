@@ -43,7 +43,7 @@ extracting the shared components out of `app/[locale]/page.tsx`, and splitting
 is still one file. Do that as part of the first page build, not as a separate
 pass.
 
-## Phase 1 — Public site
+## Phase 1b — Public discovery release
 
 Every page uses Phase 0 primitives. Placeholder copy is marked with a `PLACEHOLDER` comment so the content pass can find it.
 
@@ -66,7 +66,7 @@ Events and the Library.
 
 **Done when:** all nav links resolve, no dead ends, responsive and dark-mode clean, Lighthouse accessibility ≥ 95 on every page.
 
-## Phase 2 — Content data layer
+## Phase 2 — Content foundation
 
 - Supabase schema: `content_items`, `topics`, `contributors`, `webinars`, `events`, `content_topics`, `content_contributors`. Publish state + `publish_at` for scheduled publishing.
 - Row-level security: published content readable by anyone, drafts staff-only.
@@ -76,7 +76,7 @@ Events and the Library.
 
 **Done when:** you can add a video in Supabase and see it appear on the live site without a deploy.
 
-## Phase 3 — Members
+## Phases 3a and 3b — Identity, access and member learning
 
 - Supabase Auth: email/password, registration capturing name, email, phone, city, profession into a `profiles` table.
 - Session handling in the Worker runtime; protected routes; role column (`owner`, `content_manager`, `editor`, `contributor`, `member`).
@@ -104,3 +104,156 @@ Certificates · testimonials · outcomes statistics · appointment booking · cu
 - Build scripts use Unix env syntax — run builds through the Bash tool, not PowerShell.
 - No breast content. Never present total laryngectomy as an SST procedure.
 - Secrets: `NEXT_PUBLIC_*` are build-time variables; `SUPABASE_SERVICE_ROLE_KEY` is a runtime secret. Never inline the service key into client bundles.
+
+---
+
+## Delivery map — agreed future scope
+
+The product is delivered in two releases. A phase must meet its definition of
+done and be reviewed on the live Cloudflare Workers deployment before the next
+phase begins. This keeps the public site, data layer and member experience from
+becoming one unreviewable release.
+
+This delivery map is the controlling scope statement. The earlier phase notes
+remain useful as detailed checklists; where they conflict with this map, this
+map wins.
+
+| Release | Outcome | Included phases | Explicitly excluded |
+| --- | --- | --- | --- |
+| **Release A — Public discovery** | A credible, complete public site explaining SST, its team, topics and educational programme, with every public navigation path working. | Phase 1a and Phase 1b | Accounts, protected viewing, real content management, registration, certificates, booking |
+| **Release B — Member learning platform** | A secure account and content experience: members can access, find and follow approved learning material. | Phases 2, 3a and 3b | Custom admin, certificates, public comments, appointment booking, public YouTube promotion |
+| **Release C — Content and launch polish** | Real approved content, translations, operational integrations and launch readiness. | Phase 4 | New product features unless separately approved |
+
+### Delivery rules
+
+- **One phase, one deployable outcome.** Work in a feature branch; merge to
+  `main` only after its checks pass. Cloudflare Workers Builds publishes `main`.
+- **No design-by-implementation.** Before a new page or major interaction, agree
+  its hero, hierarchy and primary action with the client and record the choice.
+- **Placeholders are structural only.** They must be marked `PLACEHOLDER`; do not
+  invent patient outcomes, lesson counts, biographies, contact details or dates.
+- **A missing dependency is not a reason to fake a feature.** Ship an approved
+  static/empty state or defer the capability to its named phase.
+- **Every phase ends with a live review.** Record the deployed commit, tested
+  routes, decisions made, and remaining client inputs in `HANDOFF.md`.
+
+### Release gates
+
+| Gate | Required evidence |
+| --- | --- |
+| Build | Production build, route tests and lint pass; no new console errors. |
+| Experience | 375px, 768px, 1024px and 1440px checked; `/en`, `/ar` and `/ckb` checked for every new shared pattern. |
+| Accessibility | Keyboard path, visible focus, headings/landmarks, contrast, reduced motion, and no horizontal overflow checked. |
+| Content | Taxonomy and surgical examples match `PROJECT_BRIEF.md`; no breast content or total-laryngectomy feature claim. |
+| Deployment | The approved commit is on `main`, Cloudflare Workers deployment succeeds, then the client reviews the live URL. |
+
+### Phase 1a — Topics: finish the current bounded slice
+
+**Objective:** establish the reusable topic-exploration pattern without starting
+other public pages.
+
+**In scope:** the published topic index, one route template serving every
+published topic group,
+cinematic topic hero, shared footer, linked featured topics on the home page,
+an approved no-content state, and route/RTL coverage.
+
+**Out of scope:** real lesson records, filtering, accounts, new public-page
+layouts, and a content-management integration.
+
+**Exit criteria:** every published topic card opens a working detail route; the home-page
+cards use `FEATURED_TOPICS`; all new styles exist and use RTL-safe tokens; the
+three locales render correctly; build, lint and expanded route tests pass; the
+client reviews the deployed branch after merge.
+
+**Client decision required before implementation resumes:** choose the topic
+empty-state treatment — either a quiet “programme in preparation” state now, or
+hold topic detail pages until initial content is available. Do not decide this
+silently.
+
+### Phase 1b — Public discovery release
+
+**Objective:** complete the public-information experience using the topic-card
+and page-shell patterns proved in Phase 1a.
+
+**Suggested build order:**
+
+1. About and Contributors (establish people/profile pattern)
+2. Webinars and Events (establish chronological/content-card pattern)
+3. Contact (connect the existing contact endpoint; destinations remain clearly
+   placeholder until supplied)
+4. Public Library preview (browse structure and member-access state only)
+5. Sign-in and registration entry pages (presentation and validation only; no
+   account creation until Phase 3a)
+
+**Release A exit criteria:** all header/footer links resolve; every page has a
+purposeful empty/placeholder state; contact submission has an approved delivery
+destination; no public route promises member-only access; responsive, keyboard,
+RTL and dark-mode checks pass across the shared system.
+
+### Phase 2 — Content foundation
+
+**Objective:** replace presentation-only arrays with a minimal production data
+model while keeping the public experience stable.
+
+**In scope:** Supabase project configuration; tables, migrations and RLS for
+topics, contributors, content items, webinars and events; publish scheduling;
+server-side read paths; safe placeholder seed data; a short dashboard operating
+guide.
+
+**Exit criteria:** a permitted staff member can publish a content item in
+Supabase and see it on the deployed site without a code deployment; unpublished
+items are not public; no service-role credential reaches the browser.
+
+### Phase 3a — Identity and access
+
+**Objective:** make account creation, sign-in and roles real before building
+personal learning state.
+
+**In scope:** Supabase email/password authentication, profile fields, role
+model, session handling, protected library routes, and an email workflow once a
+provider and wording are approved. Google sign-in is enabled only after OAuth
+credentials are supplied.
+
+**Exit criteria:** a new member can register, confirm/activate according to the
+approved wording, sign in/out, and access gated material; roles are enforced
+server-side and tested; account failures are understandable and accessible.
+
+### Phase 3b — Member learning experience
+
+**Objective:** deliver the learning workflows promised at launch on top of the
+approved data and identity foundation.
+
+**In scope:** library search and filters, content access state, YouTube embeds,
+chapters, saved items, viewing progress, webinar registration/reminders, and
+recordings appearing in the library.
+
+**Constraints:** unlisted YouTube links are not a security boundary; sensitive
+material needs a separate private-video decision. Webinar reminders require the
+chosen webinar service and an email provider.
+
+**Exit criteria:** a signed-in member can discover, watch, resume and save an
+approved item; progress and saved items persist; webinar registration has a
+clear confirmation path; public users cannot reach gated learning material.
+
+### Phase 4 — Launch-content and operational readiness
+
+Do this only when the team supplies approved bios, imagery, videos, dates,
+translations, contact details, domain, logo direction and operational accounts.
+The final pass includes per-page metadata and OG images, sitemap/robots,
+analytics decision, image optimisation, live Sorani QA, and a production
+content/permissions review.
+
+### Decision and dependency register
+
+| Needed before | Decision or input | Owner |
+| --- | --- | --- |
+| Phase 1a | Topic-page empty-state treatment | Client |
+| Phase 1b Contact | Contact email, WhatsApp and where submissions are delivered | Client |
+| Phase 2 | Supabase project ownership and production environment values | Client + implementation team |
+| Phase 3a | Activation/confirmation wording; email provider; Google OAuth credentials if Google login is wanted | Client |
+| Phase 3b | Webinar provider and reminder policy; initial approved content; decision for sensitive video hosting | Client |
+| Phase 4 | Bios, photos, translations, final domain and logo direction | Client |
+
+**Certificates remain deferred.** Remove the home-page certificate benefit before
+Release A unless the client explicitly returns certificates to scope and defines
+the completion rules.

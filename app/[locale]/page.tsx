@@ -1,8 +1,10 @@
+import Link from "next/link";
 import LibraryPanel from "../components/LibraryPanel";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import ScrollMotion from "../components/ScrollMotion";
+import TopicGlyph from "../components/TopicGlyph";
 import {
   IconArrowRight,
   IconCheck,
@@ -13,11 +15,10 @@ import {
   IconPlus,
   IconSparkle,
   IconUsers,
-  topicIcons,
-  type TopicIconName,
 } from "../components/icons";
-import { isLocale, type Locale } from "../lib/i18n";
+import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
+import { FEATURED_TOPICS } from "../lib/topics";
 
 const credentials = [
   "Smart Health Tower",
@@ -25,40 +26,6 @@ const credentials = [
   "Skull Base Unit",
   "Reconstructive Surgery",
   "Kurdistan Board Trainees",
-];
-
-type Topic = {
-  name: string;
-  icon: TopicIconName;
-  blurb: string;
-  lessons: string;
-};
-
-const topics: Topic[] = [
-  {
-    name: "Thyroid",
-    icon: "thyroid",
-    blurb: "Thyroidectomy, nerve identification and parathyroid preservation.",
-    lessons: "18 lessons",
-  },
-  {
-    name: "Parotid",
-    icon: "parotid",
-    blurb: "Parotidectomy approaches and facial nerve dissection.",
-    lessons: "12 lessons",
-  },
-  {
-    name: "Lymph Nodes",
-    icon: "lymph",
-    blurb: "Neck dissection by level, staging and nodal disease.",
-    lessons: "16 lessons",
-  },
-  {
-    name: "Skin Lesions",
-    icon: "skin",
-    blurb: "Excision, margins and reconstruction of head & neck skin.",
-    lessons: "9 lessons",
-  },
 ];
 
 const webinars = [
@@ -102,7 +69,7 @@ export default async function Home({
       <SiteHeader locale={active} dict={dict} />
       <ScrollMotion />
 
-      <main id="top">
+      <main id="main-content">
         {/* ---------------- Hero ---------------- */}
         <section className="hero">
           <div className="hero-inner">
@@ -185,40 +152,48 @@ export default async function Home({
               <span className="section-kicker">Curriculum</span>
               <h2 id="topics-heading">Browse by Topic</h2>
               <p className="section-sub">
-                Four core tracks, each with operative video, imaging review and follow-up
-                discussion.
+                Four highlighted surgical areas from the complete head and neck curriculum.
               </p>
             </div>
-            <a className="text-link" href="#library">
+            <Link className="text-link" href={localePath(active, "topics")}>
               View all topics
               <IconArrowRight size={16} />
-            </a>
+            </Link>
           </div>
 
           <div className="topic-grid">
-            {topics.map((topic) => {
-              const Glyph = topicIcons[topic.icon];
+            {FEATURED_TOPICS.map((topic) => {
               return (
-                <a href="#library" className="topic-card" key={topic.name}>
-                  <span className="topic-glyph">
-                    <Glyph size={48} />
+                <Link
+                  href={localePath(active, `topics/${topic.slug}`)}
+                  className="topic-card"
+                  key={topic.slug}
+                >
+                  <span
+                    className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}
+                  >
+                    <TopicGlyph
+                      icon={topic.icon}
+                      imageIcon={topic.imageIcon}
+                      size={64}
+                    />
                   </span>
                   <b>{topic.name}</b>
                   <p>{topic.blurb}</p>
                   <span className="topic-foot">
-                    <small>{topic.lessons}</small>
+                    <small>{dict.topics.exploreGroup}</small>
                     <span className="topic-go" aria-hidden="true">
                       <IconArrowRight size={16} />
                     </span>
                   </span>
-                </a>
+                </Link>
               );
             })}
           </div>
         </section>
 
         {/* ---------------- Library + featured ---------------- */}
-        <section className="section section-muted section-library" id="main-content">
+        <section className="section section-muted section-library" id="library">
           <div className="section-head">
             <div>
               <span className="section-kicker">Learn</span>

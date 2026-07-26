@@ -29,9 +29,10 @@ export default function LanguageSwitcher({
             href={swapLocaleInPath(pathname, code)}
             className={active ? "is-active" : undefined}
             lang={meta.htmlLang}
+            aria-label={meta.label}
             // The switcher is navigation, not a toggle group, so the active
             // language is marked as the current page rather than "pressed".
-            aria-current={active ? "true" : undefined}
+            aria-current={active ? "page" : undefined}
             title={meta.label}
           >
             {meta.short}

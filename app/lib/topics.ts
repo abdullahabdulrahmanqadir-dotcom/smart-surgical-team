@@ -17,6 +17,7 @@ import type { TopicIconName } from "../components/icons";
 export type SubTopic = {
   slug: string;
   name: string;
+  imageIcon?: string;
 };
 
 export type TopicGroup = {
@@ -27,9 +28,15 @@ export type TopicGroup = {
   /** Longer introduction shown on the group's own page. */
   intro: string;
   icon: TopicIconName;
+  imageIcon?: string;
   subTopics: SubTopic[];
   /** Shown on the home page's curated teaser grid. */
   featured: boolean;
+  /**
+   * Keeps a planned taxonomy group in the data model without publishing it
+   * before its programme is ready.
+   */
+  visible?: boolean;
 };
 
 export const TOPIC_GROUPS: TopicGroup[] = [
@@ -40,9 +47,18 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Operative technique across the thyroid and parathyroid glands, with particular attention to recurrent laryngeal nerve identification, parathyroid preservation and haemostasis.",
     icon: "thyroid",
+    imageIcon: "/topic-icons/thyroid-sst-cropped.png",
     subTopics: [
-      { slug: "thyroid", name: "Thyroid" },
-      { slug: "parathyroid", name: "Parathyroid" },
+      {
+        slug: "thyroid",
+        name: "Thyroid",
+        imageIcon: "/topic-icons/thyroid-sst-cropped.png",
+      },
+      {
+        slug: "parathyroid",
+        name: "Parathyroid",
+        imageIcon: "/topic-icons/parathyroid-sst-cropped.png",
+      },
     ],
     featured: true,
   },
@@ -53,7 +69,14 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Surgery of the salivary glands, centred on parotid approaches and the facial nerve dissection that defines the operation.",
     icon: "parotid",
-    subTopics: [{ slug: "parotid", name: "Parotid" }],
+    imageIcon: "/topic-icons/parotid-sst-cropped.png",
+    subTopics: [
+      {
+        slug: "parotid",
+        name: "Parotid",
+        imageIcon: "/topic-icons/parotid-sst-cropped.png",
+      },
+    ],
     featured: true,
   },
   {
@@ -63,6 +86,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Neck dissection presented level by level, alongside the assessment and staging of nodal disease and the workup of neck masses.",
     icon: "lymph",
+    imageIcon: "/topic-icons/lymph-nodes-tabler.svg",
     subTopics: [
       { slug: "lymph-nodes", name: "Lymph Nodes" },
       { slug: "neck-masses", name: "Neck Masses" },
@@ -76,6 +100,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Management of skin and soft tissue lesions of the head and neck, from excision and margin planning through to reconstruction.",
     icon: "skin",
+    imageIcon: "/topic-icons/skin-tabler.svg",
     subTopics: [{ slug: "skin-lesions", name: "Skin Lesions" }],
     featured: true,
   },
@@ -91,6 +116,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
       { slug: "larynx", name: "Larynx" },
     ],
     featured: false,
+    visible: false,
   },
 ];
 
@@ -98,5 +124,12 @@ export function getTopicGroup(slug: string): TopicGroup | undefined {
   return TOPIC_GROUPS.find((group) => group.slug === slug);
 }
 
+export function getPublicTopicGroup(slug: string): TopicGroup | undefined {
+  return PUBLIC_TOPIC_GROUPS.find((group) => group.slug === slug);
+}
+
+/** Groups currently published in the curriculum index and public navigation. */
+export const PUBLIC_TOPIC_GROUPS = TOPIC_GROUPS.filter((group) => group.visible !== false);
+
 /** The curated subset shown on the home page, kept to a four-card grid. */
-export const FEATURED_TOPICS = TOPIC_GROUPS.filter((group) => group.featured);
+export const FEATURED_TOPICS = PUBLIC_TOPIC_GROUPS.filter((group) => group.featured);

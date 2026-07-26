@@ -33,11 +33,18 @@ const en = {
     learnMore: "Learn more",
   },
   topics: {
-    kicker: "Curriculum",
+    kicker: "Topics",
     title: "Browse by Topic",
     intro:
-      "Four core tracks, each with operative video, imaging review and follow-up discussion.",
-    lessonCount: "{count} lessons",
+      "Four focused surgical tracks for structured study across head and neck surgery.",
+    exploreGroup: "Explore topic",
+    focusAreas: "Focus areas",
+    collectionKicker: "Learning collection",
+    collectionTitle: "Programme in preparation",
+    collectionBody:
+      "The structure is ready. Approved operative videos, imaging reviews and discussions will appear here as the curriculum is published.",
+    backToTopics: "All topics",
+    otherTopics: "Continue exploring",
   },
   footer: {
     rights: "All rights reserved.",

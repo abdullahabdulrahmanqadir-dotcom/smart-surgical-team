@@ -233,3 +233,92 @@ The browser pane is frequently unavailable for screenshots in this environment.
 4. Still unanswered from the brief: Zoom vs another webinar provider; contact
    email and WhatsApp number; domain name; email delivery provider; exact
    account-activation wording.
+
+---
+
+## 9. Current implementation update — 2026-07-26
+
+This section supersedes the paused-WIP status above.
+
+Phase 1a has been resumed on `codex/phase-1a-topics`, based on current `main`
+with the two original WIP commits brought forward. The old
+`phase-1a-topics-wip` branch is preserved unchanged.
+
+### Implemented locally
+
+- Topics index rebuilt as an editorial two-panel hero with an intentional four-card layout.
+- Four locale-prefixed topic detail routes generated from the shared taxonomy.
+- Focus-area lists, cross-links, and a designed “Programme in preparation”
+  state while approved learning content is pending.
+- Home-page topic cards now use `FEATURED_TOPICS`; invented lesson counts are
+  removed.
+- Header links work from nested routes and preserve the active locale.
+- Responsive layouts, dark/light themes, RTL-safe styles and reduced-motion
+  behavior.
+- Expanded rendered-route suite: 12 tests covering the index, every published topic
+  detail route in all three locales, shared taxonomy links and 404 behavior.
+
+### Verification
+
+- Production `vinext` build: passing.
+- ESLint: passing.
+- Rendered-route tests: 10/10 passing.
+- Browser review: English mobile, dark theme, responsive icons,
+  mobile navigation, no horizontal overflow, correct RTL font/tracking, and no
+  console warnings/errors.
+- `tsc --noEmit` still reports only the three documented scaffold errors in
+  `db/index.ts` and `worker/index.ts`; no app-code type error was introduced.
+
+### Current gate
+
+The implementation is ready for client review but is not merged or deployed.
+Review the designed empty state and visual direction first. After approval,
+commit the remaining working changes, push the feature branch, merge to `main`,
+confirm the Cloudflare Workers deployment, then stop before Phase 1b.
+
+### Latest client-directed refinement (not deployed)
+
+- The Upper Aerodigestive Tract group is retained in the taxonomy but is marked
+  unpublished: it is absent from the public index, footer, related cards and
+  public detail routes until the team elects to publish it.
+- The hero no longer contains the “Curriculum” badge. Its copy now describes
+  the four published tracks.
+- Thyroid and salivary artwork is optically cropped on transparent canvases so
+  it sits centred in each tile. Neck/Lymphatic and Skin/Soft Tissue now use
+  locally served, recoloured Tabler SVGs; their MIT notice is kept with the
+  assets in `public/topic-icons/THIRD_PARTY_NOTICES.md`.
+- Current validation: lint, production build, `git diff --check`, and 12/12
+  rendered-route tests pass. The English mobile page was checked with no console
+  errors. Re-run the full multi-locale visual gate before deployment.
+
+### Latest implemented change — sectioned topic library
+
+The client asked for the lower Topics-page experience to be a real catalogue:
+**categories as sections, with clickable boxes representing learning content
+within each category.** This is implemented in `app/components/TopicsExplorer.tsx`.
+
+- The anatomy chooser and four category selectors remain at the top of
+  `/:locale/topics`.
+- `topic-library` renders one section per published topic group. Each has a
+  category header, an overview card, and one focused-area card per taxonomy
+  subtopic.
+- Cards link to the existing published topic-detail route. There are no approved
+  video assets or individual lesson routes yet, so the UI labels them **Category
+  guide** and **Focused learning area** rather than implying video playback.
+- Selecting a top category still focuses the anatomy image and now also outlines
+  its matching library section.
+- CSS in `app/globals.css` uses three columns on wide screens, two below 900px,
+  and one below 620px. Cards preserve visible keyboard focus and 200ms feedback.
+- `tests/rendered-html.test.mjs` now asserts the four learning sections,
+  category-guide markup, and locale-correct links. A production build and all
+  12 rendered-route tests pass.
+
+### Next agent
+
+1. Start from the commit recorded after this section on `codex/phase-1a-topics`.
+2. Treat this as structural catalogue UI only. Do not add invented lesson titles,
+   counts, video durations, thumbnails, or playback controls. Add real content
+   cards only after Phase 2 provides approved content records and destinations.
+3. Before merging to `main`, complete the documented three-locale visual gate
+   (including keyboard and RTL checks) and obtain client review. Do not start
+   Phase 1b before that approval.
