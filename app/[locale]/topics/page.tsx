@@ -46,7 +46,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <main id="main-content">
         <section className="section section-topic-index" aria-labelledby="topic-index-heading">
           <h1 className="visually-hidden" id="topic-index-heading">{dict.topics.title}</h1>
-          <TopicsExplorer groups={PUBLIC_TOPIC_GROUPS} locale={active} />
+          <TopicsExplorer groups={PUBLIC_TOPIC_GROUPS} locale={active} t={dict.topics} />
         </section>
       </main>
 

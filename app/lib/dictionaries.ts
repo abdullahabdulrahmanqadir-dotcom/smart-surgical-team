@@ -38,6 +38,14 @@ const en = {
     intro:
       "Four focused surgical tracks for structured study across head and neck surgery.",
     exploreGroup: "Explore topic",
+    guideKicker: "Anatomical guide",
+    guideTitle: "Start with the region",
+    guideIntro:
+      "Select a highlighted area or one of the topic cards to move from the whole head and neck to a focused surgical view.",
+    guideIntroActive:
+      "Focused on {name}. Open a focus area below to preview the programme being prepared for it.",
+    chooseRegion:
+      "Select a region above and its focus areas will open here.",
     focusAreas: "Focus areas",
     collectionKicker: "Learning collection",
     collectionTitle: "Programme in preparation",

@@ -101,26 +101,31 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
   assert.match(html, /href="\/en\/topics"/);
 });
 
-test("topic index renders a sectioned learning library with cards linking to published topics", async () => {
+test("bare topic index renders the region chooser with no branch opened", async () => {
   for (const locale of ["en", "ar", "ckb"]) {
     const response = await fetchPath(`/${locale}/topics`);
     assert.equal(response.status, 200);
     const html = await response.text();
 
+    // Four published groups, each a crawlable deep-link into its own branch.
     assert.equal(
-      (html.match(/class="topic-library-section"/g) ?? []).length,
+      (html.match(/class="topic-selector(?:[ "])/g) ?? []).length,
       4,
-      `${locale} should render the four published learning sections`,
+      `${locale} should render the four region selectors`,
     );
+    assert.match(html, new RegExp(`href="/${locale}/topics/thyroid-parathyroid"`));
+    assert.match(html, new RegExp(`href="/${locale}/topics/neck-lymphatic"`));
+
     assert.doesNotMatch(html, /Upper Aerodigestive Tract/);
     assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
     assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
     assert.match(html, /\/topic-icons\/lymph-nodes-tabler\.svg/);
     assert.match(html, /\/topic-icons\/skin-tabler\.svg/);
-    assert.match(html, /Browse by surgical area/);
-    assert.match(html, /Category guide/);
-    assert.match(html, new RegExp(`href="/${locale}/topics/thyroid-parathyroid"`));
-    assert.match(html, new RegExp(`href="/${locale}/topics/neck-lymphatic"`));
+
+    // No topic is selected, so the branch is the empty prompt and the
+    // empty-state leaf (which only renders inside an open branch) is absent.
+    assert.match(html, /class="topic-branch topic-branch--empty"/, `${locale} shows the choose-a-region prompt`);
+    assert.doesNotMatch(html, /class="topic-empty-state"/, `${locale} should not open a branch by default`);
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);
     assert.doesNotMatch(html, />Parathyroid · Thyroid<|>Oral Cavity · Larynx</);
   }

@@ -313,6 +313,32 @@ within each category.** This is implemented in `app/components/TopicsExplorer.ts
   category-guide markup, and locale-correct links. A production build and all
   12 rendered-route tests pass.
 
+### Latest implemented change — progressive drill-down (this pass)
+
+The client asked for the Topics page to become a guided, progressive experience
+rather than a wall of stacked sections: pick one topic, its branch opens inline
+and the *other* branches disappear; pick a focus area, its content opens. Design
+spec: `docs/superpowers/specs/2026-07-26-topics-progressive-drilldown-design.md`.
+
+- `TopicsExplorer.tsx` now owns three levels on one page: (1) a persistent
+  region chooser, (2) a single focused branch for the chosen topic — only one is
+  ever in the flow at a time, and (3) an inline "Programme in preparation" leaf
+  per focus area (accordion, one open at a time). No content is invented; the
+  leaf is the honest empty state Phase 2 fills.
+- `/topics/[slug]` is now a **deep-link** into the same explorer, server-rendered
+  pre-opened on that group (SEO + shareable + per-topic `<title>` preserved).
+  The bespoke detail page body, `TopicHero.tsx`, and the dead
+  `.topic-hero*` / `.topic-library*` / `.topic-content*` CSS were removed.
+- Selectors and cross-links are real `<a href>` links (crawlable, work without
+  JS); the client intercepts plain clicks and syncs the URL via `pushState`,
+  with a `popstate` listener for back/forward.
+- Verification: build passes; ESLint clean on changed files; `tsc` shows only the
+  three documented scaffold errors; 12/12 rendered-route tests pass (the index
+  test was rewritten for the chooser-only bare state). Browser-verified in
+  `/en`, `/ar`, `/ckb`: inline drill-down, URL sync, subtopic accordion,
+  RTL `letter-spacing: normal` + Noto fonts + mirrored arrows, single-column
+  mobile with no horizontal overflow, console clean.
+
 ### Next agent
 
 1. Start from the commit recorded after this section on `codex/phase-1a-topics`.
