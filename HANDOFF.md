@@ -160,18 +160,17 @@ The client answered the Topics design interview:
 | `app/lib/topics.ts` | **Good.** 5-group taxonomy, single source of truth. | Keep as-is. |
 | `app/components/TopicHero.tsx` | Markup good, **no CSS exists**. | Write its CSS. |
 | `app/[locale]/topics/page.tsx` | Markup good, **no CSS exists**, never rendered. | Write CSS, then verify. |
-| `app/components/SiteFooter.tsx` | **Wrong approach — rewrite.** | See below. |
+| `app/components/SiteFooter.tsx` | **Fixed** — branch commit `16c12b4`. | Done; see defect 1. |
 
 ### Known defects in the WIP
 
-1. **`SiteFooter.tsx` duplicates an existing footer.** `app/[locale]/page.tsx`
-   already has an inline `<footer className="site-footer" id="contact">` at
-   ~line 463, with working styles in `globals.css` (`.site-footer`,
-   `.footer-brand`, `.footer-col`). The new component invented *different* class
-   names (`.footer-inner`, `.footer-heading`, `.footer-base`) that have no CSS.
-   **Correct approach: extract the existing footer out of `page.tsx` into the
-   component, preserving its class names**, then add the topic links to it.
-   Do not write a second footer.
+1. **`SiteFooter.tsx` duplicated an existing footer — FIXED (branch commit
+   `16c12b4`).** The component now uses the original class names, whose styles
+   already exist in `globals.css`; the inline `<footer>` was removed from
+   `page.tsx` and replaced with `<SiteFooter>`; the hardcoded Sorani column and
+   its orphaned `.footer-kr` CSS are gone, replaced by a topic list generated
+   from the shared taxonomy; footer strings moved into the dictionary; a test
+   guards against a duplicate footer reappearing. Nothing left to do here.
 
 2. **13 of 15 CSS classes used by the WIP do not exist.** Missing:
    `.visually-hidden`, `.topic-index-grid`, `.topic-card-lg`, `.topic-hero`,
@@ -188,7 +187,7 @@ The client answered the Topics design interview:
 
 ### Remaining Phase 1a checklist
 
-- [ ] Rewrite `SiteFooter.tsx` as an extraction of the existing footer
+- [x] ~~Rewrite `SiteFooter.tsx` as an extraction of the existing footer~~ — done, `16c12b4`
 - [ ] Write CSS for the topic hero, index grid and large topic cards
 - [ ] Build `app/[locale]/topics/[slug]/page.tsx` (hero, sub-topic list, empty
       content state, cross-links to other groups)
