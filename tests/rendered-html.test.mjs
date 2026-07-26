@@ -55,6 +55,27 @@ test("serves both RTL locales with the correct direction and language", async ()
   assert.match(await kurdish.text(), /<html[^>]+lang="ckb-Arab"[^>]*dir="rtl"/i);
 });
 
+test("renders exactly one shared footer, locale-correct and free of dropped copy", async () => {
+  for (const locale of ["en", "ar", "ckb"]) {
+    const html = await (await fetchPath(`/${locale}`)).text();
+
+    // The footer was extracted out of the home page into SiteFooter. A second
+    // one reappearing means the inline copy came back.
+    const footers = html.match(/class="site-footer"/g) ?? [];
+    assert.equal(footers.length, 1, `${locale} should render one footer`);
+
+    // The brief rules out a join-focused CTA.
+    assert.doesNotMatch(html, /Join free/i, `${locale} must not offer "Join free"`);
+
+    // The pre-i18n design hardcoded a Sorani column onto every page; the
+    // locale switcher replaces it.
+    assert.doesNotMatch(html, /footer-kr/, `${locale} must not carry the old Kurdish column`);
+
+    // Links must stay inside the active locale.
+    assert.match(html, new RegExp(`href="/${locale}/topics"`), `${locale} links to its own topics`);
+  }
+});
+
 test("every locale offers a switcher linking to all three languages", async () => {
   for (const locale of ["en", "ar", "ckb"]) {
     const html = await (await fetchPath(`/${locale}`)).text();

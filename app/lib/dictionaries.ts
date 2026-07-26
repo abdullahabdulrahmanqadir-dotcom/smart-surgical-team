@@ -41,9 +41,13 @@ const en = {
   },
   footer: {
     rights: "All rights reserved.",
-    explore: "Explore",
-    organisation: "Organisation",
-    connect: "Connect",
+    quickLinks: "Quick links",
+    contactUs: "Contact us",
+    blurb:
+      "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.",
+    privacy: "Privacy Policy",
+    terms: "Terms of Use",
+    hours: "Saturday – Thursday, 9:00 – 17:00",
   },
   common: {
     loading: "Loading",

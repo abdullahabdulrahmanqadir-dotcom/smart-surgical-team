@@ -1877,10 +1877,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   color: var(--primary);
 }
 
-.footer-kr p {
-  flex-direction: row-reverse;
-}
-
 .footer-bottom {
   max-width: var(--content);
   margin: 0 auto;
