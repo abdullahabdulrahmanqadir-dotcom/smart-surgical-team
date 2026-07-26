@@ -1,23 +1,18 @@
 import LibraryPanel from "../components/LibraryPanel";
 import SiteHeader from "../components/SiteHeader";
+import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import ScrollMotion from "../components/ScrollMotion";
 import {
-  BrandMark,
   IconArrowRight,
-  IconCalendar,
   IconCheck,
   IconClock,
   IconFile,
   IconGlobe,
-  IconLinkedin,
-  IconMail,
-  IconPin,
   IconPlay,
   IconPlus,
   IconSparkle,
   IconUsers,
-  IconYoutube,
   topicIcons,
   type TopicIconName,
 } from "../components/icons";
@@ -459,74 +454,7 @@ export default async function Home({
         </section>
       </main>
 
-      {/* ---------------- Footer ---------------- */}
-      <footer className="site-footer" id="contact">
-        <div className="footer-main">
-          <div className="footer-brand">
-            <a className="brand" href="#top">
-              <BrandMark size={32} />
-              <span className="brand-name">
-                Smart Surgical Team
-                <small>Head &amp; Neck Education</small>
-              </span>
-            </a>
-            <p>
-              A dedicated academic hub for head &amp; neck surgery education. Expert insights, better
-              outcomes.
-            </p>
-            <div className="socials">
-              <a href="#top" aria-label="YouTube">
-                <IconYoutube size={18} />
-              </a>
-              <a href="#top" aria-label="LinkedIn">
-                <IconLinkedin size={18} />
-              </a>
-              <a href="mailto:info@smartsurgicalteam.com" aria-label="Email">
-                <IconMail size={18} />
-              </a>
-            </div>
-          </div>
-
-          <nav className="footer-col" aria-label="Quick links">
-            <h3>Quick links</h3>
-            <a href="#library">Browse</a>
-            <a href="#topics">Topics</a>
-            <a href="#webinars">Webinars</a>
-            <a href="#team">Team</a>
-            <a href="#join">Join free</a>
-          </nav>
-
-          <div className="footer-col">
-            <h3>Contact us</h3>
-            <p>
-              <IconMail size={16} />
-              <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>
-            </p>
-            <p>
-              <IconPin size={16} /> Smart Health Tower, Sulaymaniah, Kurdistan Region, Iraq
-            </p>
-            <p>
-              <IconGlobe size={16} /> smartsurgicalteam.com
-            </p>
-          </div>
-
-          <div className="footer-col footer-kr" dir="rtl" lang="ckb">
-            <h3>کوردی</h3>
-            <p>بۆ پەیوەندیکردن و زانیاری زیاتر، تکایە پەیوەندیمان پێوە بکەن.</p>
-            <p>
-              <IconCalendar size={16} /> شەممە – پێنجشەممە، ٩:٠٠ – ١٧:٠٠
-            </p>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span>© 2026 Smart Surgical Team. All rights reserved.</span>
-          <span className="footer-legal">
-            <a href="#top">Privacy Policy</a>
-            <a href="#top">Terms of Use</a>
-          </span>
-        </div>
-      </footer>
+      <SiteFooter locale={active} dict={dict} />
     </>
   );
 }
