@@ -4,9 +4,10 @@ import { useEffect, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
+import type { TopicIconName } from "./icons";
 import type { SubTopic, TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
-import { IconArrowRight, IconFile, IconSparkle, IconPlay } from "./icons";
+import { IconFile, IconSparkle, IconPlay } from "./icons";
 
 /**
  * Temporary visual prototypes only. Replace all anatomy model renders with a
@@ -53,33 +54,45 @@ function firstSub(group: TopicGroup | undefined) {
 }
 
 /**
- * A single case-video box. PLACEHOLDER: the case is a real example from the
- * team's current archive and has no destination yet, so the card is a static
- * preview rather than a link. Phase 2 turns it into a link to the real video.
+ * A single case box: an image-led tile with a short title, echoing the team's
+ * current gallery. PLACEHOLDER: the case is a real example with no destination
+ * yet, so it is a static preview; the thumbnail is a branded stand-in until
+ * Phase 2 supplies real case imagery and a link to the video.
  */
-function CaseCard({ item, t }: { item: NonNullable<SubTopic["cases"]>[number]; t: Dictionary["topics"] }) {
+function CaseCard({
+  item,
+  icon,
+  t,
+}: {
+  item: NonNullable<SubTopic["cases"]>[number];
+  icon: TopicIconName;
+  t: Dictionary["topics"];
+}) {
   return (
     <article className="case-card">
-      <span className="case-card-type">
-        {item.hasVideo ? (
-          <>
-            <IconPlay size={14} /> {t.caseVideoLabel}
-          </>
-        ) : (
-          <>
-            <IconFile size={14} /> {t.caseReadLabel}
-          </>
-        )}
-      </span>
-      <h4 className="case-card-title">{item.title}</h4>
-      <p className="case-card-summary">{item.summary}</p>
-      <span className="case-card-foot">
-        <span>{item.date}</span>
-        <span aria-hidden="true">·</span>
-        <span>
-          {item.readMinutes} {t.minRead}
+      <div className="case-thumb">
+        <span className="case-thumb-art" aria-hidden="true">
+          <TopicGlyph icon={icon} size={84} />
         </span>
-      </span>
+        <span className="case-thumb-tag">
+          {item.hasVideo ? (
+            <>
+              <IconPlay size={12} /> {t.caseVideoLabel}
+            </>
+          ) : (
+            <>
+              <IconFile size={12} /> {t.caseReadLabel}
+            </>
+          )}
+        </span>
+        {item.hasVideo ? (
+          <span className="case-thumb-play" aria-hidden="true">
+            <IconPlay size={20} />
+          </span>
+        ) : null}
+      </div>
+      <h4 className="case-card-title">{item.title}</h4>
+      <span className="case-card-date">{item.date}</span>
     </article>
   );
 }
@@ -232,9 +245,9 @@ export default function TopicsExplorer({
             {activeCases.length > 0 ? (
               <>
                 <p className="case-caption">{t.exampleCaption}</p>
-                <div className="case-rail">
+                <div className="case-grid" key={openSub ?? ""}>
                   {activeCases.map((item) => (
-                    <CaseCard item={item} t={t} key={item.slug} />
+                    <CaseCard item={item} icon={activeGroup.icon} t={t} key={item.slug} />
                   ))}
                 </div>
               </>
@@ -251,28 +264,6 @@ export default function TopicsExplorer({
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="topic-branch-more">
-            <p className="section-kicker">{t.otherTopics}</p>
-            <div className="topic-related-grid">
-              {groups
-                .filter((group) => group.slug !== activeGroup.slug)
-                .map((group) => (
-                  <a
-                    key={group.slug}
-                    className="topic-related-card"
-                    href={localePath(locale, `topics/${group.slug}`)}
-                    onClick={(event) => onSelect(event, group.slug)}
-                  >
-                    <span className="topic-related-glyph" aria-hidden="true">
-                      <TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={40} />
-                    </span>
-                    <strong>{group.name}</strong>
-                    <IconArrowRight className="topic-related-arrow" size={16} />
-                  </a>
-                ))}
-            </div>
           </div>
         </div>
       ) : (

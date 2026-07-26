@@ -376,6 +376,27 @@ Open follow-ups: the copied condition PNGs are raw (not optically cropped like
 the topic-icons) — they may need the same transparent-canvas treatment. Case
 cards have no destination yet by design.
 
+#### Refinement — image-led vertical case grid (impeccable skill)
+
+Client feedback on the first case layout: make the case boxes **vertical**
+(not a horizontal rail), **image-led with just a title** (less text, like the
+current gallery), better designed, and **drop the bottom "Continue exploring"**
+(it duplicates the top region chooser). Applied:
+
+- `CaseCard` is now a borderless, image-led tile: a 16:10 branded thumbnail
+  (teal gradient + faded anatomical glyph watermark + a play badge on video
+  cases + a small CASE VIDEO / CASE STUDY tag) with the title and date beneath.
+  The summary text was removed from the card. **PLACEHOLDER:** thumbnails are a
+  branded stand-in — Phase 2 supplies real case imagery and a link.
+- Cases render in `.case-grid` — `repeat(auto-fill, minmax(15rem, 1fr))`, so the
+  grid flows vertically and reflows to one column on mobile; the page scrolls
+  normally (no internal horizontal rail).
+- The bottom cross-link block and all `.topic-related-*` CSS were removed.
+- Palette/tokens follow `design-system/.../MASTER.md` (teal-deep→teal thumb,
+  tracking tokens so RTL stays join-safe). Verified en/ar/ckb incl. RTL
+  (tracking normal, logical insets flip), video vs read tags, mobile reflow,
+  console clean; build + 13/13 tests pass.
+
 ### Next agent
 
 1. Start from the commit recorded after this section on `codex/phase-1a-topics`.
