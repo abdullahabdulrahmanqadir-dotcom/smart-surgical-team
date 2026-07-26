@@ -2,17 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { BrandMark, IconClose, IconMenu, IconMoon, IconSun } from "./icons";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { localePath, type Locale } from "../lib/i18n";
+import type { Dictionary } from "../lib/dictionaries";
 
-const navLinks = [
-  ["Browse", "#library"],
-  ["Topics", "#topics"],
-  ["Webinars", "#webinars"],
-  ["Team", "#team"],
-  ["Contact", "#contact"],
-];
-
-export default function SiteHeader() {
+export default function SiteHeader({
+  locale,
+  dict,
+}: {
+  locale: Locale;
+  dict: Dictionary;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // In-page anchors until the Phase 1 routes exist; each becomes a real
+  // locale-prefixed path as its page lands.
+  const navLinks: [string, string][] = [
+    [dict.nav.library, "#library"],
+    [dict.nav.topics, "#topics"],
+    [dict.nav.webinars, "#webinars"],
+    [dict.nav.team, "#team"],
+    [dict.nav.contact, "#contact"],
+  ];
 
   useEffect(() => {
     document.body.classList.toggle("nav-open", menuOpen);
@@ -34,10 +45,14 @@ export default function SiteHeader() {
   return (
     <header className="site-header">
       <div className="header-inner">
-        <a className="brand" href="#top" aria-label="Smart Surgical Team, home">
+        <a
+          className="brand"
+          href={localePath(locale)}
+          aria-label={`${dict.brand.name}, ${dict.nav.home}`}
+        >
           <BrandMark />
           <span className="brand-name">
-            Smart Surgical Team
+            {dict.brand.name}
             <small>Head &amp; Neck Education</small>
           </span>
         </a>
@@ -51,14 +66,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="header-actions">
-          <div className="lang-switch" role="group" aria-label="Language">
-            <button type="button" className="is-active" aria-pressed="true">
-              EN
-            </button>
-            <button type="button" aria-pressed="false" lang="ckb">
-              کوردی
-            </button>
-          </div>
+          <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
 
           <button
             type="button"
@@ -72,10 +80,12 @@ export default function SiteHeader() {
           </button>
 
           <a className="btn btn-ghost header-signin" href="#contact">
-            Sign in
+            {dict.nav.signIn}
           </a>
-          <a className="btn btn-primary header-cta" href="#join">
-            Join free
+          {/* The brief specifies "Explore the Library" as the primary action and
+              explicitly rules out a join-focused CTA on the home page. */}
+          <a className="btn btn-primary header-cta" href="#library">
+            {dict.cta.exploreLibrary}
           </a>
 
           <button
@@ -84,7 +94,7 @@ export default function SiteHeader() {
             onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-label={menuOpen ? dict.nav.close : dict.nav.menu}
           >
             {menuOpen ? <IconClose /> : <IconMenu />}
           </button>
@@ -99,10 +109,10 @@ export default function SiteHeader() {
         ))}
         <div className="mobile-nav-actions">
           <a className="btn btn-ghost" href="#contact" onClick={() => setMenuOpen(false)}>
-            Sign in
+            {dict.nav.signIn}
           </a>
-          <a className="btn btn-primary" href="#join" onClick={() => setMenuOpen(false)}>
-            Join free
+          <a className="btn btn-primary" href="#library" onClick={() => setMenuOpen(false)}>
+            {dict.cta.exploreLibrary}
           </a>
         </div>
       </div>

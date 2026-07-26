@@ -17,32 +17,46 @@
 
 ### Color Palette
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#0891B2` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#22D3EE` | `--color-secondary` |
-| Accent/CTA | `#059669` | `--color-accent` |
-| Background | `#ECFEFF` | `--color-background` |
-| Foreground | `#164E63` | `--color-foreground` |
-| Muted | `#E8F1F6` | `--color-muted` |
-| Border | `#A5F3FC` | `--color-border` |
-| Destructive | `#DC2626` | `--color-destructive` |
-| Ring | `#0891B2` | `--color-ring` |
+The generator's original cyan/green palette contradicted `PROJECT_BRIEF.md` and the
+implemented `app/globals.css`. Corrected below to the actual brand palette.
 
-**Color Notes:** Calm cyan + health green
+| Role | Hex | Notes |
+|------|-----|-------|
+| Deep teal (primary) | `#0D3838` | Text and contrast, not a dominant surface |
+| Teal (interactive) | `#167A78` | Links, illustrative elements, active states |
+| Pale aqua (surface) | `#CDEBE5` | Dominant educational surface |
+| Warm ivory (background) | `#F5F2EA` | Light-mode page background |
+| Copper (CTA accent) | `#C9824B` | Conversion actions only — used sparingly |
+
+**Color Notes:** Aqua and teal dominate. Deep teal carries text contrast. Copper is
+reserved for conversion, so it keeps its impact.
 
 ### Typography
 
-- **Heading Font:** Atkinson Hyperlegible
-- **Body Font:** Atkinson Hyperlegible
-- **Mood:** accessible, readable, inclusive, WCAG, dyslexia-friendly, clear
-- **Google Fonts:** [Atkinson Hyperlegible + Atkinson Hyperlegible](https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap)
+**Locked 2026-07-26** after live specimen review at `/specimen`.
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
-```
+| Role | Latin | Arabic script (ar + ckb) |
+|------|-------|--------------------------|
+| Headings | Newsreader (serif, 400/600) | Noto Kufi Arabic (400/700) |
+| Body | Inter (400/500) | Noto Naskh Arabic (400/600) |
+
+Register: modern serif headings over a clean sans body — editorial and institutional
+rather than start-up. Loaded via `next/font/google`, self-hosted at build time; no
+runtime request to Google.
+
+**Kurdish coverage:** both Noto faces declare `U+600-6FF`, which contains every Sorani
+glyph the site needs (ڕ ڵ ۆ ێ گ چ ژ پ ک ە). Verified from the served `@font-face`
+`unicode-range`; confirm visually once on the deployed Sorani pages.
+
+**Arabic-script typesetting rules** — these are not optional, and Latin values look
+broken when applied to Arabic script:
+
+- Line height must be looser: `1.5` for headings, `1.9–2.0` for body (vs `1.1` / `1.7`).
+- Never uppercase or letter-space Arabic script — it has no case and tracking breaks
+  letter joining. Eyebrows and labels must drop `text-transform` and `letter-spacing`
+  under `[dir="rtl"]`.
+- Arabic script reads smaller at the same px size; set display headings ~15% smaller.
+- All layout CSS uses logical properties so a single stylesheet serves LTR and RTL.
 
 ### Spacing Variables
 

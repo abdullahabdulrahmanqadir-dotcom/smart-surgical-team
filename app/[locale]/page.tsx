@@ -1,7 +1,7 @@
-import LibraryPanel from "./components/LibraryPanel";
-import SiteHeader from "./components/SiteHeader";
-import AnatomyHero from "./components/AnatomyHero";
-import ScrollMotion from "./components/ScrollMotion";
+import LibraryPanel from "../components/LibraryPanel";
+import SiteHeader from "../components/SiteHeader";
+import AnatomyHero from "../components/AnatomyHero";
+import ScrollMotion from "../components/ScrollMotion";
 import {
   BrandMark,
   IconArrowRight,
@@ -20,7 +20,9 @@ import {
   IconYoutube,
   topicIcons,
   type TopicIconName,
-} from "./components/icons";
+} from "../components/icons";
+import { isLocale, type Locale } from "../lib/i18n";
+import { getDictionary } from "../lib/dictionaries";
 
 const credentials = [
   "Smart Health Tower",
@@ -83,20 +85,26 @@ const benefits = [
 ];
 
 export default async function Home({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const { locale } = await params;
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
+
   // The contact route redirects back with ?interest=received after a successful save.
   const submitted = (await searchParams)?.interest === "received";
 
   return (
     <>
       <a className="skip-link" href="#main-content">
-        Skip to content
+        {dict.nav.skipToContent}
       </a>
 
-      <SiteHeader />
+      <SiteHeader locale={active} dict={dict} />
       <ScrollMotion />
 
       <main id="top">

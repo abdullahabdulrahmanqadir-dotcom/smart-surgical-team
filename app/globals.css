@@ -99,7 +99,44 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+}
+
+/* ============================================================
+   Typography — locked 2026-07-26
+   Latin: Newsreader (display) over Inter (body).
+   Arabic script: Noto Kufi Arabic over Noto Naskh Arabic.
+   The RTL locales swap the stacks via [dir="rtl"] so one stylesheet serves all
+   three languages.
+   ============================================================ */
+
+:root {
+  --font-display-stack: var(--font-display), Georgia, "Times New Roman", serif;
+  --font-body-stack: var(--font-body), "Segoe UI", system-ui, sans-serif;
+
+  /* Tracking is a token, not a literal, so the RTL override below corrects
+     every heading and label at once. Arabic script joins its letters, so any
+     non-zero tracking breaks the joins — chasing this rule-by-rule would mean
+     re-fixing it on every new page. */
+  --tracking-tight: -0.025em;
+  --tracking-tighter: -0.035em;
+  --tracking-snug: -0.02em;
+  --tracking-body: -0.005em;
+  --tracking-label: 0.08em;
+  --tracking-label-wide: 0.1em;
+}
+
+[dir="rtl"] {
+  --font-display-stack: var(--font-display-arabic), "Segoe UI", system-ui, sans-serif;
+  --font-body-stack: var(--font-body-arabic), "Segoe UI", system-ui, sans-serif;
+
+  --tracking-tight: 0;
+  --tracking-tighter: 0;
+  --tracking-snug: 0;
+  --tracking-body: 0;
+  --tracking-label: 0;
+  --tracking-label-wide: 0;
 }
 
 /* ============================================================
@@ -120,11 +157,17 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-body-stack);
   font-size: 1rem;
   line-height: 1.6;
-  letter-spacing: -0.005em;
+  letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Arabic script needs more leading and no negative tracking to stay legible. */
+[dir="rtl"] body {
+  line-height: 1.9;
+  letter-spacing: 0;
 }
 
 body.nav-open {
@@ -135,10 +178,32 @@ h1,
 h2,
 h3 {
   margin: 0;
+  font-family: var(--font-display-stack);
   line-height: 1.18;
-  letter-spacing: -0.025em;
-  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  font-weight: 600;
   color: var(--text);
+}
+
+/* Arabic script has no case and joins its letters: tight tracking and tight
+   leading break it, so headings loosen up and drop the negative tracking. */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3 {
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* Uppercasing and wide tracking are meaningless-to-harmful in Arabic script.
+   Any label style that uses them must be neutralised for RTL. */
+[dir="rtl"] .eyebrow,
+[dir="rtl"] .section-kicker,
+[dir="rtl"] .badge,
+[dir="rtl"] .credential-strip p,
+[dir="rtl"] .credential-strip li {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 p {
@@ -345,7 +410,7 @@ input {
   flex-direction: column;
   font-size: 0.98rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-snug);
   line-height: 1.2;
 }
 
@@ -500,7 +565,7 @@ input {
 .hero-copy h1 {
   margin: 1.25rem 0 0;
   font-size: clamp(2.3rem, 4.4vw, 3.4rem);
-  letter-spacing: -0.035em;
+  letter-spacing: var(--tracking-tighter);
   line-height: 1.08;
   text-wrap: balance;
 }
@@ -736,7 +801,7 @@ input {
 .credential-strip p {
   font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--text-soft);
 }
@@ -827,7 +892,7 @@ input {
   display: block;
   font-size: 0.76rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-label-wide);
   text-transform: uppercase;
   color: var(--primary);
   margin-bottom: 0.5rem;
@@ -935,7 +1000,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .topic-card b {
   font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: var(--tracking-tight);
   line-height: 1.25;
 }
 
@@ -1210,7 +1275,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   margin-bottom: 0.3rem;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--primary);
 }
@@ -1423,7 +1488,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   color: var(--primary);
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
 
@@ -1432,14 +1497,14 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.25;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-snug);
 }
 
 .poster-label {
   margin-top: 1rem;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: var(--tracking-label-wide);
   text-transform: uppercase;
   color: var(--text-soft);
 }
@@ -1512,7 +1577,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .date-chip b {
   font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-label);
 }
 
 .date-chip strong {
