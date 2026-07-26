@@ -1,5 +1,14 @@
 # Smart Surgical Team — Build Plan
 
+> **Status as of 2026-07-26:** Phase 0 complete and deployed (`68aa819`).
+> Phase 1a (Topics) started, then paused at the client's request — the work sits
+> on branch `phase-1a-topics-wip` and is unfinished. See `HANDOFF.md` for the
+> exact state, known defects and the resume checklist.
+>
+> **Working agreement: stop after each phase.** Deliver, report, wait for the go
+> before starting the next one. Interview the client on a page's design before
+> building it.
+
 Derived from `PROJECT_BRIEF.md`. Decisions locked 2026-07-26:
 
 - **Order:** public site first, member platform second.
@@ -25,14 +34,29 @@ The homepage is currently one 524-line component and one 2,009-line stylesheet. 
 - All layout CSS uses logical properties (`margin-inline-start`, `padding-inline`, `inset-inline`) rather than left/right, so both RTL locales work without a mirrored stylesheet. Arabic and Sorani webfonts loaded per-locale.
 - Metadata helper: per-page `<title>`, description, OG image, canonical.
 
-**Done when:** the homepage renders byte-identically to today, built from shared parts, with `/en` routing and a working (English-only) language switcher.
+**Status: DONE** — commit `68aa819`, deployed. Locale routing, type system, RTL
+tracking tokens, dictionaries, language switcher and 5 passing tests all landed.
+
+Two items from this phase were **deferred into Phase 1a** rather than completed:
+extracting the shared components out of `app/[locale]/page.tsx`, and splitting
+`globals.css`. The page still carries its own inline sections and the stylesheet
+is still one file. Do that as part of the first page build, not as a separate
+pass.
 
 ## Phase 1 — Public site
 
 Every page uses Phase 0 primitives. Placeholder copy is marked with a `PLACEHOLDER` comment so the content pass can find it.
 
+Each page gets its own design interview before it is built. Topics is first
+because its card and detail-page patterns are reused by Contributors, Webinars,
+Events and the Library.
+
 1. **About Us** — team, location, vision, mission, specialties, contact. No stats.
-2. **Topics** — index of the five taxonomy groups + a detail page per group, each listing its sub-topics and (later) linked content.
+2. **Topics** — *in progress, paused.* Index of the five taxonomy groups + a
+   detail page per group. Design agreed: 5 group cards → detail pages; cards show
+   anatomical icon + blurb only (client rejected content counts and inline
+   sub-topic lists); cinematic anatomical hero distinct from the home page.
+   Resume checklist in `HANDOFF.md` §6.
 3. **Contributors** — surgeon grid + individual profile pages.
 4. **Webinars** — upcoming vs past, registration CTA stubbed.
 5. **Events** — chronological listing.
