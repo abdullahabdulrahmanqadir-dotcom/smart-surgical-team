@@ -2,12 +2,11 @@
 
 import { useState, type CSSProperties } from "react";
 import type { ContentRecord } from "../lib/content";
-import { IconArrowRight, IconClock, IconFile, IconFullscreen, IconPlay, IconUsers } from "./icons";
+import { IconClock, IconFile, IconFullscreen, IconPlay, IconUsers } from "./icons";
 
 export default function ContentPlayer({ content }: { content: ContentRecord }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(content.progress ?? 0);
-  const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState<"overview" | "chapters" | "notes">("overview");
 
   return (
@@ -40,7 +39,7 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
 
       {tab === "overview" && <div className="content-tab-panel" role="tabpanel" id="content-panel-overview" aria-labelledby="content-tab-overview"><p>{content.summary}</p><div className="content-facts"><span><IconClock size={16} /> {content.duration}</span>{content.learnerCount ? <span><IconUsers size={16} /> {content.learnerCount} learners</span> : null}<span><IconFile size={16} /> Course notes</span></div></div>}
       {tab === "chapters" && <ol className="chapter-list" role="tabpanel" id="content-panel-chapters" aria-labelledby="content-tab-chapters">{content.chapters.length ? content.chapters.map((chapter) => <li key={chapter.title}><button type="button" onClick={() => setProgress(chapter.progress)}><span>{chapter.time}</span><b>{chapter.title}</b><IconPlay size={14} /></button></li>) : <li className="content-tab-panel">Chapters will appear here when they are added to this content item.</li>}</ol>}
-      {tab === "notes" && <div className="content-tab-panel note-panel" role="tabpanel" id="content-panel-notes" aria-labelledby="content-tab-notes"><p>Save the key surgical points for this {content.kind === "poster" ? "resource" : "lecture"} to revisit them later.</p><button type="button" className="btn btn-outline" onClick={() => setSaved((value) => !value)}>{saved ? "Saved to my notes" : "Save to my notes"} <IconArrowRight size={16} /></button></div>}
+      {tab === "notes" && <div className="content-tab-panel note-panel" role="tabpanel" id="content-panel-notes" aria-labelledby="content-tab-notes"><p>Learning notes for this {content.kind === "poster" ? "resource" : "lecture"} will be published alongside the content.</p></div>}
     </>
   );
 }

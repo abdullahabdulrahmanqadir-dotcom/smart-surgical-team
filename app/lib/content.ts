@@ -9,6 +9,27 @@ export type ContentChapter = {
   progress: number;
 };
 
+/*
+ * The clinical record behind a case, shown under the player. Every field is
+ * optional: a case page renders only the parts the team has published, so a
+ * partially written case is never presented as a complete clinical account.
+ */
+export type CaseSummary = {
+  presentation?: string;
+  imaging?: string;
+  procedure?: string;
+  histopathology?: string;
+  outcome?: string;
+};
+
+export const CASE_SUMMARY_FIELDS: { key: keyof CaseSummary; label: string }[] = [
+  { key: "presentation", label: "Presentation" },
+  { key: "imaging", label: "Imaging & workup" },
+  { key: "procedure", label: "Procedure" },
+  { key: "histopathology", label: "Histopathology" },
+  { key: "outcome", label: "Outcome & follow-up" },
+];
+
 export type ContentRecord = {
   id: string;
   slug: string;
@@ -24,6 +45,7 @@ export type ContentRecord = {
   videoUrl?: string;
   posterUrl?: string;
   chapters: ContentChapter[];
+  caseSummary?: CaseSummary;
   learnerCount?: number;
   progress?: number;
 };
@@ -45,7 +67,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     duration: "24:18",
     durationSeconds: 1458,
     level: "Intermediate",
-    presenter: { name: "Dr. Karzan Ahmed", role: "Head & Neck Surgeon", bio: "Special interest in thyroid, parathyroid and oncologic surgery at Smart Health Tower.", initials: "KA" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [
       { time: "00:00", title: "Welcome & learning objectives", progress: 0 },
       { time: "02:18", title: "Exposure and surgical landmarks", progress: 12 },
@@ -53,6 +75,14 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
       { time: "15:04", title: "Parathyroid preservation", progress: 62 },
       { time: "21:12", title: "Haemostasis and closure", progress: 87 },
     ],
+    // Illustrative only, like the rest of SAMPLE_CONTENT — replaced by
+    // team-authored, de-identified case detail in Phase 2.
+    caseSummary: {
+      presentation: "Teaching case built around a standard total thyroidectomy for benign multinodular disease, used to demonstrate exposure and nerve identification rather than a specific patient history.",
+      imaging: "Pre-operative ultrasound and cross-sectional imaging are reviewed at the start of the recording to set out the surgical anatomy.",
+      procedure: "Total thyroidectomy: capsular dissection, bilateral recurrent laryngeal nerve identification, in-situ parathyroid preservation and stepwise haemostasis.",
+      outcome: "Post-operative voice and calcium monitoring are discussed in the closing chapter, with the team's routine follow-up schedule.",
+    },
     learnerCount: 480,
     progress: 28,
   },
@@ -62,7 +92,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Thyroidectomy: Tips for Safe Parathyroid Preservation",
     summary: "Decision points and anatomical cues that help protect parathyroid tissue during thyroid surgery.",
     kind: "video", topic: "Thyroid & Parathyroid", topicSlug: "thyroid-parathyroid", duration: "22:31", durationSeconds: 1351, level: "Intermediate",
-    presenter: { name: "Dr. Ava Rashid", role: "Head & Neck Surgeon", bio: "Focused on reconstructive and endocrine surgery.", initials: "AR" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [{ time: "00:00", title: "Introduction", progress: 0 }, { time: "07:25", title: "Vascular supply", progress: 33 }, { time: "15:40", title: "Preservation strategy", progress: 70 }], progress: 80,
   },
   {
@@ -71,7 +101,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Selective Neck Dissection: Levels II–IV",
     summary: "A clear operative review of boundaries, planes and key structures in selective neck dissection.",
     kind: "video", topic: "Neck & Lymphatic Surgery", topicSlug: "neck-lymphatic", duration: "14:02", durationSeconds: 842, level: "Intermediate",
-    presenter: { name: "Dr. Shwan Omer", role: "Head & Neck Surgeon", bio: "Focused on skull base and oncologic surgery.", initials: "SO" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [{ time: "00:00", title: "Anatomic overview", progress: 0 }, { time: "04:15", title: "Dissection sequence", progress: 30 }, { time: "10:18", title: "Safety checks", progress: 73 }], progress: 42,
   },
   {
@@ -80,7 +110,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Transoral Robotic Surgery for Oropharyngeal Cancer",
     summary: "A focused introduction to patient selection, setup and key operative steps in transoral robotic surgery.",
     kind: "video", topic: "Oncology", topicSlug: "neck-lymphatic", duration: "18:24", durationSeconds: 1104, level: "Advanced",
-    presenter: { name: "Dr. Karzan Ahmed", role: "Head & Neck Surgeon", bio: "Special interest in thyroid, parathyroid and oncologic surgery at Smart Health Tower.", initials: "KA" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [{ time: "00:00", title: "Case selection", progress: 0 }, { time: "05:12", title: "Exposure", progress: 28 }, { time: "12:40", title: "Resection", progress: 69 }], progress: 65,
   },
   {
@@ -89,7 +119,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Airway Management in Advanced Laryngeal Disease",
     summary: "Recorded webinar covering multidisciplinary planning and airway options in advanced laryngeal disease.",
     kind: "webinar_recording", topic: "Larynx", topicSlug: "upper-aerodigestive", duration: "48:10", durationSeconds: 2890, level: "Intermediate",
-    presenter: { name: "Dr. Shwan Omer", role: "Head & Neck Surgeon", bio: "Focused on skull base and oncologic surgery.", initials: "SO" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [{ time: "00:00", title: "Clinical framing", progress: 0 }, { time: "18:30", title: "Airway options", progress: 38 }, { time: "36:10", title: "Panel discussion", progress: 75 }],
   },
   {
@@ -98,7 +128,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Reconstruction of Mandibular Defects: Panel Discussion",
     summary: "Recorded expert panel on planning and reconstruction after mandibular resection.",
     kind: "webinar_recording", topic: "Reconstruction", topicSlug: "skin-soft-tissue", duration: "52:44", durationSeconds: 3164, level: "Advanced",
-    presenter: { name: "Dr. Karzan Ahmed", role: "Head & Neck Surgeon", bio: "Special interest in thyroid, parathyroid and oncologic surgery at Smart Health Tower.", initials: "KA" },
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
     chapters: [{ time: "00:00", title: "Defect classification", progress: 0 }, { time: "17:40", title: "Reconstruction options", progress: 34 }, { time: "39:32", title: "Case discussion", progress: 75 }], progress: 30,
   },
   {
@@ -107,7 +137,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Outcomes of Transoral Robotic Surgery: Cohort Review",
     summary: "An e-poster summarising outcomes, complications and functional recovery in a transoral robotic surgery cohort.",
     kind: "poster", topic: "Oncology", topicSlug: "neck-lymphatic", duration: "12 pages", level: "Research",
-    presenter: { name: "Dr. Shwan Omer", role: "Head & Neck Surgeon", bio: "Focused on skull base and oncologic surgery.", initials: "SO" }, chapters: [],
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" }, chapters: [],
   },
   {
     id: "parotid-facial-nerve-poster",
@@ -115,7 +145,7 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
     title: "Parotid Surgery: Facial Nerve Mapping Atlas",
     summary: "An illustrated e-poster reviewing landmarks and a systematic approach to facial nerve identification.",
     kind: "poster", topic: "Salivary Glands", topicSlug: "salivary-glands", duration: "8 pages", level: "Clinical atlas",
-    presenter: { name: "Dr. Ava Rashid", role: "Head & Neck Surgeon", bio: "Focused on reconstructive and endocrine surgery.", initials: "AR" }, chapters: [],
+    presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" }, chapters: [],
   },
 ];
 
@@ -151,6 +181,11 @@ type ContentItemRow = {
   video_url: string | null;
   poster_url: string | null;
   duration_seconds: number | null;
+  case_presentation: string | null;
+  case_imaging: string | null;
+  case_procedure: string | null;
+  case_histopathology: string | null;
+  case_outcome: string | null;
   contributors: OneOrMany<ContributorRow>;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
   content_chapters: ChapterRow[] | null;
@@ -167,7 +202,7 @@ async function getPublishedContent(): Promise<ContentRecord[] | null> {
     const client = getSupabaseServerClient();
     const { data, error } = await client
       .from("content_items")
-      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds)")
+      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (error || !data || data.length === 0) return null;
@@ -184,6 +219,10 @@ async function getPublishedContent(): Promise<ContentRecord[] | null> {
         topic: topic?.name ?? "Clinical education", topicSlug: topic?.slug ?? "topics", duration: formatDuration(row.duration_seconds), durationSeconds: row.duration_seconds ?? undefined,
         level: "Clinical education", presenter: { name, role: contributor?.credentials ?? "Contributor", bio: contributor?.biography ?? "", initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST" },
         videoUrl: row.video_url ?? undefined, posterUrl: row.poster_url ?? undefined, chapters,
+        caseSummary: {
+          presentation: row.case_presentation ?? undefined, imaging: row.case_imaging ?? undefined, procedure: row.case_procedure ?? undefined,
+          histopathology: row.case_histopathology ?? undefined, outcome: row.case_outcome ?? undefined,
+        },
       } satisfies ContentRecord;
     });
   } catch {

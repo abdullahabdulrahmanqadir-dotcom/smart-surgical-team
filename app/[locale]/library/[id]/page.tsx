@@ -5,7 +5,7 @@ import ContentPlayer from "../../../components/ContentPlayer";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
-import { getContent, getLibraryContent } from "../../../lib/content";
+import { CASE_SUMMARY_FIELDS, getContent, getLibraryContent, type CaseSummary } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup } from "../../../lib/topics";
@@ -27,6 +27,9 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   // Some content sits under a taxonomy group that is not published yet
   // (visible: false), and linking there would 404. Show the label instead.
   const topicIsPublished = Boolean(getPublicTopicGroup(content.topicSlug));
+  const summarySections = CASE_SUMMARY_FIELDS
+    .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
+    .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
@@ -37,11 +40,20 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />
-          <section className="discussion-panel" aria-labelledby="discussion-title"><div className="section-mini-head"><div><span className="section-kicker">Community</span><h2 id="discussion-title">Discussion</h2></div><span className="badge">0 comments</span></div><div className="discussion-empty"><span>Share a thought or question with fellow learners.</span><button type="button" className="btn btn-primary">Join the discussion <IconArrowRight size={16} /></button></div></section>
+          <section className="case-summary-panel" aria-labelledby="case-summary-title">
+            <div className="section-mini-head"><div><span className="section-kicker">Clinical record</span><h2 id="case-summary-title">Case summary</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
+            {summarySections.length ? (
+              <dl className="case-summary-list">
+                {summarySections.map(({ key, label, value }) => <div key={key}><dt>{label}</dt><dd>{value}</dd></div>)}
+              </dl>
+            ) : (
+              <div className="case-summary-empty"><IconFile size={20} /><div><b>Case detail is not published yet.</b><span>Presentation, imaging, procedure, histopathology and outcome appear here once the team has reviewed and de-identified them.</span></div></div>
+            )}
+          </section>
         </section>
         <aside className="content-aside">
-          <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={`${home}#team`} className="text-link">View profile <IconArrowRight size={15} /></Link></section>
-          <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Duration</dt><dd>{content.duration}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl><button type="button" className="reference-button"><IconFile size={16} /> Copy reference</button></section>
+          <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={`${home}#team`} className="text-link">View team <IconArrowRight size={15} /></Link></section>
+          <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Duration</dt><dd>{content.duration}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
         </aside>
       </div>
 

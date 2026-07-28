@@ -30,15 +30,15 @@ const credentials = [
 ];
 
 const webinars = [
-  ["MAY", "24", "Role of Imaging in Skull Base Surgery", "Dr. Ava Rashid", "19:00 GMT+3"],
-  ["JUN", "07", "Reconstruction of Mandibular Defects", "Dr. Karzan Ahmed", "19:00 GMT+3"],
-  ["JUN", "21", "Updates in Salivary Gland Surgery", "Dr. Shwan Omer", "20:00 GMT+3"],
+  ["MAY", "24", "Role of Imaging in Skull Base Surgery", "Smart Surgical Team", "19:00 GMT+3"],
+  ["JUN", "07", "Reconstruction of Mandibular Defects", "Smart Surgical Team", "19:00 GMT+3"],
+  ["JUN", "21", "Updates in Salivary Gland Surgery", "Smart Surgical Team", "20:00 GMT+3"],
 ];
 
 const team = [
-  ["KA", "Dr. Karzan Ahmed", "Head & Neck Surgeon", "Oncologic Surgery"],
-  ["SO", "Dr. Shwan Omer", "Head & Neck Surgeon", "Skull Base Surgery"],
-  ["AR", "Dr. Ava Rashid", "Head & Neck Surgeon", "Reconstructive Surgery"],
+  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Oncologic Surgery"],
+  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Skull Base Surgery"],
+  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Reconstructive Surgery"],
 ];
 
 const benefits = [
@@ -108,7 +108,7 @@ export default async function Home({
                 </div>
                 <div className="player-meta">
                   <h3>Thyroidectomy: Step-by-Step Masterclass</h3>
-                  <p>Dr. Karzan Ahmed · Module 3 of 8</p>
+                  <p>Smart Surgical Team · Module 3 of 8</p>
                   <span className="progress">
                     <span className="progress-track">
                       <span className="progress-fill" style={{ width: "62%" }} />
@@ -233,7 +233,7 @@ export default async function Home({
               </Link>
 
               <h3 className="featured-title">{featuredContent.title}</h3>
-              <p className="featured-presenter">Dr. Karzan Ahmed · Thyroid &amp; Parathyroid</p>
+              <p className="featured-presenter">Smart Surgical Team · Thyroid &amp; Parathyroid</p>
               <p className="featured-copy">
                 A full walkthrough of total thyroidectomy — exposure, recurrent laryngeal nerve
                 identification, parathyroid preservation and haemostasis, with intra-operative
@@ -284,7 +284,7 @@ export default async function Home({
                     <IconCheck size={14} /> Improved functional outcomes
                   </li>
                 </ul>
-                <b className="poster-author">Dr. Shwan Omer et al.</b>
+                <b className="poster-author">Smart Surgical Team</b>
               </div>
               <a className="panel-link" href="#join">
                 View e-poster
