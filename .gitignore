@@ -41,12 +41,9 @@ next-env.d.ts
 /outputs/
 /work/
 
-# local deployment archives
-smart-surgical-team-site*.tar.gz
+# local deployment archives and scratch
+archive/
 
 # local tooling output
 tsconfig.tsbuildinfo
 .playwright-mcp/
-
-# Local scratch
-.tmp/

@@ -1,10 +1,10 @@
 # Handoff — Smart Surgical Team website
 
-Written 2026-07-26. Read this first, then `BUILD_PLAN.md`, then `PROJECT_BRIEF.md`.
+Written 2026-07-26. Read this first, then `docs/project/BUILD_PLAN.md`, then `docs/project/PROJECT_BRIEF.md`.
 
-- `PROJECT_BRIEF.md` — what the client wants. The authority on scope, taxonomy and content rules.
-- `BUILD_PLAN.md` — the phase plan and locked decisions.
-- `design-system/smart-surgical-team/MASTER.md` — type, colour and RTL rules.
+- `docs/project/PROJECT_BRIEF.md` — what the client wants. The authority on scope, taxonomy and content rules.
+- `docs/project/BUILD_PLAN.md` — the phase plan and locked decisions.
+- `assets/design-system/smart-surgical-team/MASTER.md` — type, colour and RTL rules.
 - This file — where the work actually stands and what to do next.
 
 ---
@@ -84,7 +84,7 @@ browser.** Details and required rework in §6.
 
 ### Not started
 
-Everything else. See `BUILD_PLAN.md` phases 1–5.
+Everything else. See `docs/project/BUILD_PLAN.md` phases 1–5.
 
 ---
 
