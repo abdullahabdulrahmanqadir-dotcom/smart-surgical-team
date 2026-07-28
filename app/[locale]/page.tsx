@@ -86,10 +86,10 @@ export default async function Home({
                 <span className="headline-accent">Guided by Expertise.</span>
               </h1>
               <div className="hero-actions">
-                <a className="btn btn-primary btn-lg" href="#library">
+                <Link className="btn btn-primary btn-lg" href={localePath(active, "topics")}>
                   Explore the Library
                   <IconArrowRight size={18} />
-                </a>
+                </Link>
               </div>
             </div>
 

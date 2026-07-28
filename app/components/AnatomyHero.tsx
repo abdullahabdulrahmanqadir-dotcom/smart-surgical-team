@@ -50,6 +50,7 @@ export default function AnatomyHero() {
   const target = useRef({ ...route[0] });
   const reducedMotionRef = useRef(false);
   const [view, setView] = useState({ ...route[0], tissue: "thyroid" as Tissue });
+  const [touchInteractionEnabled, setTouchInteractionEnabled] = useState(false);
 
   useEffect(() => {
     reducedMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -83,6 +84,8 @@ export default function AnatomyHero() {
       y: Math.max(8, Math.min(92, ((event.clientY - bounds.top) / bounds.height) * 100)),
     };
   };
+  const canHandlePointer = (event: React.PointerEvent<HTMLDivElement>) =>
+    event.pointerType === "mouse" || touchInteractionEnabled;
   const pause = () => {
     if (resumeTimer.current) clearTimeout(resumeTimer.current);
     activeRef.current = true;
@@ -105,21 +108,38 @@ export default function AnatomyHero() {
   return (
     <div
       ref={rootRef}
-      className="anatomy-hero"
+      className={`anatomy-hero${touchInteractionEnabled ? " anatomy-hero--touch-interactive" : ""}`}
       tabIndex={0}
-      role="img"
-      aria-label="Interactive thyroid, trachea, and neck vessel illustration. Move the pointer or use arrow keys to inspect microscopic tissue."
+      role="group"
+      aria-label="Thyroid, trachea, and neck vessel illustration."
       onPointerEnter={(event) => { if (event.pointerType === "mouse") { pause(); updateTarget(event); } }}
-      onPointerMove={(event) => { pause(); updateTarget(event); }}
+      onPointerMove={(event) => { if (canHandlePointer(event)) { pause(); updateTarget(event); } }}
       onPointerLeave={(event) => { if (event.pointerType === "mouse") resume(); }}
-      onPointerDown={(event) => { pause(); rootRef.current?.setPointerCapture(event.pointerId); updateTarget(event); }}
-      onPointerUp={(event) => { if (rootRef.current?.hasPointerCapture(event.pointerId)) rootRef.current.releasePointerCapture(event.pointerId); resume(); }}
+      onPointerDown={(event) => {
+        if (!canHandlePointer(event)) return;
+        pause();
+        rootRef.current?.setPointerCapture(event.pointerId);
+        updateTarget(event);
+      }}
+      onPointerUp={(event) => {
+        if (!canHandlePointer(event)) return;
+        if (rootRef.current?.hasPointerCapture(event.pointerId)) rootRef.current.releasePointerCapture(event.pointerId);
+        resume();
+      }}
       onPointerCancel={resume}
       onKeyDown={handleKeyDown}
       style={{ "--lens-x": `${view.x}%`, "--lens-y": `${view.y}%`, "--micro-x": `${16 + view.x * 0.68}%`, "--micro-y": `${16 + view.y * 0.68}%`, "--micro-image": `url(${tissueImages[view.tissue]})` } as React.CSSProperties}
     >
       <span className="anatomy-hero-base" aria-hidden="true" />
       <span className="anatomy-hero-lens" aria-hidden="true" />
+      <button
+        className="anatomy-hero-interact"
+        type="button"
+        aria-pressed={touchInteractionEnabled}
+        onClick={() => setTouchInteractionEnabled((enabled) => !enabled)}
+      >
+        {touchInteractionEnabled ? "Done" : "Interact"}
+      </button>
     </div>
   );
 }
