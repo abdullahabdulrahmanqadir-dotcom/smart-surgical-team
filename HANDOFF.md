@@ -247,16 +247,27 @@ before believing a computed style or interaction failure in dev.
 
 ### Immediate maintenance before another release
 
-1. Perform the manual QA list in §6 against the local preview.
-2. Ask the client whether the current Topics structure is approved before
-   broadening scope to new public pages.
-3. Push `codex/phase-1a-topics` to the normal GitHub remote only when the client
-   wants the commits shared there. Deploy only when they explicitly ask.
+1. ~~Perform the manual QA list in §6 against the local preview.~~ Done
+   2026-07-28; results recorded in §6.
+2. ~~Ask the client whether the current Topics structure is approved.~~
+   **Approved 2026-07-28.** The Topics case-library structure is signed off.
+   The client noted one follow-up: **the case images need to be changed** —
+   deferred by their instruction, tracked under Phase 2 below.
+3. ~~Push `codex/phase-1a-topics` to the remote.~~ Pushed 2026-07-28 at
+   `6f1e269`.
+
+Phase 1a is therefore cleared to merge to `main`. Remember that merging to
+`main` triggers the Cloudflare Workers Builds deployment — it publishes.
 
 ### Phase 2 — replace visual placeholders with real content
 
 - Establish the approved Supabase data model and server-side public queries.
 - Replace `app/lib/topics.ts` placeholder cases with approved content records.
+- **Replace the case images.** The client approved the Topics structure on
+  2026-07-28 but explicitly flagged the imagery as needing change. The current
+  thumbnails are branded stand-ins generated in `CaseCard` (teal gradient plus a
+  faded anatomical glyph), not real case photography. This is the first Phase 2
+  item to raise with them.
 - Add real case/video detail destinations, case imagery and correct access state.
 - Preserve patient consent, de-identification and content ownership metadata;
   do not treat unlisted YouTube URLs as secure access control.
