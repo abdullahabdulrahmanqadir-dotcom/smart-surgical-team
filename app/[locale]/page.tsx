@@ -18,6 +18,7 @@ import {
 } from "../components/icons";
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
+import { getLibraryContent } from "../lib/content";
 import { FEATURED_TOPICS } from "../lib/topics";
 
 const credentials = [
@@ -56,6 +57,8 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
+  const libraryContent = await getLibraryContent();
+  const featuredContent = libraryContent[0];
 
   // The contact route redirects back with ?interest=received after a successful save.
   const submitted = (await searchParams)?.interest === "received";
@@ -206,7 +209,7 @@ export default async function Home({
           </div>
 
           <div className="dashboard">
-            <LibraryPanel />
+            <LibraryPanel items={libraryContent} locale={active} />
 
             <article className="panel featured-panel" id="featured">
               <div className="panel-heading">
@@ -217,7 +220,7 @@ export default async function Home({
                 <span className="badge badge-accent">Featured</span>
               </div>
 
-              <a href="#join" className="featured-media">
+              <Link href={localePath(active, `library/${featuredContent.slug}`)} className="featured-media">
                 <span className="featured-scene" aria-hidden="true">
                   <i className="scene-ring" />
                   <i className="scene-ring scene-ring-2" />
@@ -226,10 +229,10 @@ export default async function Home({
                 <span className="featured-play">
                   <IconPlay size={26} />
                 </span>
-                <small className="featured-time">24:18</small>
-              </a>
+                <small className="featured-time">{featuredContent.duration}</small>
+              </Link>
 
-              <h3 className="featured-title">Thyroidectomy: Step-by-Step Masterclass</h3>
+              <h3 className="featured-title">{featuredContent.title}</h3>
               <p className="featured-presenter">Dr. Karzan Ahmed · Thyroid &amp; Parathyroid</p>
               <p className="featured-copy">
                 A full walkthrough of total thyroidectomy — exposure, recurrent laryngeal nerve
