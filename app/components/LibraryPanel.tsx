@@ -73,7 +73,13 @@ export default function LibraryPanel({ items, locale }: { items: ContentRecord[]
           </Link>
         ))}
 
-        {visible.length === 0 && <p className="empty-state">No {tab.toLowerCase()} match “{query.trim()}”. Try another search term.</p>}
+        {visible.length === 0 && (
+          <p className="empty-state">
+            {query.trim()
+              ? `No ${tab.toLowerCase()} match “${query.trim()}”. Try another search term.`
+              : `No ${tab.toLowerCase()} have been published yet.`}
+          </p>
+        )}
       </div>
 
       <Link className="panel-link" href={localePath(locale, "topics")}>

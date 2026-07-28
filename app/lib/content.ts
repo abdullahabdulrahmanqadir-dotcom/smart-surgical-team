@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { PUBLIC_TOPIC_GROUPS } from "./topics";
 
 export type ContentKind = "video" | "webinar_recording" | "poster";
 
@@ -130,6 +131,35 @@ function canUseContentDatabase() {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
+/*
+ * The shape of one joined content_items row. PostgREST returns an embedded
+ * relation as either an object or an array depending on the detected
+ * cardinality, so each join is modelled as "one or many" and narrowed below.
+ */
+type OneOrMany<T> = T | T[] | null;
+
+type ContributorRow = { display_name: string | null; credentials: string | null; biography: string | null };
+type TopicRow = { name: string | null; slug: string | null };
+type ChapterRow = { title: string; position: number; starts_at_seconds: number };
+
+type ContentItemRow = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  kind: ContentKind;
+  video_url: string | null;
+  poster_url: string | null;
+  duration_seconds: number | null;
+  contributors: OneOrMany<ContributorRow>;
+  content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
+  content_chapters: ChapterRow[] | null;
+};
+
+function firstOf<T>(value: OneOrMany<T>): T | undefined {
+  return (Array.isArray(value) ? value[0] : value) ?? undefined;
+}
+
 async function getPublishedContent(): Promise<ContentRecord[] | null> {
   if (!canUseContentDatabase()) return null;
 
@@ -140,20 +170,19 @@ async function getPublishedContent(): Promise<ContentRecord[] | null> {
       .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
-    if (error || !data) return null;
+    if (error || !data || data.length === 0) return null;
 
-    return data.map((row: any) => {
-      const contributor = Array.isArray(row.contributors) ? row.contributors[0] : row.contributors;
-      const topicLink = Array.isArray(row.content_topics) ? row.content_topics[0] : row.content_topics;
-      const topic = Array.isArray(topicLink?.topics) ? topicLink.topics[0] : topicLink?.topics;
+    return (data as unknown as ContentItemRow[]).map((row) => {
+      const contributor = firstOf(row.contributors);
+      const topic = firstOf(firstOf(row.content_topics)?.topics ?? null);
       const chapters = [...(row.content_chapters ?? [])]
-        .sort((a: any, b: any) => a.position - b.position)
-        .map((chapter: any) => ({ time: formatDuration(chapter.starts_at_seconds), title: chapter.title, progress: row.duration_seconds ? Math.round((chapter.starts_at_seconds / row.duration_seconds) * 100) : 0 }));
+        .sort((a, b) => a.position - b.position)
+        .map((chapter) => ({ time: formatDuration(chapter.starts_at_seconds), title: chapter.title, progress: row.duration_seconds ? Math.round((chapter.starts_at_seconds / row.duration_seconds) * 100) : 0 }));
       const name = contributor?.display_name ?? "Smart Surgical Team";
       return {
         id: row.id, slug: row.slug, title: row.title, summary: row.summary ?? "", kind: row.kind,
         topic: topic?.name ?? "Clinical education", topicSlug: topic?.slug ?? "topics", duration: formatDuration(row.duration_seconds), durationSeconds: row.duration_seconds ?? undefined,
-        level: "Clinical education", presenter: { name, role: contributor?.credentials ?? "Contributor", bio: contributor?.biography ?? "", initials: name.split(" ").filter(Boolean).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase() || "ST" },
+        level: "Clinical education", presenter: { name, role: contributor?.credentials ?? "Contributor", bio: contributor?.biography ?? "", initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST" },
         videoUrl: row.video_url ?? undefined, posterUrl: row.poster_url ?? undefined, chapters,
       } satisfies ContentRecord;
     });
@@ -162,10 +191,41 @@ async function getPublishedContent(): Promise<ContentRecord[] | null> {
   }
 }
 
+/*
+ * Every case in the Topics taxonomy is also a content page. Projecting them into
+ * ContentRecords means a case card can link straight to /library/<case-slug>
+ * and reuse the player, instead of being a dead end. These stay out of
+ * getLibraryContent(): the home page library lists produced lecture content,
+ * while cases are browsed through Topics.
+ */
+export function getTopicCaseContent(): ContentRecord[] {
+  return PUBLIC_TOPIC_GROUPS.flatMap((group) =>
+    group.subTopics.flatMap((subTopic) =>
+      (subTopic.cases ?? []).map((item) => ({
+        id: item.slug,
+        slug: item.slug,
+        title: item.title,
+        summary: item.summary,
+        kind: item.hasVideo ? "video" : "poster",
+        topic: subTopic.name,
+        topicSlug: group.slug,
+        duration: item.hasVideo ? `${item.readMinutes} min` : `${item.readMinutes} min read`,
+        level: "Case study",
+        presenter: { name: "Smart Surgical Team", role: "Head & Neck Surgery", bio: "Case presented by the Smart Surgical Team at Smart Health Tower.", initials: "ST" },
+        chapters: [],
+      } satisfies ContentRecord)),
+    ),
+  );
+}
+
 export async function getLibraryContent() {
-  return (await getPublishedContent()) ?? SAMPLE_CONTENT;
+  // The library must never be empty: the homepage and player pages index into it
+  // directly, and the sample records are the guaranteed fallback.
+  const published = await getPublishedContent();
+  return published?.length ? published : SAMPLE_CONTENT;
 }
 
 export async function getContent(identifier: string) {
-  return (await getLibraryContent()).find((item) => item.id === identifier || item.slug === identifier);
+  const matches = (item: ContentRecord) => item.id === identifier || item.slug === identifier;
+  return (await getLibraryContent()).find(matches) ?? getTopicCaseContent().find(matches);
 }

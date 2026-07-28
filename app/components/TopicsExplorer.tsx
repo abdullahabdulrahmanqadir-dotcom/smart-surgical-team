@@ -36,9 +36,9 @@ function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-function CaseCard({ item, icon, t }: { item: LibraryCase; icon: TopicIconName; t: Dictionary["topics"] }) {
+function CaseCard({ item, icon, t, locale }: { item: LibraryCase; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
   return (
-    <article className="content-case-card">
+    <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">
         <span className="content-case-art-glyph" aria-hidden="true">
           <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
@@ -57,7 +57,7 @@ function CaseCard({ item, icon, t }: { item: LibraryCase; icon: TopicIconName; t
           <span><IconClock size={14} /> {item.readMinutes} {t.minRead}</span>
         </div>
       </div>
-    </article>
+    </a>
   );
 }
 
@@ -218,7 +218,7 @@ export default function TopicsExplorer({
 
       {filteredCases.length > 0 ? (
         <div className="content-case-grid">
-          {filteredCases.map((item) => <CaseCard item={item} icon={activeGroup.icon} t={t} key={item.slug} />)}
+          {filteredCases.map((item) => <CaseCard item={item} icon={activeGroup.icon} t={t} locale={locale} key={item.slug} />)}
         </div>
       ) : (
         <div className="content-empty">

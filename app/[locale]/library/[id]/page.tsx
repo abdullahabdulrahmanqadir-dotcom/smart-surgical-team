@@ -8,6 +8,7 @@ import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../componen
 import { getContent, getLibraryContent } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
+import { getPublicTopicGroup } from "../../../lib/topics";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const content = await getContent((await params).id);
@@ -23,12 +24,15 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const related = allContent.filter((item) => item.id !== content.id && (item.topicSlug === content.topicSlug || item.kind === content.kind)).slice(0, 3);
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : "Operative video";
+  // Some content sits under a taxonomy group that is not published yet
+  // (visible: false), and linking there would 404. Show the label instead.
+  const topicIsPublished = Boolean(getPublicTopicGroup(content.topicSlug));
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
-      <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={`${home}#library`}>Library</Link><span>/</span><Link href={localePath(active, `topics/${content.topicSlug}`)}>{content.topic}</Link><span>/</span><b>{content.title}</b></nav>
+      <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={`${home}#library`}>Library</Link><span>/</span>{topicIsPublished ? <Link href={localePath(active, `topics/${content.topicSlug}`)}>{content.topic}</Link> : <span>{content.topic}</span>}<span>/</span><b>{content.title}</b></nav>
       <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><button className="save-button" type="button"><span>+</span> Save for later</button></div>
 
       <div className="content-grid">
