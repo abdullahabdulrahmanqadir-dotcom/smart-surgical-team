@@ -122,14 +122,9 @@ export default function TopicsExplorer({
           <p className="section-kicker">{t.kicker}</p>
           <h2 id="content-browser-heading">Learn through the anatomy.</h2>
           <p>{t.intro}</p>
-          <span className="content-browser-count">{groups.length} surgical tracks · {libraryCases.length} learning cases</span>
         </div>
         <div className="content-browser-map-wrap">
           <HeadNeckMap active={activeGroup.slug} />
-          <div className="content-browser-map-caption">
-            <span>Now exploring</span>
-            <strong>{activeGroup.name}</strong>
-          </div>
         </div>
       </div>
 
@@ -145,7 +140,7 @@ export default function TopicsExplorer({
               key={group.slug}
             >
               <span className="content-topic-index">0{index + 1}</span>
-              <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={38} /></span>
+              <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.slug === "neck-lymphatic" || group.slug === "skin-soft-tissue" ? undefined : group.imageIcon} size={38} /></span>
               <span><strong>{group.name}</strong><small>{group.blurb}</small></span>
             </a>
           );

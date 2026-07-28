@@ -469,21 +469,23 @@ input {
 .lang-switch {
   display: inline-flex;
   align-items: center;
-  height: 44px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  gap: 0.2rem;
+  height: 40px;
+  padding: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
 }
 
 .lang-switch a {
   display: grid;
   place-items: center;
-  min-width: 40px;
+  min-width: 36px;
   height: 36px;
-  padding-inline: 0.5rem;
-  border-radius: calc(var(--radius-md) - 4px);
+  padding-inline: 0.42rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 700;
@@ -496,14 +498,15 @@ input {
 }
 
 .lang-switch a:hover {
-  background: var(--bg-muted);
+  border-color: var(--line);
+  background: var(--surface);
   color: var(--text);
 }
 
 .lang-switch .is-active {
   background: var(--primary);
   color: var(--on-primary);
-  box-shadow: 0 3px 10px var(--primary-ring);
+  box-shadow: 0 4px 12px var(--primary-ring);
 }
 
 .lang-switch .is-active:hover {
@@ -1280,7 +1283,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-browser-hero-copy { align-self: center; padding: clamp(2rem, 5vw, 4.5rem); }
 .content-browser-hero-copy h2 { max-width: 10ch; margin-top: .35rem; font-size: clamp(2.55rem, 5.2vw, 5rem); line-height: .97; letter-spacing: var(--tracking-tighter); }
 .content-browser-hero-copy > p:not(.section-kicker) { max-width: 43ch; margin-top: 1.2rem; color: var(--text-muted); font-size: 1rem; line-height: 1.7; }
-.content-browser-count { display: inline-flex; margin-top: 1.7rem; padding: .38rem .72rem; border: 1px solid color-mix(in srgb, var(--brand-honey) 45%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--accent-honey-soft) 64%, transparent); color: var(--text-muted); font-size: .78rem; font-weight: 600; }
 .content-browser-map-wrap { position: relative; min-height: 26rem; isolation: isolate; background: radial-gradient(circle at 52% 43%, rgba(255,255,255,.65), transparent 22%), radial-gradient(circle at 90% 90%, color-mix(in srgb, var(--brand-honey) 36%, transparent), transparent 34%), linear-gradient(145deg, rgba(22,122,120,.18), rgba(205,235,229,.42)); }
 .content-browser-map-wrap::after { content: ""; position: absolute; z-index: -1; inset: 9% 12%; border: 1px solid color-mix(in srgb, var(--brand-honey) 32%, var(--primary)); border-radius: 48% 52% 47% 53%; }
 .content-map { position: absolute; inset: 0; overflow: hidden; }
@@ -1288,9 +1290,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-map-overview { opacity: 0; transform: scale(1.06); filter: blur(6px); transition: opacity 300ms ease, transform 600ms cubic-bezier(.2,.8,.2,1), filter 300ms ease; }
 .content-map-focus { opacity: 0; transform: scale(.95); filter: blur(5px); transition: opacity 350ms ease, transform 620ms cubic-bezier(.2,.8,.2,1), filter 350ms ease; }
 .content-map-focus.is-visible { opacity: 1; transform: scale(1); filter: none; }
-.content-browser-map-caption { position: absolute; inset-inline: 1.25rem; inset-block-end: 1.25rem; display: grid; padding: .85rem 1rem; border: 1px solid rgba(255,255,255,.36); border-radius: var(--radius-md); background: rgba(13,56,56,.8); box-shadow: var(--shadow-md); color: #fff; backdrop-filter: blur(8px); }
-.content-browser-map-caption span { font-size: .68rem; font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: rgba(255,255,255,.68); }
-.content-browser-map-caption strong { margin-top: .08rem; font-size: .95rem; }
 
 .content-topic-switcher { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
 .content-topic-option { position: relative; display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: .7rem; align-items: center; min-height: 6.4rem; padding: .85rem; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background 180ms ease; }
@@ -2437,6 +2436,12 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
   .header-actions {
     margin-left: auto;
+  }
+
+  /* The full language chooser stays in the opened menu. In the compact header,
+     one clear current-language pill avoids competing with the primary CTA. */
+  .header-actions > .lang-switch a:not(.is-active) {
+    display: none;
   }
 
   .mobile-nav {
