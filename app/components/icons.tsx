@@ -71,6 +71,14 @@ export function IconClock(props: IconProps) {
   );
 }
 
+export function IconFullscreen(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M8.5 4.5h-4v4M15.5 4.5h4v4M19.5 15.5v4h-4M4.5 15.5v4h4" />
+    </svg>
+  );
+}
+
 export function IconPlus(props: IconProps) {
   return (
     <svg {...svgProps(props)}>
