@@ -101,17 +101,17 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
   assert.match(html, /href="\/en\/topics"/);
 });
 
-test("bare topic index renders the region chooser with no branch opened", async () => {
+test("bare topic index renders the content browser with the default case library", async () => {
   for (const locale of ["en", "ar", "ckb"]) {
     const response = await fetchPath(`/${locale}/topics`);
     assert.equal(response.status, 200);
     const html = await response.text();
 
-    // Four published groups, each a crawlable deep-link into its own branch.
+    // Four published groups, each a crawlable deep-link into its own library.
     assert.equal(
-      (html.match(/class="topic-selector(?:[ "])/g) ?? []).length,
+      (html.match(/class="content-topic-option(?:[ "])/g) ?? []).length,
       4,
-      `${locale} should render the four region selectors`,
+      `${locale} should render the four topic selectors`,
     );
     assert.match(html, new RegExp(`href="/${locale}/topics/thyroid-parathyroid"`));
     assert.match(html, new RegExp(`href="/${locale}/topics/neck-lymphatic"`));
@@ -119,44 +119,42 @@ test("bare topic index renders the region chooser with no branch opened", async 
     assert.doesNotMatch(html, /Upper Aerodigestive Tract/);
     assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
     assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
-    assert.match(html, /\/topic-icons\/lymph-nodes-tabler\.svg/);
-    assert.match(html, /\/topic-icons\/skin-tabler\.svg/);
-
-    // No topic is selected, so the branch is the empty prompt and the
-    // empty-state leaf (which only renders inside an open branch) is absent.
-    assert.match(html, /class="topic-branch topic-branch--empty"/, `${locale} shows the choose-a-region prompt`);
-    assert.doesNotMatch(html, /class="topic-empty-state"/, `${locale} should not open a branch by default`);
+    // The refreshed browser opens the first public topic immediately and
+    // exposes the searchable, filterable case library without client JS.
+    assert.match(html, /Case library/);
+    assert.match(html, /class="content-search"/);
+    assert.equal((html.match(/class="content-select"/g) ?? []).length, 3, `${locale} renders three filters`);
+    assert.match(html, /class="content-case-grid"/);
+    assert.match(html, /class="content-case-card"/);
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);
     assert.doesNotMatch(html, />Parathyroid · Thyroid<|>Oral Cavity · Larynx</);
   }
 });
 
-test("every topic detail route opens its condition rail with cases or an empty state", async () => {
-  // [slug, heading, a condition it lists, whether the first condition has cases]
+test("every topic detail route renders a searchable case library", async () => {
+  // [slug, heading, a condition it lists, a case title fragment]
   const routes = [
-    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma", true],
-    ["salivary-glands", "Salivary Glands", "Submandibular", true],
-    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses", false],
-    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions", true],
+    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma", "Recurrent Papillary Thyroid Carcinoma"],
+    ["salivary-glands", "Salivary Glands", "Submandibular", "Recurrent Multifocal Pleomorphic Adenoma"],
+    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses", "Lymphangioma"],
+    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions", "Right Lower Eyelid Basal Cell Carcinoma"],
   ];
 
   for (const locale of ["en", "ar", "ckb"]) {
-    for (const [slug, heading, condition, firstHasCases] of routes) {
+    for (const [slug, heading, condition, caseTitle] of routes) {
       const response = await fetchPath(`/${locale}/topics/${slug}`);
       assert.equal(response.status, 200, `${locale}/${slug} should resolve`);
       const html = await response.text();
 
       assert.match(html, new RegExp(heading));
-      // The condition rail lists every condition in the group.
-      assert.match(html, /class="condition-chip/, `${locale}/${slug} renders the condition rail`);
+      // Conditions are now filter options, with case cards shown in the active
+      // topic's library rather than a condition-tab rail.
+      assert.match(html, /class="content-search"/, `${locale}/${slug} renders case search`);
+      assert.equal((html.match(/class="content-select"/g) ?? []).length, 3, `${locale}/${slug} renders three filters`);
       assert.match(html, new RegExp(condition), `${locale}/${slug} lists ${condition}`);
-      // The first condition is open by default: either real case cards or the
-      // honest per-condition empty state.
-      if (firstHasCases) {
-        assert.match(html, /class="case-card"/, `${locale}/${slug} shows case cards`);
-      } else {
-        assert.match(html, /class="case-empty"/, `${locale}/${slug} shows the empty state`);
-      }
+      assert.match(html, /class="content-case-grid"/, `${locale}/${slug} shows the case grid`);
+      assert.match(html, /class="content-case-card"/, `${locale}/${slug} shows case cards`);
+      assert.match(html, new RegExp(caseTitle), `${locale}/${slug} shows its example case`);
       assert.match(html, new RegExp(`href="/${locale}/topics"`));
     }
   }
