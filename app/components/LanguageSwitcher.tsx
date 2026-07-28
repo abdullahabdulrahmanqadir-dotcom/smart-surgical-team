@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { IconChevronDown, IconGlobe } from "./icons";
 import { LOCALES, LOCALE_META, swapLocaleInPath, type Locale } from "../lib/i18n";
@@ -25,6 +25,9 @@ export default function LanguageSwitcher({
   const pathname = usePathname() ?? `/${locale}`;
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // The header renders this switcher twice (desktop bar and mobile nav), so the
+  // dropdown id must be per-instance or aria-controls resolves to the wrong menu.
+  const menuId = useId();
 
   useEffect(() => {
     function closeOnOutsidePress(event: PointerEvent) {
@@ -48,7 +51,7 @@ export default function LanguageSwitcher({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-controls="language-options"
+        aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
       >
         <IconGlobe className="language-trigger-icon" size={18} />
@@ -56,7 +59,7 @@ export default function LanguageSwitcher({
         <IconChevronDown className="language-trigger-chevron" size={15} />
       </button>
 
-      <div className="language-dropdown" id="language-options" role="menu" hidden={!open}>
+      <div className="language-dropdown" id={menuId} role="menu" hidden={!open}>
         {LOCALES.map((code) => {
           const meta = LOCALE_META[code];
           const active = code === locale;

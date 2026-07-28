@@ -210,6 +210,39 @@ TypeScript cleanup.
 - RTL typography: Arabic and Sorani headings must have normal tracking and use
   the Noto font stacks; verify no horizontal overflow
 
+### QA pass completed 2026-07-28
+
+This gate was run against the local preview and covers the three previously
+ungated commits (palette refresh, language-menu restyle, case search/filters).
+
+- **Locales/routes** — `/en`, `/ar`, `/ckb` topics index plus detail routes:
+  correct `dir`/`lang` (`rtl`, `ckb-Arab`), four topic selectors, three filters,
+  five case cards, correct topic pre-selected on deep links.
+- **RTL typography** — zero elements with non-normal `letter-spacing` across all
+  headings/links/buttons; Noto Kufi Arabic for headings, Noto Naskh Arabic for
+  body. No horizontal overflow in any locale.
+- **Case library** — search filters 5→2 on `goiter`; a no-match query shows the
+  honest "No cases match this search" empty state; format filter returns the one
+  case study; `Clear all` appears only when a filter is active and resets search
+  plus all three selects.
+- **Language menu** — opens on click, closes on Escape and on outside pointer
+  press, `aria-expanded` tracks state, locale links preserve the current path
+  and mark the active locale with `aria-current`.
+- **Responsive/theme** — case grid reflows 1/2/3 columns at 375/768/1024 with no
+  overflow at any width; light theme applies its cream/white tokens and persists
+  via `sst-theme`.
+- **Console** — clean; no errors or warnings.
+
+**Defect found and fixed:** `LanguageSwitcher` hardcoded `id="language-options"`,
+but the header renders the switcher twice (desktop and mobile), producing a
+duplicate DOM id so the mobile trigger's `aria-controls` resolved to the desktop
+menu. Now uses React `useId()` per instance.
+
+Two apparent failures during this pass were **stale hot-reload artifacts**, not
+defects — the language menu appeared not to open, and the light theme appeared
+not to apply. Both behaved correctly after a hard reload. Always hard-navigate
+before believing a computed style or interaction failure in dev.
+
 ## 7. Remaining work, in priority order
 
 ### Immediate maintenance before another release
