@@ -1284,10 +1284,17 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 .content-filters { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: linear-gradient(100deg, var(--surface-2), color-mix(in srgb, var(--accent-honey-soft) 52%, var(--surface-2))); }
 .content-filter-label { margin-inline: .25rem .2rem; color: var(--text-muted); font-size: .78rem; font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.content-search { display: flex; align-items: center; gap: .55rem; flex: 1 1 15rem; height: 2.8rem; min-width: min(15rem, 100%); padding-inline: .95rem; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--text-soft); transition: border-color 180ms ease, box-shadow 180ms ease; }
+.content-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); color: var(--primary); }
+.content-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: .84rem; }
+.content-search input::placeholder { color: var(--text-soft); }
+.content-search input::-webkit-search-cancel-button { cursor: pointer; }
 .content-select { position: relative; display: flex; align-items: center; min-width: min(15rem, 100%); height: 2.8rem; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--text); transition: border-color 180ms ease, box-shadow 180ms ease; }
 .content-select:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
 .content-select select { width: 100%; height: 100%; padding: 0 2.2rem 0 1rem; border: 0; outline: 0; appearance: none; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: .84rem; }
 .content-select svg { position: absolute; inset-inline-end: .82rem; pointer-events: none; color: var(--primary); }
+.content-clear-filters { height: 2.8rem; padding-inline: .9rem; border: 0; border-radius: 999px; background: transparent; color: var(--primary); cursor: pointer; font: inherit; font-size: .82rem; font-weight: 700; transition: background 180ms ease, color 180ms ease; }
+.content-clear-filters:hover, .content-clear-filters:focus-visible { background: var(--primary-soft); color: var(--primary-strong); outline: none; }
 
 .content-case-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 1.5rem); }
 .content-case-card { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
@@ -1316,8 +1323,8 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-empty p { margin-top: .2rem; font-size: .9rem; }
 
 @media (max-width: 1000px) { .content-topic-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); } .content-case-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 720px) { .content-browser-hero { grid-template-columns: 1fr; } .content-browser-hero-copy { padding-bottom: 2rem; } .content-browser-map-wrap { min-height: 21rem; } .content-library-heading { display: grid; gap: .6rem; } .content-results { margin: 0; } .content-filter-label { flex-basis: 100%; } .content-select { flex: 1 1 13rem; } }
-@media (max-width: 520px) { .content-browser-hero-copy h2 { font-size: clamp(2.5rem, 13vw, 3.35rem); } .content-topic-switcher, .content-case-grid { grid-template-columns: 1fr; } .content-topic-option { min-height: 5.55rem; } .content-case-art { min-height: 11rem; } .content-select { flex-basis: 100%; } }
+@media (max-width: 720px) { .content-browser-hero { grid-template-columns: 1fr; } .content-browser-hero-copy { padding-bottom: 2rem; } .content-browser-map-wrap { min-height: 21rem; } .content-library-heading { display: grid; gap: .6rem; } .content-results { margin: 0; } .content-filter-label { flex-basis: 100%; } .content-search, .content-select { flex: 1 1 13rem; } }
+@media (max-width: 520px) { .content-browser-hero-copy h2 { font-size: clamp(2.5rem, 13vw, 3.35rem); } .content-topic-switcher, .content-case-grid { grid-template-columns: 1fr; } .content-topic-option { min-height: 5.55rem; } .content-case-art { min-height: 11rem; } .content-search, .content-select { flex-basis: 100%; } }
 
 .topic-index-grid {
   display: grid;

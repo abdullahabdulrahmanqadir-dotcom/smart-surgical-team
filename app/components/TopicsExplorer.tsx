@@ -7,7 +7,7 @@ import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
 import type { CaseVideo, TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
-import { IconChevronDown, IconClock, IconFile, IconPlay } from "./icons";
+import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
 const focusedViews: Record<string, string> = {
   "thyroid-parathyroid": "/anatomy-focus-thyroid.png",
@@ -79,6 +79,7 @@ export default function TopicsExplorer({
   const [subTopic, setSubTopic] = useState("all");
   const [year, setYear] = useState("all");
   const [format, setFormat] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const activeGroup = groups.find((group) => group.slug === selected) ?? groups[0];
 
   useEffect(() => {
@@ -87,6 +88,9 @@ export default function TopicsExplorer({
       const slug = match && groups.some((group) => group.slug === match[1]) ? match[1] : groups[0]?.slug;
       if (slug) setSelected(slug);
       setSubTopic("all");
+      setYear("all");
+      setFormat("all");
+      setSearchQuery("");
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -97,11 +101,25 @@ export default function TopicsExplorer({
   ) ?? [], [activeGroup]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
+    const searchTerm = searchQuery.trim().toLocaleLowerCase();
     const matchesTopic = subTopic === "all" || item.subTopic === subTopic;
     const matchesYear = year === "all" || item.date.endsWith(year);
     const matchesFormat = format === "all" || (format === "video" ? item.hasVideo : !item.hasVideo);
-    return matchesTopic && matchesYear && matchesFormat;
-  }), [format, libraryCases, subTopic, year]);
+    const matchesSearch = !searchTerm || [item.title, item.summary, item.subTopic, item.date]
+      .join(" ")
+      .toLocaleLowerCase()
+      .includes(searchTerm);
+    return matchesTopic && matchesYear && matchesFormat && matchesSearch;
+  }), [format, libraryCases, searchQuery, subTopic, year]);
+
+  const filtersAreActive = subTopic !== "all" || year !== "all" || format !== "all" || searchQuery.trim().length > 0;
+
+  function clearFilters() {
+    setSearchQuery("");
+    setSubTopic("all");
+    setYear("all");
+    setFormat("all");
+  }
 
   function selectTopic(event: MouseEvent, slug: string) {
     if (!isPlainClick(event)) return;
@@ -110,6 +128,7 @@ export default function TopicsExplorer({
     setSubTopic("all");
     setYear("all");
     setFormat("all");
+    setSearchQuery("");
     window.history.pushState({}, "", localePath(locale, `topics/${slug}`));
   }
 
@@ -158,6 +177,16 @@ export default function TopicsExplorer({
 
       <div className="content-filters" aria-label="Filter case library">
         <span className="content-filter-label">Filter by</span>
+        <label className="content-search">
+          <IconSearch size={17} />
+          <span className="visually-hidden">Search cases</span>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search cases"
+          />
+        </label>
         <label className="content-select">
           <span className="visually-hidden">Subtopic</span>
           <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
@@ -184,6 +213,7 @@ export default function TopicsExplorer({
           </select>
           <IconChevronDown size={16} />
         </label>
+        {filtersAreActive ? <button className="content-clear-filters" type="button" onClick={clearFilters}>Clear all</button> : null}
       </div>
 
       {filteredCases.length > 0 ? (
@@ -193,7 +223,7 @@ export default function TopicsExplorer({
       ) : (
         <div className="content-empty">
           <IconFile size={22} />
-          <div><h3>No cases match these filters.</h3><p>Try another subtopic, time period, or content format.</p></div>
+          <div><h3>No cases match this search.</h3><p>Try another phrase, or clear the filters to see every case.</p></div>
         </div>
       )}
     </section>
