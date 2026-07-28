@@ -288,12 +288,13 @@ export function IconLymphNodes(props: IconProps) {
   );
 }
 
-export function IconSkinLesion(props: IconProps) {
+export function IconSkinLayers(props: IconProps) {
   return (
     <svg {...svgProps(props)}>
-      <path d="M4.2 12.6c-.6-3.7 2-7.4 6-8.3 3.3-.8 6.4.6 7.9 3.3 1.5 2.8.7 5.4-1.4 6.6-2 1.1-3.6.3-4.9 1.4-1.2 1-.8 2.6-2.3 3.4-1.8 1-4.6-2.3-5.3-6.4Z" />
-      <circle cx="12.4" cy="10.4" r="2.7" />
-      <path d="M12.4 6.5v.1M15.8 12.4v.1" />
+      <path d="M4 8.1h16M4 10.8h16" />
+      <path d="M4 13.8c1.8-1.1 3.5-1.1 5.3 0s3.5 1.1 5.3 0 3.5-1.1 5.3 0" />
+      <path d="M4.6 17.1c1.5-.8 3.1-.8 4.6 0 1.6.8 3.2.8 4.8 0 1.5-.8 3.1-.8 4.6 0" />
+      <path d="M13.8 3.6c-1.2 1.2-1.8 2.7-1.8 4.5v3.8c0 1.4.8 2.5 2 3" />
     </svg>
   );
 }
@@ -312,7 +313,7 @@ export const topicIcons = {
   thyroid: IconThyroid,
   parotid: IconSalivary,
   lymph: IconLymphNodes,
-  skin: IconSkinLesion,
+  skin: IconSkinLayers,
   larynx: IconLarynx,
   oral: IconOral,
   oncology: IconOncology,

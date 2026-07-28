@@ -13,7 +13,7 @@ const en = {
   },
   nav: {
     home: "Home",
-    about: "About",
+    about: "About us",
     topics: "Topics",
     library: "Library",
     webinars: "Webinars",
@@ -46,6 +46,7 @@ const en = {
       "Focused on {name}. Choose a condition below to browse its cases.",
     chooseRegion:
       "Select a region above and its focus areas will open here.",
+    mapReset: "Back to the whole head and neck",
     focusAreas: "Focus areas",
     conditions: "Conditions",
     conditionCases: "Cases",

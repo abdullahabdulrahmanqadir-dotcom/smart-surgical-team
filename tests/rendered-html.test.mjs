@@ -99,9 +99,15 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
 
   assert.doesNotMatch(html, /\b(?:9|12|16|18) lessons\b/i);
   assert.match(html, /href="\/en\/topics"/);
+  // Preserve the approved thyroid and parotid artwork; lower cards use the
+  // shared lymph and skin glyphs rather than their older standalone assets.
+  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
+  assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
+  assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
+  assert.match(html, /M4 8\.1h16M4 10\.8h16/);
 });
 
-test("bare topic index renders the content browser with the default case library", async () => {
+test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {
   for (const locale of ["en", "ar", "ckb"]) {
     const response = await fetchPath(`/${locale}/topics`);
     assert.equal(response.status, 200);
@@ -119,13 +125,26 @@ test("bare topic index renders the content browser with the default case library
     assert.doesNotMatch(html, /Upper Aerodigestive Tract/);
     assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
     assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
-    // The refreshed browser opens the first public topic immediately and
-    // exposes the searchable, filterable case library without client JS.
-    assert.match(html, /Case library/);
-    assert.match(html, /class="content-search"/);
-    assert.equal((html.match(/class="content-select"/g) ?? []).length, 3, `${locale} renders three filters`);
-    assert.match(html, /class="content-case-grid"/);
-    assert.match(html, /class="content-case-card"/);
+
+    // The map waits for a click: no region is focused, so the case library and
+    // its filters stay closed and the reader is prompted to choose a region.
+    assert.doesNotMatch(html, /class="content-map[^"]*is-focused/, `${locale} starts on the overview`);
+    assert.match(html, /class="content-prompt"/, `${locale} prompts for a region`);
+    assert.doesNotMatch(html, /Case library/);
+    assert.doesNotMatch(html, /class="content-search"/);
+    assert.doesNotMatch(html, /class="content-case-grid"/);
+    assert.doesNotMatch(html, /class="content-topic-option is-active/, `${locale} preselects no topic`);
+
+    // Every region stays reachable without client JS having run, each labelled
+    // and with a leader running out to one side or the other.
+    assert.equal(
+      (html.match(/class="content-map-callout content-map-callout--(?:left|right)"/g) ?? []).length,
+      4,
+      `${locale} renders a labelled callout per region`,
+    );
+    for (const label of ["Thyroid", "Salivary", "Lymph", "Skin"]) {
+      assert.match(html, new RegExp(`content-map-tag[^>]*>${label}<`), `${locale} labels ${label}`);
+    }
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);
     assert.doesNotMatch(html, />Parathyroid · Thyroid<|>Oral Cavity · Larynx</);
   }
@@ -167,7 +186,7 @@ test("the thyroid route surfaces a real example case under papillary carcinoma",
   assert.match(html, /Example cases from the team/);
 });
 
-test("thyroid detail uses the supplied, centred transparent anatomical artwork", async () => {
+test("thyroid detail keeps the approved topic and case artwork", async () => {
   const html = await (await fetchPath("/en/topics/thyroid-parathyroid")).text();
   assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
   assert.match(html, /\/topic-icons\/parathyroid-sst-cropped\.png/);
@@ -181,5 +200,29 @@ test("unknown topic slugs return not found", async () => {
 
 test("unpublished topic groups are not reachable on the public site", async () => {
   const response = await fetchPath("/en/topics/upper-aerodigestive");
+  assert.equal(response.status, 404);
+});
+
+test("events hub and its two initial records are available in every locale", async () => {
+  for (const locale of ["en", "ar", "ckb"]) {
+    const hub = await fetchPath(`/${locale}/events`);
+    assert.equal(hub.status, 200);
+    const html = await hub.text();
+    assert.match(html, /Second Middle East Thyroid Summit/);
+    assert.match(html, /First Middle East Thyroid Summit/);
+    assert.match(html, /Past event/);
+    assert.match(html, new RegExp(`href="/${locale}/events/second-middle-east-thyroid-summit"`));
+
+    const detail = await fetchPath(`/${locale}/events/second-middle-east-thyroid-summit`);
+    assert.equal(detail.status, 200);
+    const detailHtml = await detail.text();
+    assert.match(detailHtml, /Register on MET site/);
+    assert.match(detailHtml, /mets\.smarthealth\.group\/register/);
+    assert.doesNotMatch(detailHtml, /\$100|\$75|\$30/);
+  }
+});
+
+test("unknown event slugs return not found", async () => {
+  const response = await fetchPath("/en/events/not-an-event");
   assert.equal(response.status, 404);
 });

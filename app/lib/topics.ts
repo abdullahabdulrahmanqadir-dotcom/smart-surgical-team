@@ -45,6 +45,7 @@ export type TopicGroup = {
   /** Longer introduction shown on the group's own page. */
   intro: string;
   icon: TopicIconName;
+  /** Approved artwork used for a topic card when provided. */
   imageIcon?: string;
   subTopics: SubTopic[];
   /** Shown on the home page's curated teaser grid. */
@@ -237,7 +238,6 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Neck dissection presented level by level, alongside the assessment and staging of nodal disease and the workup of neck masses.",
     icon: "lymph",
-    imageIcon: "/topic-icons/lymph-nodes-tabler.svg",
     subTopics: [
       { slug: "lymph-nodes", name: "Lymph Nodes", cases: [] },
       {
@@ -274,7 +274,6 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro:
       "Management of skin and soft tissue lesions of the head and neck, from excision and margin planning through to reconstruction.",
     icon: "skin",
-    imageIcon: "/topic-icons/skin-tabler.svg",
     subTopics: [
       {
         slug: "skin-lesions",

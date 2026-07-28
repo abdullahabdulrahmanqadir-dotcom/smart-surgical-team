@@ -17,16 +17,11 @@ import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import { getLibraryContent } from "../lib/content";
 import { FEATURED_TOPICS } from "../lib/topics";
+import { EVENTS, eventDateRange } from "../lib/events";
 
 const credentials = [
   "Smart Health Tower",
   "Head & Neck department",
-];
-
-const webinars = [
-  ["MAY", "24", "Role of Imaging in Skull Base Surgery", "Smart Surgical Team", "19:00 GMT+3"],
-  ["JUN", "07", "Reconstruction of Mandibular Defects", "Smart Surgical Team", "19:00 GMT+3"],
-  ["JUN", "21", "Updates in Salivary Gland Surgery", "Smart Surgical Team", "20:00 GMT+3"],
 ];
 
 const team = [
@@ -52,6 +47,7 @@ export default async function Home({
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const latestPost = (await getLibraryContent())[0];
+  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming");
   // The contact route redirects back with ?interest=received after a successful save.
   const submitted = (await searchParams)?.interest === "received";
 
@@ -164,14 +160,8 @@ export default async function Home({
                   className="topic-card"
                   key={topic.slug}
                 >
-                  <span
-                    className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}
-                  >
-                    <TopicGlyph
-                      icon={topic.icon}
-                      imageIcon={topic.imageIcon}
-                      size={64}
-                    />
+                  <span className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}>
+                    <TopicGlyph icon={topic.icon} imageIcon={topic.imageIcon} size={64} />
                   </span>
                   <b>{topic.name}</b>
                   <p>{topic.blurb}</p>
@@ -192,7 +182,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <span className="section-kicker">Stay connected</span>
-              <h2>Upcoming events and updates</h2>
+              <h2>Upcoming events and LATEST UPDATES</h2>
               <p className="section-sub">
                 Join the conversations, teaching sessions and community behind Smart Surgical
                 Team.
@@ -201,38 +191,38 @@ export default async function Home({
           </div>
 
           <div className="dashboard">
-            <article className="panel" id="webinars">
+            <article className="panel" id="events">
               <div className="panel-heading">
                 <div>
                   <h2>Upcoming Events</h2>
                   <p className="panel-sub">Live sessions, discussions and learning opportunities.</p>
                 </div>
-                <span className="badge">3 scheduled</span>
+                <span className="badge">{upcomingEvents.length} upcoming</span>
               </div>
               <div className="webinar-list">
-                {webinars.map(([month, date, title, doctor, time]) => (
-                  <a href="#join" className="webinar-row" key={title}>
+                {upcomingEvents.map((event) => (
+                  <Link href={localePath(active, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
                     <span className="date-chip">
-                      <b>{month}</b>
-                      <strong>{date}</strong>
+                      <b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
+                      <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
                     </span>
                     <span className="webinar-body">
-                      <h3>{title}</h3>
-                      <p>{doctor}</p>
+                      <h3>{event.title}</h3>
+                      <p>{event.location}</p>
                       <small>
-                        <IconClock size={13} /> {time}
+                        <IconClock size={13} /> {eventDateRange(event)}
                       </small>
                     </span>
                     <span className="row-action" aria-hidden="true">
                       <IconPlus size={16} />
                     </span>
-                  </a>
+                  </Link>
                 ))}
               </div>
-              <a className="panel-link" href="#join">
+              <Link className="panel-link" href={localePath(active, "events")}>
                 View all events
                 <IconArrowRight size={16} />
-              </a>
+              </Link>
             </article>
 
             <article className="panel featured-panel" id="featured">
@@ -334,7 +324,7 @@ export default async function Home({
         </section>
 
         {/* ---------------- Vision ---------------- */}
-        <section className="section section-vision" aria-labelledby="vision-heading">
+        <section className="section section-vision" id="about" aria-labelledby="vision-heading" hidden>
           <div className="vision-panel">
             <div className="vision-block">
               <span className="vision-icon">

@@ -7,30 +7,11 @@ import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
 import type { CaseVideo, TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
+import HeadNeckMap from "./HeadNeckMap";
+import { fill } from "../lib/dictionaries";
 import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
-const focusedViews: Record<string, string> = {
-  "thyroid-parathyroid": "/anatomy-focus-thyroid.png",
-  "salivary-glands": "/anatomy-focus-parotid.png",
-  "neck-lymphatic": "/anatomy-focus-lymph.png",
-  "skin-soft-tissue": "/anatomy-focus-skin.png",
-};
-
 type LibraryCase = CaseVideo & { subTopic: string; imageIcon?: string };
-
-function HeadNeckMap({ active }: { active: string }) {
-  return (
-    <div className={`content-map content-map--${active}`} aria-hidden="true">
-      {/* Static delivery avoids the Next Image compatibility route used by vinext. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="content-map-overview" src="/anatomy-topics-model-v2.png" alt="" />
-      {Object.entries(focusedViews).map(([region, src]) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className={`content-map-focus${active === region ? " is-visible" : ""}`} src={src} alt="" key={region} />
-      ))}
-    </div>
-  );
-}
 
 function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
@@ -72,21 +53,22 @@ export default function TopicsExplorer({
   t: Dictionary["topics"];
   initialSlug?: string;
 }) {
+  // No slug means the whole head and neck, with nothing chosen yet. The map
+  // waits for a click rather than opening a topic on the reader's behalf.
   const startingSlug = initialSlug && groups.some((group) => group.slug === initialSlug)
     ? initialSlug
-    : groups[0]?.slug ?? "";
-  const [selected, setSelected] = useState(startingSlug);
+    : null;
+  const [selected, setSelected] = useState<string | null>(startingSlug);
   const [subTopic, setSubTopic] = useState("all");
   const [year, setYear] = useState("all");
   const [format, setFormat] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const activeGroup = groups.find((group) => group.slug === selected) ?? groups[0];
+  const activeGroup = groups.find((group) => group.slug === selected) ?? null;
 
   useEffect(() => {
     function onPopState() {
       const match = window.location.pathname.match(/\/topics\/([^/?#]+)/);
-      const slug = match && groups.some((group) => group.slug === match[1]) ? match[1] : groups[0]?.slug;
-      if (slug) setSelected(slug);
+      setSelected(match && groups.some((group) => group.slug === match[1]) ? match[1] : null);
       setSubTopic("all");
       setYear("all");
       setFormat("all");
@@ -121,9 +103,7 @@ export default function TopicsExplorer({
     setFormat("all");
   }
 
-  function selectTopic(event: MouseEvent, slug: string) {
-    if (!isPlainClick(event)) return;
-    event.preventDefault();
+  function openTopic(slug: string) {
     setSelected(slug);
     setSubTopic("all");
     setYear("all");
@@ -132,7 +112,20 @@ export default function TopicsExplorer({
     window.history.pushState({}, "", localePath(locale, `topics/${slug}`));
   }
 
-  if (!activeGroup) return null;
+  function selectTopic(event: MouseEvent, slug: string) {
+    if (!isPlainClick(event)) return;
+    event.preventDefault();
+    openTopic(slug);
+  }
+
+  /** Pulls the camera back out to the whole head and neck. */
+  function clearTopic() {
+    setSelected(null);
+    clearFilters();
+    window.history.pushState({}, "", localePath(locale, "topics"));
+  }
+
+  const regionLabels = Object.fromEntries(groups.map((group) => [group.slug, group.name]));
 
   return (
     <section className="content-browser" aria-labelledby="content-browser-heading">
@@ -140,16 +133,22 @@ export default function TopicsExplorer({
         <div className="content-browser-hero-copy">
           <p className="section-kicker">{t.kicker}</p>
           <h2 id="content-browser-heading">Learn through the anatomy.</h2>
-          <p>{t.intro}</p>
+          <p>{activeGroup ? fill(t.guideIntroActive, { name: activeGroup.name }) : t.guideIntro}</p>
         </div>
         <div className="content-browser-map-wrap">
-          <HeadNeckMap active={activeGroup.slug} />
+          <HeadNeckMap
+            active={activeGroup?.slug ?? null}
+            labels={regionLabels}
+            onSelect={openTopic}
+            onReset={clearTopic}
+            resetLabel={t.mapReset}
+          />
         </div>
       </div>
 
       <nav className="content-topic-switcher" aria-label="Surgical topics">
         {groups.map((group, index) => {
-          const isActive = group.slug === activeGroup.slug;
+          const isActive = group.slug === activeGroup?.slug;
           return (
             <a
               className={`content-topic-option${isActive ? " is-active" : ""}`}
@@ -159,13 +158,21 @@ export default function TopicsExplorer({
               key={group.slug}
             >
               <span className="content-topic-index">0{index + 1}</span>
-              <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.slug === "neck-lymphatic" || group.slug === "skin-soft-tissue" ? undefined : group.imageIcon} size={38} /></span>
+              <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={38} /></span>
               <span><strong>{group.name}</strong><small>{group.blurb}</small></span>
             </a>
           );
         })}
       </nav>
 
+      {!activeGroup ? (
+        <div className="content-prompt">
+          <p className="section-kicker">{t.guideKicker}</p>
+          <h2>{t.guideTitle}</h2>
+          <p>{t.chooseRegion}</p>
+        </div>
+      ) : (
+      <>
       <div className="content-library-heading">
         <div>
           <p className="section-kicker">{activeGroup.name}</p>
@@ -225,6 +232,8 @@ export default function TopicsExplorer({
           <IconFile size={22} />
           <div><h3>No cases match this search.</h3><p>Try another phrase, or clear the filters to see every case.</p></div>
         </div>
+      )}
+      </>
       )}
     </section>
   );
