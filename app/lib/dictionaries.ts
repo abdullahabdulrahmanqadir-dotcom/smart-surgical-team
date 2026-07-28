@@ -33,17 +33,46 @@ const en = {
     learnMore: "Learn more",
   },
   topics: {
-    kicker: "Curriculum",
+    kicker: "Topics",
     title: "Browse by Topic",
     intro:
-      "Four core tracks, each with operative video, imaging review and follow-up discussion.",
-    lessonCount: "{count} lessons",
+      "Four focused surgical tracks for structured study across head and neck surgery.",
+    exploreGroup: "Explore topic",
+    guideKicker: "Anatomical guide",
+    guideTitle: "Start with the region",
+    guideIntro:
+      "Select a highlighted area or one of the topic cards to move from the whole head and neck to a focused surgical view.",
+    guideIntroActive:
+      "Focused on {name}. Choose a condition below to browse its cases.",
+    chooseRegion:
+      "Select a region above and its focus areas will open here.",
+    focusAreas: "Focus areas",
+    conditions: "Conditions",
+    conditionCases: "Cases",
+    exampleCaption:
+      "Example cases from the team's current archive, shown to preview the layout. The new library is in preparation.",
+    caseVideoLabel: "Case video",
+    caseReadLabel: "Case study",
+    minRead: "min read",
+    caseEmptyTitle: "Cases in preparation",
+    caseEmptyBody:
+      "Approved case videos for this condition will appear here as the curriculum is published.",
+    collectionKicker: "Learning collection",
+    collectionTitle: "Programme in preparation",
+    collectionBody:
+      "The structure is ready. Approved operative videos, imaging reviews and discussions will appear here as the curriculum is published.",
+    backToTopics: "All topics",
+    otherTopics: "Continue exploring",
   },
   footer: {
     rights: "All rights reserved.",
-    explore: "Explore",
-    organisation: "Organisation",
-    connect: "Connect",
+    quickLinks: "Quick links",
+    contactUs: "Contact us",
+    blurb:
+      "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.",
+    privacy: "Privacy Policy",
+    terms: "Terms of Use",
+    hours: "Saturday – Thursday, 9:00 – 17:00",
   },
   common: {
     loading: "Loading",

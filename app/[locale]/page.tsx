@@ -1,28 +1,24 @@
+import Link from "next/link";
 import LibraryPanel from "../components/LibraryPanel";
 import SiteHeader from "../components/SiteHeader";
+import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import ScrollMotion from "../components/ScrollMotion";
+import TopicGlyph from "../components/TopicGlyph";
 import {
-  BrandMark,
   IconArrowRight,
-  IconCalendar,
   IconCheck,
   IconClock,
   IconFile,
   IconGlobe,
-  IconLinkedin,
-  IconMail,
-  IconPin,
   IconPlay,
   IconPlus,
   IconSparkle,
   IconUsers,
-  IconYoutube,
-  topicIcons,
-  type TopicIconName,
 } from "../components/icons";
-import { isLocale, type Locale } from "../lib/i18n";
+import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
+import { FEATURED_TOPICS } from "../lib/topics";
 
 const credentials = [
   "Smart Health Tower",
@@ -30,40 +26,6 @@ const credentials = [
   "Skull Base Unit",
   "Reconstructive Surgery",
   "Kurdistan Board Trainees",
-];
-
-type Topic = {
-  name: string;
-  icon: TopicIconName;
-  blurb: string;
-  lessons: string;
-};
-
-const topics: Topic[] = [
-  {
-    name: "Thyroid",
-    icon: "thyroid",
-    blurb: "Thyroidectomy, nerve identification and parathyroid preservation.",
-    lessons: "18 lessons",
-  },
-  {
-    name: "Parotid",
-    icon: "parotid",
-    blurb: "Parotidectomy approaches and facial nerve dissection.",
-    lessons: "12 lessons",
-  },
-  {
-    name: "Lymph Nodes",
-    icon: "lymph",
-    blurb: "Neck dissection by level, staging and nodal disease.",
-    lessons: "16 lessons",
-  },
-  {
-    name: "Skin Lesions",
-    icon: "skin",
-    blurb: "Excision, margins and reconstruction of head & neck skin.",
-    lessons: "9 lessons",
-  },
 ];
 
 const webinars = [
@@ -107,7 +69,7 @@ export default async function Home({
       <SiteHeader locale={active} dict={dict} />
       <ScrollMotion />
 
-      <main id="top">
+      <main id="main-content">
         {/* ---------------- Hero ---------------- */}
         <section className="hero">
           <div className="hero-inner">
@@ -190,40 +152,48 @@ export default async function Home({
               <span className="section-kicker">Curriculum</span>
               <h2 id="topics-heading">Browse by Topic</h2>
               <p className="section-sub">
-                Four core tracks, each with operative video, imaging review and follow-up
-                discussion.
+                Four highlighted surgical areas from the complete head and neck curriculum.
               </p>
             </div>
-            <a className="text-link" href="#library">
+            <Link className="text-link" href={localePath(active, "topics")}>
               View all topics
               <IconArrowRight size={16} />
-            </a>
+            </Link>
           </div>
 
           <div className="topic-grid">
-            {topics.map((topic) => {
-              const Glyph = topicIcons[topic.icon];
+            {FEATURED_TOPICS.map((topic) => {
               return (
-                <a href="#library" className="topic-card" key={topic.name}>
-                  <span className="topic-glyph">
-                    <Glyph size={48} />
+                <Link
+                  href={localePath(active, `topics/${topic.slug}`)}
+                  className="topic-card"
+                  key={topic.slug}
+                >
+                  <span
+                    className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}
+                  >
+                    <TopicGlyph
+                      icon={topic.icon}
+                      imageIcon={topic.imageIcon}
+                      size={64}
+                    />
                   </span>
                   <b>{topic.name}</b>
                   <p>{topic.blurb}</p>
                   <span className="topic-foot">
-                    <small>{topic.lessons}</small>
+                    <small>{dict.topics.exploreGroup}</small>
                     <span className="topic-go" aria-hidden="true">
                       <IconArrowRight size={16} />
                     </span>
                   </span>
-                </a>
+                </Link>
               );
             })}
           </div>
         </section>
 
         {/* ---------------- Library + featured ---------------- */}
-        <section className="section section-muted section-library" id="main-content">
+        <section className="section section-muted section-library" id="library">
           <div className="section-head">
             <div>
               <span className="section-kicker">Learn</span>
@@ -459,74 +429,7 @@ export default async function Home({
         </section>
       </main>
 
-      {/* ---------------- Footer ---------------- */}
-      <footer className="site-footer" id="contact">
-        <div className="footer-main">
-          <div className="footer-brand">
-            <a className="brand" href="#top">
-              <BrandMark size={32} />
-              <span className="brand-name">
-                Smart Surgical Team
-                <small>Head &amp; Neck Education</small>
-              </span>
-            </a>
-            <p>
-              A dedicated academic hub for head &amp; neck surgery education. Expert insights, better
-              outcomes.
-            </p>
-            <div className="socials">
-              <a href="#top" aria-label="YouTube">
-                <IconYoutube size={18} />
-              </a>
-              <a href="#top" aria-label="LinkedIn">
-                <IconLinkedin size={18} />
-              </a>
-              <a href="mailto:info@smartsurgicalteam.com" aria-label="Email">
-                <IconMail size={18} />
-              </a>
-            </div>
-          </div>
-
-          <nav className="footer-col" aria-label="Quick links">
-            <h3>Quick links</h3>
-            <a href="#library">Browse</a>
-            <a href="#topics">Topics</a>
-            <a href="#webinars">Webinars</a>
-            <a href="#team">Team</a>
-            <a href="#join">Join free</a>
-          </nav>
-
-          <div className="footer-col">
-            <h3>Contact us</h3>
-            <p>
-              <IconMail size={16} />
-              <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>
-            </p>
-            <p>
-              <IconPin size={16} /> Smart Health Tower, Sulaymaniah, Kurdistan Region, Iraq
-            </p>
-            <p>
-              <IconGlobe size={16} /> smartsurgicalteam.com
-            </p>
-          </div>
-
-          <div className="footer-col footer-kr" dir="rtl" lang="ckb">
-            <h3>کوردی</h3>
-            <p>بۆ پەیوەندیکردن و زانیاری زیاتر، تکایە پەیوەندیمان پێوە بکەن.</p>
-            <p>
-              <IconCalendar size={16} /> شەممە – پێنجشەممە، ٩:٠٠ – ١٧:٠٠
-            </p>
-          </div>
-        </div>
-
-        <div className="footer-bottom">
-          <span>© 2026 Smart Surgical Team. All rights reserved.</span>
-          <span className="footer-legal">
-            <a href="#top">Privacy Policy</a>
-            <a href="#top">Terms of Use</a>
-          </span>
-        </div>
-      </footer>
+      <SiteFooter locale={active} dict={dict} />
     </>
   );
 }

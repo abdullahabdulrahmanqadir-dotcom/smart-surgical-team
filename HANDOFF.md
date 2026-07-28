@@ -1,235 +1,326 @@
 # Handoff — Smart Surgical Team website
 
-Written 2026-07-26. Read this first, then `BUILD_PLAN.md`, then `PROJECT_BRIEF.md`.
+**Updated:** 2026-07-28
+**Read this first.** It supersedes the old paused-Topics notes in this file and
+the stale Phase 1a status text in `docs/project/BUILD_PLAN.md`.
 
-- `PROJECT_BRIEF.md` — what the client wants. The authority on scope, taxonomy and content rules.
-- `BUILD_PLAN.md` — the phase plan and locked decisions.
-- `design-system/smart-surgical-team/MASTER.md` — type, colour and RTL rules.
-- This file — where the work actually stands and what to do next.
+## 1. Project at a glance
 
----
+Smart Surgical Team is a trilingual head-and-neck surgery education platform for
+Smart Health Tower, Sulaymaniah. The public-facing site is being built first;
+the authenticated learning platform, real content management and member
+workflows follow later.
 
-## 1. What this project is
+### Stack
 
-A trilingual education platform for a head-and-neck surgical team at Smart Health
-Tower, Sulaymaniah, Kurdistan. Public marketing pages plus a members-only library
-of surgical videos, webinars and e-posters.
+- Next.js 16 App Router, React 19 and TypeScript
+- Cloudflare Workers-compatible output through `vinext`
+- Tailwind v4 plus the project stylesheet in `app/globals.css`
+- Supabase and Drizzle/D1 are scaffolded only; **no live data, authentication or
+  database integration is wired yet**
 
-**Stack:** Next.js 16 (App Router) on Cloudflare Workers via `vinext`, React 19,
-TypeScript, Tailwind v4. Supabase for data and auth (not yet wired). Drizzle/D1
-exists in the scaffold but is **unused** — do not build on it.
+### Key reference documents
 
-**Deployment:** push to `main` → Cloudflare Workers Builds auto-builds and
-deploys. **Therefore `main` must always be deployable.** Do not commit
-half-finished visual work to `main`; branch it.
+- `docs/project/PROJECT_BRIEF.md` — product scope, clinical constraints and
+  future feature requirements
+- `docs/project/BUILD_PLAN.md` — broader delivery plan; its old Topics status
+  is historical only
+- `assets/design-system/smart-surgical-team/MASTER.md` — typography, colour and
+  RTL rules
+- `docs/superpowers/specs/2026-07-26-topics-progressive-drilldown-design.md` —
+  earlier drill-down specification; the current Topics UI has since evolved
 
----
+## 2. Current working agreement
 
-## 2. Working agreements with the client
+1. **Work locally by default.** The client has a localhost preview and asked
+   that routine changes are not published automatically.
+2. **Publish only when the client explicitly asks.** A requested production
+   release must use the validated commit, not an arbitrary worktree state.
+3. **Commit when asked.** Do not assume that a visual refinement should be
+   pushed or deployed just because it was committed.
+4. **Keep medical content honest.** Current case records are visual placeholders
+   for layout only; they do not have destinations or approved media yet.
+5. **Do not advance into another product phase without the client’s direction.**
 
-These were established in conversation and are binding.
+## 3. Exact repository and deployment state
 
-1. **Stop after each phase.** Do not roll from one phase into the next. Deliver,
-   report, wait.
-2. **Design gate before any new page.** Interview the client on how a page should
-   look before building it. Global look decisions are already locked (§4); the
-   per-page interview covers only that page's hero, layout and hierarchy.
-3. **Review happens live.** Each finished phase is pushed and reviewed on the
-   deployed site.
-4. **Placeholders now, real content later.** The client has bios, photos, videos
-   and contact details but is not supplying them yet. Mark every placeholder with
-   a `PLACEHOLDER` comment so the Phase 4 content pass can find them all.
+### Local branch
 
-### Environment notes that will bite you
+- Current branch: `codex/phase-1a-topics`
+- Current `HEAD`: `11205c0` — `Add deployment archives`
+- The branch is **10 commits ahead of `origin/codex/phase-1a-topics`** and has
+  not been pushed to the normal GitHub remote since the recent Topics work.
+- The worktree is clean as of this handoff.
 
-- `npm run build` **fails on Windows** — the scripts use Unix env-var syntax
-  (`WRANGLER_LOG_PATH=... vinext build`) and npm runs them through `cmd.exe`.
-  Run `WRANGLER_LOG_PATH=.wrangler/wrangler.log npx vinext build` via the Bash
-  tool instead.
-- The dev server reports its real port in `preview_logs`, not in the tool result.
-  It has been landing on **3001** while the preview tool reports something else.
-- `npx tsc --noEmit` reports three pre-existing errors in `db/index.ts` and
-  `worker/index.ts` (`cloudflare:workers`, `Fetcher`, `D1Database`). These are
-  unrelated to app code. Filter them out; do not "fix" them.
-- CSS edits do not always hot-reload correctly. A computed style that contradicts
-  the stylesheet is usually stale — hard-navigate before believing it.
+Recent commits, newest first:
 
----
-
-## 3. Where the work stands
-
-### Done and deployed
-
-**Phase 0 — commit `68aa819`, pushed to `main`.** Foundation only, no new pages.
-
-- Three locales, all URL-prefixed: `/en`, `/ar`, `/ckb`. No language is
-  privileged. `app/[locale]/` is the root layout (there is no `app/layout.tsx`).
-- `proxy.ts` redirects unprefixed paths to a locale negotiated from
-  `Accept-Language`. Sorani is matched from **both** `ckb` and `ku` tags because
-  clients send either. Next 16 calls this `proxy.ts`, not `middleware.ts`.
-- `app/lib/i18n.ts` — locale config, direction, path helpers.
-- `app/lib/dictionaries.ts` — English is the source of truth; `ar` and `ckb` are
-  empty and fall back per-key, so translation can land one key at a time.
-- Fonts wired via `next/font/google`, self-hosted at build.
-- Real three-locale language switcher (`LanguageSwitcher.tsx`), server-rendered
-  as links so it works without JS.
-- `tests/rendered-html.test.mjs` — 5 tests covering locale negotiation, `dir`/
-  `lang` per locale, and switcher links. **All passing.**
-
-### In progress — branch `phase-1a-topics-wip`, NOT on `main`
-
-Phase 1a (Topics) was started and then paused at the client's request. Four
-files exist. **They typecheck but are not finished and were never verified in a
-browser.** Details and required rework in §6.
-
-### Not started
-
-Everything else. See `BUILD_PLAN.md` phases 1–5.
-
----
-
-## 4. Locked design decisions
-
-Do not relitigate these; the client chose them.
-
-| Decision | Value |
-|---|---|
-| Latin headings | Newsreader (400/500/600) |
-| Latin body | Inter (400/500/600) |
-| Arabic-script headings | Noto Kufi Arabic |
-| Arabic-script body | Noto Naskh Arabic |
-| Motion | 5/10 — refined. Scroll-reveal, smooth hovers, page transitions. Not parallax-heavy. |
-| Register | **Varies by page type.** Editorial cleanliness on marketing pages; academy density on library/browse; immersive heroes and transitions throughout. |
-| Palette | Brand teal/aqua/ivory/copper — see `MASTER.md`. |
-
-Type was chosen from a **live specimen page**, still at `/specimen`, rendering
-all three candidate pairings in all three languages. Keep it until Phase 4; it
-is the fastest way to re-check rendering when real Arabic and Sorani copy lands.
-
-### The RTL rule that matters most
-
-Arabic script joins its letters. **Negative letter-spacing breaks the joins**,
-and uppercasing is meaningless. Tracking is therefore a set of CSS tokens
-(`--tracking-tight`, `--tracking-label`, …) that `[dir="rtl"]` zeroes in one
-place, in `app/globals.css`.
-
-**When you write new CSS, use the tracking tokens. Never write a literal
-`letter-spacing` value.** If you hardcode one, it will look correct in English
-and be broken in Arabic and Kurdish, and nobody will notice until Phase 4.
-
-Same reasoning for layout: use logical properties (`margin-inline-start`,
-`padding-inline`, `inset-inline`) so one stylesheet serves both directions.
-
-Also verified: both Noto faces declare `U+600-6FF`, which contains every Sorani
-glyph needed (ڕ ڵ ۆ ێ گ چ ژ پ ک ە). Kurdish coverage is confirmed from the
-served `@font-face` unicode-range but has **not** been eyeballed on a rendered
-Sorani page — do that when real copy arrives.
-
----
-
-## 5. Content rules from the brief — easy to violate by accident
-
-- **No breast content.** Out of scope entirely.
-- **Never present total laryngectomy** as a Smart Surgical Team procedure or
-  featured item. Use thyroidectomy, parotidectomy, neck dissection, skin lesion.
-- **No join-focused CTA on the home page.** The primary action is
-  "Explore the Library". (A "Join free" button was found and removed in Phase 0.)
-- **Certificates are deferred** — but the home page still advertises
-  *"Certificates for completed tracks"* as a member benefit. **This is an
-  unresolved contradiction.** It was raised with the client and they have not
-  answered. Do not silently ship it either way; ask.
-- No public comments on content.
-- Contact form only — no appointment booking.
-
----
-
-## 6. The paused Topics work — read before resuming
-
-The client answered the Topics design interview:
-
-- **Structure:** 5 group cards on the index → a detail page per group.
-- **Card contents:** custom anatomical icon + short blurb. They explicitly
-  **rejected** content counts ("18 lessons") and inline sub-topic lists.
-  Counts were rejected because placeholder numbers would be lies.
-- **Hero:** a cinematic anatomical moment, distinct from the home page hero.
-
-### Files on branch `phase-1a-topics-wip`
-
-| File | State | Action needed |
+| Commit | Summary | Deployment state |
 |---|---|---|
-| `app/lib/topics.ts` | **Good.** 5-group taxonomy, single source of truth. | Keep as-is. |
-| `app/components/TopicHero.tsx` | Markup good, **no CSS exists**. | Write its CSS. |
-| `app/[locale]/topics/page.tsx` | Markup good, **no CSS exists**, never rendered. | Write CSS, then verify. |
-| `app/components/SiteFooter.tsx` | **Fixed** — branch commit `16c12b4`. | Done; see defect 1. |
+| `11205c0` | Adds four local Sites deployment archives at the client’s request | Local only; not push/deploy-required |
+| `ef46b79` | Adds case-library search plus clear-all filters | Local only |
+| `85d96dd` | Restyles the language selector as a dropdown menu | Published privately to Sites |
+| `f9a4948` | Removes unneeded Topics hero labels and improves two topic glyphs | Published privately to Sites |
+| `73a81bc` | Adds restrained palette accents to Topics | Published privately to Sites |
+| `7774ef5` / `e789a02` / `989fa88` | Case-grid and Topics-explorer evolution | Included in the current local implementation |
 
-### Known defects in the WIP
+### Current private deployment
 
-1. **`SiteFooter.tsx` duplicated an existing footer — FIXED (branch commit
-   `16c12b4`).** The component now uses the original class names, whose styles
-   already exist in `globals.css`; the inline `<footer>` was removed from
-   `page.tsx` and replaced with `<SiteFooter>`; the hardcoded Sorani column and
-   its orphaned `.footer-kr` CSS are gone, replaced by a topic list generated
-   from the shared taxonomy; footer strings moved into the dictionary; a test
-   guards against a duplicate footer reappearing. Nothing left to do here.
+- URL: `https://smart-surgical-team.kitgiz-0534.chatgpt.site`
+- It contains commits through **`85d96dd`**.
+- It **does not include** the local-only search/clear-filters commit `ef46b79`
+  or the archive-only commit `11205c0`.
+- Do not redeploy simply to synchronize it; wait for an explicit client request.
 
-2. **13 of 15 CSS classes used by the WIP do not exist.** Missing:
-   `.visually-hidden`, `.topic-index-grid`, `.topic-card-lg`, `.topic-hero`,
-   `.topic-hero-art`, `.topic-hero-copy`, `.topic-hero-intro`, `.footer-inner`,
-   `.footer-heading`, `.footer-base`, `.footer-tagline`, `.footer-address`.
-   The pages would render unstyled.
+### Committed deployment archives
 
-3. **The topic detail page was never written.** `app/[locale]/topics/[slug]/`
-   does not exist, so every card on the index links to a 404.
+The client explicitly asked to commit all files. The following generated
+archives are therefore intentionally tracked at `HEAD`:
 
-4. **The home page still hardcodes its own 4-topic array** (`app/[locale]/page.tsx`
-   ~line 40) instead of reading `FEATURED_TOPICS` from `app/lib/topics.ts`.
-   Rewire it, or the two will drift.
+- `.openai/site-deploy.tgz`
+- `.openai/site-deploy-73a81bc.tgz`
+- `.openai/site-deploy-f9a4948.tgz`
+- `.openai/site-deploy-85d96dd.tgz`
 
-### Remaining Phase 1a checklist
+Normally these are temporary packaging artifacts. Do not delete or rewrite them
+without the client’s approval, since they were deliberately committed.
 
-- [x] ~~Rewrite `SiteFooter.tsx` as an extraction of the existing footer~~ — done, `16c12b4`
-- [ ] Write CSS for the topic hero, index grid and large topic cards
-- [ ] Build `app/[locale]/topics/[slug]/page.tsx` (hero, sub-topic list, empty
-      content state, cross-links to other groups)
-- [ ] Rewire the home page to `FEATURED_TOPICS`
-- [ ] Design a deliberate empty state — there is no content until Phase 2, and
-      five pages saying "Coming soon" reads thin. This was flagged to the client
-      and is unanswered.
-- [ ] Verify in **all three locales**, including RTL layout, before claiming done
-- [ ] Extend `tests/rendered-html.test.mjs` to cover the new routes
+## 4. What is implemented now
 
----
+### Shared site foundation
 
-## 7. How to verify anything
+- Locale-prefixed public routes: `/en`, `/ar` and `/ckb`
+- Locale negotiation at the bare root through `proxy.ts`
+- English is the current source dictionary. Arabic and Sorani fall back to
+  English until approved translations are supplied.
+- Light/dark themes, reduced-motion handling, skip link, responsive header and
+  shared footer
+- Newsreader/Inter for Latin text; Noto Kufi Arabic/Noto Naskh Arabic for Arabic
+  and Sorani
 
-Never claim a page works without rendering it.
+### Current Topics experience
 
-```bash
-WRANGLER_LOG_PATH=.wrangler/wrangler.log npx vinext build
+Public routes:
+
+- `/:locale/topics`
+- `/:locale/topics/:slug` for the four published tracks
+
+Published tracks:
+
+1. Thyroid & Parathyroid
+2. Salivary Glands
+3. Neck & Lymphatic Surgery
+4. Skin & Soft Tissue
+
+`Upper Aerodigestive Tract` remains in `app/lib/topics.ts`, but is marked
+unpublished and must not appear in public navigation or routes until approved.
+
+The current screen is a content-first Topics browser, not the older three-level
+condition-rail design described in past handoffs:
+
+- An anatomy-led hero opens on the first public topic at `/topics`; a topic URL
+  opens its matching topic.
+- Four compact topic cards switch the active subject while preserving shareable
+  locale-aware URLs.
+- The selected topic presents a **Case library** with a responsive three-column
+  grid (two columns on medium screens, one on small screens).
+- Each card has a visual type treatment, condition label, title, short clinical
+  summary, date and read time. Cards are non-navigable until approved detail or
+  video destinations exist.
+- Active-topic case data is filterable by subtopic, publication year and format
+  (video vs case study).
+- A text search now matches case title, summary, subtopic and date as the user
+  types. `Clear all` resets the search and all filters without changing the
+  selected topic.
+- Empty search/filter results are explicit and provide a clear recovery path.
+
+### Topics design refinements completed in this pass
+
+- The Topics palette keeps teal (`#167A78`) as the primary interactive colour.
+  Olive, honey, clay and restrained rose from the supplied palette add warmth to
+  topic cards, filter surfaces and case artwork without overriding teal actions.
+- Removed the hero’s `4 surgical tracks · … learning cases` counter and the
+  `Now exploring` anatomy overlay after client review.
+- The Neck/Lymphatic and Skin/Soft Tissue selector cards now use the built-in
+  medical glyphs rather than the unsuitable image icons.
+- The language control is a globe-led dropdown, based on the client’s reference
+  screenshots. It presents full language names with CSS-rendered US, Kurdistan
+  and Iraq flag treatments. It supports click-outside and Escape dismissal,
+  keyboard focus, locale-preserving links and a compact header trigger on
+  smaller screens.
+
+### Important content status
+
+`app/lib/topics.ts` deliberately contains **placeholder example cases** to make
+the layout reviewable. They were adapted from the team’s existing archive and
+have no approved destinations. Before public clinical use, Phase 2 must replace
+them with team-approved records, media, imagery, ownership and consent status.
+
+## 5. Files most likely to be touched next
+
+| File | Purpose |
+|---|---|
+| `app/components/TopicsExplorer.tsx` | Topics selection, search/filter state and case-card rendering |
+| `app/lib/topics.ts` | Single source of truth for topic groups, subtopics and placeholder cases |
+| `app/components/LanguageSwitcher.tsx` | Accessible language dropdown and locale-preserving navigation |
+| `app/components/SiteHeader.tsx` | Header placement and mobile menu integration |
+| `app/globals.css` | Global tokens and all Topics/language-menu responsive styles |
+| `tests/rendered-html.test.mjs` | Static rendered-route contract tests; currently needs updating |
+| `app/lib/dictionaries.ts` | English source strings and future Arabic/Sorani translations |
+
+## 6. Validation status — do not overstate it
+
+### Passing on current `HEAD`
+
+- ESLint: passing
+- Production build, using the Windows-safe command below: passing
+- `git diff --check`: passing before the latest commits
+
+### Rendered-route tests: 13 of 13 passing
+
+The two stale Topics assertions were updated on 2026-07-28. The test suite now
+checks the current interaction contract: four `.content-topic-option` selectors,
+the default case library, search, three filters, case grid/cards and a
+representative example case for every published topic route.
+
+### Verification commands on Windows
+
+`npm run build` uses Unix-style environment assignment and fails under normal
+Windows `cmd.exe`. Use:
+
+```powershell
+$env:WRANGLER_LOG_PATH='.wrangler/wrangler.log'; npx vinext build
+npm run lint
 node --test tests/rendered-html.test.mjs
 ```
 
-Then start the dev server through the preview tool (never `npm run dev` in
-Bash), find the real port in `preview_logs`, and check:
+`npx tsc --noEmit` historically reports pre-existing scaffold errors in
+`db/index.ts` and `worker/index.ts` around Cloudflare Worker types. These were
+not part of the Topics work; confirm them separately before attempting a broad
+TypeScript cleanup.
 
-- the page renders in `/en`, `/ar` and `/ckb`
-- `read_console_messages` is clean — restart the server first, because stale HMR
-  errors from mid-edit states persist and will mislead you
-- computed `letter-spacing` is `normal` on RTL headings
-- computed `font-family` is Noto Kufi/Naskh under RTL, Newsreader/Inter under LTR
+### Required manual QA before the next requested release
 
-The browser pane is frequently unavailable for screenshots in this environment.
-`read_page` and `javascript_tool` work regardless and are usually enough.
+- `/en/topics`, `/ar/topics` and `/ckb/topics`
+- One direct detail URL for each public topic
+- Topic switching, search, every dropdown filter, native search clear affordance
+  and `Clear all`
+- Language menu: mouse/touch, Escape, outside click, keyboard focus and each
+  locale link
+- Light and dark themes at 375px, 768px, 1024px and 1440px
+- RTL typography: Arabic and Sorani headings must have normal tracking and use
+  the Noto font stacks; verify no horizontal overflow
 
----
+### QA pass completed 2026-07-28
 
-## 8. Open questions for the client
+This gate was run against the local preview and covers the three previously
+ungated commits (palette refresh, language-menu restyle, case search/filters).
 
-1. Certificates: drop the home page benefit line, or bring certificates back
-   into scope? (§5)
-2. Empty state for topic pages: build now with a designed empty state, or hold
-   Topics until Phase 2 has real content? (§6)
-3. Keep `/specimen` or delete it? (recommendation: keep until Phase 4)
-4. Still unanswered from the brief: Zoom vs another webinar provider; contact
-   email and WhatsApp number; domain name; email delivery provider; exact
-   account-activation wording.
+- **Locales/routes** — `/en`, `/ar`, `/ckb` topics index plus detail routes:
+  correct `dir`/`lang` (`rtl`, `ckb-Arab`), four topic selectors, three filters,
+  five case cards, correct topic pre-selected on deep links.
+- **RTL typography** — zero elements with non-normal `letter-spacing` across all
+  headings/links/buttons; Noto Kufi Arabic for headings, Noto Naskh Arabic for
+  body. No horizontal overflow in any locale.
+- **Case library** — search filters 5→2 on `goiter`; a no-match query shows the
+  honest "No cases match this search" empty state; format filter returns the one
+  case study; `Clear all` appears only when a filter is active and resets search
+  plus all three selects.
+- **Language menu** — opens on click, closes on Escape and on outside pointer
+  press, `aria-expanded` tracks state, locale links preserve the current path
+  and mark the active locale with `aria-current`.
+- **Responsive/theme** — case grid reflows 1/2/3 columns at 375/768/1024 with no
+  overflow at any width; light theme applies its cream/white tokens and persists
+  via `sst-theme`.
+- **Console** — clean; no errors or warnings.
+
+**Defect found and fixed:** `LanguageSwitcher` hardcoded `id="language-options"`,
+but the header renders the switcher twice (desktop and mobile), producing a
+duplicate DOM id so the mobile trigger's `aria-controls` resolved to the desktop
+menu. Now uses React `useId()` per instance.
+
+Two apparent failures during this pass were **stale hot-reload artifacts**, not
+defects — the language menu appeared not to open, and the light theme appeared
+not to apply. Both behaved correctly after a hard reload. Always hard-navigate
+before believing a computed style or interaction failure in dev.
+
+## 7. Remaining work, in priority order
+
+### Immediate maintenance before another release
+
+1. ~~Perform the manual QA list in §6 against the local preview.~~ Done
+   2026-07-28; results recorded in §6.
+2. ~~Ask the client whether the current Topics structure is approved.~~
+   **Approved 2026-07-28.** The Topics case-library structure is signed off.
+   The client noted one follow-up: **the case images need to be changed** —
+   deferred by their instruction, tracked under Phase 2 below.
+3. ~~Push `codex/phase-1a-topics` to the remote.~~ Pushed 2026-07-28 at
+   `6f1e269`.
+
+Phase 1a is therefore cleared to merge to `main`. Remember that merging to
+`main` triggers the Cloudflare Workers Builds deployment — it publishes.
+
+### Phase 2 — replace visual placeholders with real content
+
+- Establish the approved Supabase data model and server-side public queries.
+- Replace `app/lib/topics.ts` placeholder cases with approved content records.
+- **Replace the case images.** The client approved the Topics structure on
+  2026-07-28 but explicitly flagged the imagery as needing change. The current
+  thumbnails are branded stand-ins generated in `CaseCard` (teal gradient plus a
+  faded anatomical glyph), not real case photography. This is the first Phase 2
+  item to raise with them.
+- Add real case/video detail destinations, case imagery and correct access state.
+- Preserve patient consent, de-identification and content ownership metadata;
+  do not treat unlisted YouTube URLs as secure access control.
+
+### Later public-site scope
+
+- About, Contributors, Webinars, Events, Contact, Library public face, Sign in
+  and Register pages remain to be planned/built.
+- Contact delivery destination, webinar provider, email provider, final domain,
+  approved bios/photos and final logo are still required from the client.
+- Arabic and Sorani translations still need a professional content pass.
+
+### Deferred by scope
+
+- Certificates
+- Appointment booking
+- Public comments
+- Outcomes/statistics and patient testimonials
+- Custom admin panel
+- Public YouTube-channel page
+
+## 8. Non-negotiable content and accessibility constraints
+
+- No breast content.
+- Never present total laryngectomy as an SST procedure or featured item.
+- Do not invent lesson counts, patient outcomes, biographies, media links,
+  surgical-video destinations or clinical claims.
+- Use logical CSS properties for bidirectional layout and the existing tracking
+  tokens. Do not hardcode letter-spacing: Arabic script needs joined letters.
+- Preserve visible focus states, native labels for form controls, 44px touch
+  targets where practical and `prefers-reduced-motion` support.
+- Teal remains the primary interactive colour. Supporting palette colours are
+  decorative/contextual, never the sole carrier of meaning.
+
+## 9. Client decisions still needed
+
+| Needed for | Decision or input |
+|---|---|
+| Topics / Phase 2 | Approved case records, media destinations, imagery and copy; confirmation of how case cards should link/open |
+| All locales | Approved Arabic and Sorani translations |
+| Contact page | Contact email, WhatsApp number and form-delivery destination |
+| Webinars | Zoom or another provider, registration/reminder policy |
+| Identity | Account activation wording, email provider and Google OAuth credentials if Google sign-in is wanted |
+| Launch | Final domain, professional bios/photos and logo direction |
+| Certificates | Keep deferred, or return to scope with rules and content? |
+
+## 10. Safe next-agent checklist
+
+1. Read this file, `PROJECT_BRIEF.md` and the design-system master file.
+2. Confirm the current branch and whether the client wants local work, a push or
+   an explicit deployment. Do not infer publishing permission.
+3. If touching Topics, update the rendered-route tests alongside the
+   implementation. Do not leave the test suite behind the user interface.
+4. Keep clinical placeholders clearly labelled and never fabricate destinations.
+5. Before handing off, record the actual current commit, test result and whether
+   the deployed site is behind local work.

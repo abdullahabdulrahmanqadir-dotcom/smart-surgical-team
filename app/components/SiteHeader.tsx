@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BrandMark, IconClose, IconMenu, IconMoon, IconSun } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -15,14 +16,17 @@ export default function SiteHeader({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // In-page anchors until the Phase 1 routes exist; each becomes a real
-  // locale-prefixed path as its page lands.
+  const home = localePath(locale);
+
+  // Unbuilt Phase 1 pages still point to their home-page sections. Topics is a
+  // real route now, and all paths remain useful when the header is rendered on
+  // a nested page.
   const navLinks: [string, string][] = [
-    [dict.nav.library, "#library"],
-    [dict.nav.topics, "#topics"],
-    [dict.nav.webinars, "#webinars"],
-    [dict.nav.team, "#team"],
-    [dict.nav.contact, "#contact"],
+    [dict.nav.library, `${home}#library`],
+    [dict.nav.topics, localePath(locale, "topics")],
+    [dict.nav.webinars, `${home}#webinars`],
+    [dict.nav.team, `${home}#team`],
+    [dict.nav.contact, `${home}#contact`],
   ];
 
   useEffect(() => {
@@ -45,9 +49,9 @@ export default function SiteHeader({
   return (
     <header className="site-header">
       <div className="header-inner">
-        <a
+        <Link
           className="brand"
-          href={localePath(locale)}
+          href={home}
           aria-label={`${dict.brand.name}, ${dict.nav.home}`}
         >
           <BrandMark />
@@ -55,13 +59,13 @@ export default function SiteHeader({
             {dict.brand.name}
             <small>Head &amp; Neck Education</small>
           </span>
-        </a>
+        </Link>
 
         <nav className="primary-nav" aria-label="Main">
           {navLinks.map(([label, href]) => (
-            <a key={label} href={href}>
+            <Link key={label} href={href}>
               {label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -79,14 +83,14 @@ export default function SiteHeader({
             <IconSun className="theme-icon-dark" />
           </button>
 
-          <a className="btn btn-ghost header-signin" href="#contact">
+          <Link className="btn btn-ghost header-signin" href={`${home}#contact`}>
             {dict.nav.signIn}
-          </a>
+          </Link>
           {/* The brief specifies "Explore the Library" as the primary action and
               explicitly rules out a join-focused CTA on the home page. */}
-          <a className="btn btn-primary header-cta" href="#library">
+          <Link className="btn btn-primary header-cta" href={`${home}#library`}>
             {dict.cta.exploreLibrary}
-          </a>
+          </Link>
 
           <button
             type="button"
@@ -103,17 +107,29 @@ export default function SiteHeader({
 
       <div className="mobile-nav" id="mobile-nav" hidden={!menuOpen}>
         {navLinks.map(([label, href]) => (
-          <a key={label} href={href} onClick={() => setMenuOpen(false)}>
+          <Link key={label} href={href} onClick={() => setMenuOpen(false)}>
             {label}
-          </a>
+          </Link>
         ))}
+        <div className="mobile-language">
+          <span>{dict.nav.languageLabel}</span>
+          <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
+        </div>
         <div className="mobile-nav-actions">
-          <a className="btn btn-ghost" href="#contact" onClick={() => setMenuOpen(false)}>
+          <Link
+            className="btn btn-ghost"
+            href={`${home}#contact`}
+            onClick={() => setMenuOpen(false)}
+          >
             {dict.nav.signIn}
-          </a>
-          <a className="btn btn-primary" href="#library" onClick={() => setMenuOpen(false)}>
+          </Link>
+          <Link
+            className="btn btn-primary"
+            href={`${home}#library`}
+            onClick={() => setMenuOpen(false)}
+          >
             {dict.cta.exploreLibrary}
-          </a>
+          </Link>
         </div>
       </div>
     </header>

@@ -6,7 +6,7 @@ import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import "../globals.css";
 
-// Type locked 2026-07-26 — see design-system/smart-surgical-team/MASTER.md.
+// Type locked 2026-07-26 — see assets/design-system/smart-surgical-team/MASTER.md.
 // Latin faces carry headings/body in English; the Noto pair covers Arabic and
 // Sorani Kurdish. All four are self-hosted at build time by next/font.
 const newsreader = Newsreader({
