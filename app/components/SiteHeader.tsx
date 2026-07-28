@@ -22,9 +22,10 @@ export default function SiteHeader({
   // real route now, and all paths remain useful when the header is rendered on
   // a nested page.
   const navLinks: [string, string][] = [
+    [dict.nav.about, localePath(locale, "about")],
     [dict.nav.topics, localePath(locale, "topics")],
     [dict.nav.events, localePath(locale, "events")],
-    [dict.nav.team, `${home}#team`],
+    [dict.nav.team, localePath(locale, "about")],
     [dict.nav.contact, `${home}#contact`],
   ];
 

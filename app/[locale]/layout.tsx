@@ -86,9 +86,9 @@ export async function generateMetadata({
       description,
       type: "website",
       locale: LOCALE_META[active].htmlLang,
-      images: [{ url: "/og.png", width: 1728, height: 904, alt: dict.brand.name }],
+      images: [{ url: "/og-team.png", width: 1728, height: 904, alt: dict.brand.name }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/og.png"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/og-team.png"] },
   };
 }
 

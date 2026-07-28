@@ -54,7 +54,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           <a href={`${home}#library`}>{dict.nav.library}</a>
           <a href={localePath(locale, "topics")}>{dict.nav.topics}</a>
           <a href={localePath(locale, "events")}>{dict.nav.events}</a>
-          <a href={`${home}#team`}>{dict.nav.team}</a>
+          <a href={localePath(locale, "about")}>{dict.nav.team}</a>
         </nav>
 
         <div className="footer-col">

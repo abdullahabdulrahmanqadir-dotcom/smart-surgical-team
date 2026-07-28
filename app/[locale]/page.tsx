@@ -315,10 +315,10 @@ export default async function Home({
                   </a>
                 ))}
               </div>
-              <a className="panel-link" href="#contact">
+              <Link className="panel-link" href={localePath(active, "about")}>
                 View all team
                 <IconArrowRight size={16} />
-              </a>
+              </Link>
             </article>
           </div>
         </section>

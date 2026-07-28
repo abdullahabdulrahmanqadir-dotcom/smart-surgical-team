@@ -52,7 +52,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
           </section>
         </section>
         <aside className="content-aside">
-          <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={`${home}#team`} className="text-link">View team <IconArrowRight size={15} /></Link></section>
+          <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={localePath(active, "about")} className="text-link">View team <IconArrowRight size={15} /></Link></section>
           <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Duration</dt><dd>{content.duration}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
         </aside>
       </div>
