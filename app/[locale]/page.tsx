@@ -18,17 +18,14 @@ import { getDictionary } from "../lib/dictionaries";
 import { getLibraryContent } from "../lib/content";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { EVENTS, eventDateRange } from "../lib/events";
+import { TEAM_GROUPS } from "../lib/team";
 
 const credentials = [
   "Smart Health Tower",
   "Head & Neck department",
 ];
 
-const team = [
-  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Oncologic Surgery"],
-  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Skull Base Surgery"],
-  ["ST", "Smart Surgical Team", "Head & Neck Surgery", "Reconstructive Surgery"],
-];
+const featuredTeam = TEAM_GROUPS[0].members.slice(0, 3);
 
 const benefits = [
   "Free account, immediate access",
@@ -301,18 +298,18 @@ export default async function Home({
                 </div>
               </div>
               <div className="team-list">
-                {team.map(([initials, name, role, focus]) => (
-                  <a href="#contact" className="team-row" key={name}>
-                    <span className="portrait">{initials}</span>
+                {featuredTeam.map((member) => (
+                  <Link href={localePath(active, "about")} className="team-row" key={member.name}>
+                    <span className="portrait"><img src={member.portrait} alt="" /></span>
                     <span className="team-body">
-                      <h3>{name}</h3>
-                      <p>{role}</p>
-                      <small>{focus}</small>
+                      <h3>{member.name}</h3>
+                      <p>{member.role}</p>
+                      <small>{member.credentials}</small>
                     </span>
                     <span className="row-action" aria-hidden="true">
                       <IconArrowRight size={16} />
                     </span>
-                  </a>
+                  </Link>
                 ))}
               </div>
               <Link className="panel-link" href={localePath(active, "about")}>

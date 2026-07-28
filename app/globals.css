@@ -2213,6 +2213,13 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   font-weight: 700;
 }
 
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
 /* ============================================================
    Vision
    ============================================================ */
