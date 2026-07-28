@@ -41,7 +41,7 @@ test("server-renders the English home page", async () => {
   assert.match(html, /Head &amp; Neck/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
-  assert.match(html, /Featured Surgery/);
+  assert.match(html, /Latest Post/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
 

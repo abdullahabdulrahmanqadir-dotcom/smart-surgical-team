@@ -1,5 +1,4 @@
 import Link from "next/link";
-import LibraryPanel from "../components/LibraryPanel";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
@@ -9,12 +8,10 @@ import {
   IconArrowRight,
   IconCheck,
   IconClock,
-  IconFile,
   IconGlobe,
   IconPlay,
   IconPlus,
   IconSparkle,
-  IconUsers,
 } from "../components/icons";
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
@@ -23,10 +20,7 @@ import { FEATURED_TOPICS } from "../lib/topics";
 
 const credentials = [
   "Smart Health Tower",
-  "Head & Neck Oncology",
-  "Skull Base Unit",
-  "Reconstructive Surgery",
-  "Kurdistan Board Trainees",
+  "Head & Neck department",
 ];
 
 const webinars = [
@@ -57,9 +51,7 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const libraryContent = await getLibraryContent();
-  const featuredContent = libraryContent[0];
-
+  const latestPost = (await getLibraryContent())[0];
   // The contact route redirects back with ?interest=received after a successful save.
   const submitted = (await searchParams)?.interest === "received";
 
@@ -195,32 +187,64 @@ export default async function Home({
           </div>
         </section>
 
-        {/* ---------------- Library + featured ---------------- */}
+        {/* ---------------- Upcoming events + about ---------------- */}
         <section className="section section-muted section-library" id="library">
           <div className="section-head">
             <div>
-              <span className="section-kicker">Learn</span>
-              <h2>Everything in one library</h2>
+              <span className="section-kicker">Stay connected</span>
+              <h2>Upcoming events and updates</h2>
               <p className="section-sub">
-                Pick up where you left off, or start a new track — your progress is saved across
-                devices.
+                Join the conversations, teaching sessions and community behind Smart Surgical
+                Team.
               </p>
             </div>
           </div>
 
           <div className="dashboard">
-            <LibraryPanel items={libraryContent} locale={active} />
+            <article className="panel" id="webinars">
+              <div className="panel-heading">
+                <div>
+                  <h2>Upcoming Events</h2>
+                  <p className="panel-sub">Live sessions, discussions and learning opportunities.</p>
+                </div>
+                <span className="badge">3 scheduled</span>
+              </div>
+              <div className="webinar-list">
+                {webinars.map(([month, date, title, doctor, time]) => (
+                  <a href="#join" className="webinar-row" key={title}>
+                    <span className="date-chip">
+                      <b>{month}</b>
+                      <strong>{date}</strong>
+                    </span>
+                    <span className="webinar-body">
+                      <h3>{title}</h3>
+                      <p>{doctor}</p>
+                      <small>
+                        <IconClock size={13} /> {time}
+                      </small>
+                    </span>
+                    <span className="row-action" aria-hidden="true">
+                      <IconPlus size={16} />
+                    </span>
+                  </a>
+                ))}
+              </div>
+              <a className="panel-link" href="#join">
+                View all events
+                <IconArrowRight size={16} />
+              </a>
+            </article>
 
             <article className="panel featured-panel" id="featured">
               <div className="panel-heading">
                 <div>
-                  <h2>Featured Surgery</h2>
-                  <p className="panel-sub">Editor&apos;s pick, updated weekly.</p>
+                  <h2>Latest Post</h2>
+                  <p className="panel-sub">New from Smart Surgical Team.</p>
                 </div>
-                <span className="badge badge-accent">Featured</span>
+                <span className="badge badge-accent">Latest</span>
               </div>
 
-              <Link href={localePath(active, `library/${featuredContent.slug}`)} className="featured-media">
+              <Link href={localePath(active, `library/${latestPost.slug}`)} className="featured-media">
                 <span className="featured-scene" aria-hidden="true">
                   <i className="scene-ring" />
                   <i className="scene-ring scene-ring-2" />
@@ -229,28 +253,15 @@ export default async function Home({
                 <span className="featured-play">
                   <IconPlay size={26} />
                 </span>
-                <small className="featured-time">{featuredContent.duration}</small>
+                <small className="featured-time">{latestPost.duration}</small>
               </Link>
 
-              <h3 className="featured-title">{featuredContent.title}</h3>
-              <p className="featured-presenter">Smart Surgical Team · Thyroid &amp; Parathyroid</p>
+              <h3 className="featured-title">{latestPost.title}</h3>
+              <p className="featured-presenter">{latestPost.presenter.name} · {latestPost.topic}</p>
               <p className="featured-copy">
-                A full walkthrough of total thyroidectomy — exposure, recurrent laryngeal nerve
-                identification, parathyroid preservation and haemostasis, with intra-operative
-                commentary and key technical pearls.
+                {latestPost.summary}
               </p>
 
-              <ul className="featured-facts">
-                <li>
-                  <IconClock size={16} /> 24 min
-                </li>
-                <li>
-                  <IconUsers size={16} /> 480 learners
-                </li>
-                <li>
-                  <IconFile size={16} /> Notes included
-                </li>
-              </ul>
             </article>
           </div>
         </section>
@@ -288,40 +299,6 @@ export default async function Home({
               </div>
               <a className="panel-link" href="#join">
                 View e-poster
-                <IconArrowRight size={16} />
-              </a>
-            </article>
-
-            <article className="panel" id="webinars">
-              <div className="panel-heading">
-                <div>
-                  <h2>Upcoming Webinars</h2>
-                  <p className="panel-sub">Live, with Q&amp;A. Recordings for members.</p>
-                </div>
-                <span className="badge">3 scheduled</span>
-              </div>
-              <div className="webinar-list">
-                {webinars.map(([month, date, title, doctor, time]) => (
-                  <a href="#join" className="webinar-row" key={title}>
-                    <span className="date-chip">
-                      <b>{month}</b>
-                      <strong>{date}</strong>
-                    </span>
-                    <span className="webinar-body">
-                      <h3>{title}</h3>
-                      <p>{doctor}</p>
-                      <small>
-                        <IconClock size={13} /> {time}
-                      </small>
-                    </span>
-                    <span className="row-action" aria-hidden="true">
-                      <IconPlus size={16} />
-                    </span>
-                  </a>
-                ))}
-              </div>
-              <a className="panel-link" href="#join">
-                View all webinars
                 <IconArrowRight size={16} />
               </a>
             </article>

@@ -1439,9 +1439,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   transform: scale(1.06) rotate(-3deg);
 }
 
-.topic-card:hover .topic-glyph-image,
-.topic-card:focus-visible .topic-glyph-image {
-  background: var(--brand-aqua);
+.topic-card:hover .topic-glyph-image .topic-image-icon,
+.topic-card:focus-visible .topic-glyph-image .topic-image-icon {
+  filter: brightness(0) invert(1);
 }
 
 .topic-card b {
@@ -1562,8 +1562,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
+
+.featured-panel { min-height: 100%; }
+
 
 /* --- tabs + filter --- */
 
