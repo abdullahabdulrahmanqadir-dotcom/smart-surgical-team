@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
-import type { SubTopic, TopicGroup } from "../lib/topics";
+import type { CaseVideo, TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
-import { IconFile, IconSparkle, IconPlay } from "./icons";
+import { IconChevronDown, IconClock, IconFile, IconPlay } from "./icons";
 
-/**
- * Temporary visual prototypes only. Replace all anatomy model renders with a
- * medically validated, licensed 3D asset before publishing this experience.
- */
 const focusedViews: Record<string, string> = {
   "thyroid-parathyroid": "/anatomy-focus-thyroid.png",
   "salivary-glands": "/anatomy-focus-parotid.png",
@@ -20,79 +16,47 @@ const focusedViews: Record<string, string> = {
   "skin-soft-tissue": "/anatomy-focus-skin.png",
 };
 
-function HeadNeckMap({ active }: { active: string | null }) {
+type LibraryCase = CaseVideo & { subTopic: string; imageIcon?: string };
+
+function HeadNeckMap({ active }: { active: string }) {
   return (
-    <div className={`anatomy-model${active ? ` anatomy-model--${active}` : ""}`} aria-hidden="true">
+    <div className={`content-map content-map--${active}`} aria-hidden="true">
       {/* Static delivery avoids the Next Image compatibility route used by vinext. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="anatomy-model-overview" src="/anatomy-topics-model-v2.png" alt="" />
+      <img className="content-map-overview" src="/anatomy-topics-model-v2.png" alt="" />
       {Object.entries(focusedViews).map(([region, src]) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className={`anatomy-model-focus anatomy-model-focus--${region}${active === region ? " is-visible" : ""}`} src={src} alt="" key={region} />
+        <img className={`content-map-focus${active === region ? " is-visible" : ""}`} src={src} alt="" key={region} />
       ))}
-      <span className="model-hotspot model-hotspot--thyroid-parathyroid" />
-      <span className="model-hotspot model-hotspot--salivary-glands" />
-      <span className="model-hotspot model-hotspot--neck-lymphatic" />
-      <span className="model-hotspot model-hotspot--skin-soft-tissue" />
     </div>
   );
 }
 
-/** Does a plain click want an in-page action rather than a real navigation? */
 function isPlainClick(event: MouseEvent) {
-  return (
-    event.button === 0 &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.altKey
-  );
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-function firstSub(group: TopicGroup | undefined) {
-  return group?.subTopics[0]?.slug ?? null;
-}
-
-/**
- * A single case box: an image-led tile with a short title, echoing the team's
- * current gallery. PLACEHOLDER: the case is a real example with no destination
- * yet, so it is a static preview; the thumbnail is a branded stand-in until
- * Phase 2 supplies real case imagery and a link to the video.
- */
-function CaseCard({
-  item,
-  icon,
-  t,
-}: {
-  item: NonNullable<SubTopic["cases"]>[number];
-  icon: TopicIconName;
-  t: Dictionary["topics"];
-}) {
+function CaseCard({ item, icon, t }: { item: LibraryCase; icon: TopicIconName; t: Dictionary["topics"] }) {
   return (
-    <article className="case-card">
-      <div className="case-thumb">
-        <span className="case-thumb-art" aria-hidden="true">
-          <TopicGlyph icon={icon} size={84} />
+    <article className="content-case-card">
+      <div className="content-case-art">
+        <span className="content-case-art-glyph" aria-hidden="true">
+          <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
         </span>
-        <span className="case-thumb-tag">
-          {item.hasVideo ? (
-            <>
-              <IconPlay size={12} /> {t.caseVideoLabel}
-            </>
-          ) : (
-            <>
-              <IconFile size={12} /> {t.caseReadLabel}
-            </>
-          )}
+        <span className="content-case-type">
+          {item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}
+          {item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}
         </span>
-        {item.hasVideo ? (
-          <span className="case-thumb-play" aria-hidden="true">
-            <IconPlay size={20} />
-          </span>
-        ) : null}
       </div>
-      <h4 className="case-card-title">{item.title}</h4>
-      <span className="case-card-date">{item.date}</span>
+      <div className="content-case-copy">
+        <p className="content-case-topic">{item.subTopic}</p>
+        <h3>{item.title}</h3>
+        <p className="content-case-summary">{item.summary}</p>
+        <div className="content-case-meta">
+          <span>{item.date}</span>
+          <span><IconClock size={14} /> {item.readMinutes} {t.minRead}</span>
+        </div>
+      </div>
     </article>
   );
 }
@@ -105,170 +69,136 @@ export default function TopicsExplorer({
 }: {
   groups: TopicGroup[];
   locale: Locale;
-  /** The `topics` slice of the dictionary — only strings this component needs. */
   t: Dictionary["topics"];
-  /** When set (a `/topics/[slug]` deep-link), the explorer opens on this group. */
   initialSlug?: string;
 }) {
-  const initial = initialSlug && groups.some((group) => group.slug === initialSlug) ? initialSlug : null;
-  const [selected, setSelected] = useState<string | null>(initial);
-  const activeGroup = selected ? groups.find((group) => group.slug === selected) : undefined;
-  const [openSub, setOpenSub] = useState<string | null>(firstSub(groups.find((group) => group.slug === initial)));
+  const startingSlug = initialSlug && groups.some((group) => group.slug === initialSlug)
+    ? initialSlug
+    : groups[0]?.slug ?? "";
+  const [selected, setSelected] = useState(startingSlug);
+  const [subTopic, setSubTopic] = useState("all");
+  const [year, setYear] = useState("all");
+  const [format, setFormat] = useState("all");
+  const activeGroup = groups.find((group) => group.slug === selected) ?? groups[0];
 
-  // Keep the address bar in step with in-page selection so any state is
-  // shareable, and mirror the browser back/forward buttons back into state.
   useEffect(() => {
-    function onPop() {
+    function onPopState() {
       const match = window.location.pathname.match(/\/topics\/([^/?#]+)/);
-      const slug = match && groups.some((group) => group.slug === match[1]) ? match[1] : null;
-      setSelected(slug);
-      setOpenSub(firstSub(groups.find((group) => group.slug === slug)));
+      const slug = match && groups.some((group) => group.slug === match[1]) ? match[1] : groups[0]?.slug;
+      if (slug) setSelected(slug);
+      setSubTopic("all");
     }
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
   }, [groups]);
 
-  function open(slug: string) {
-    const group = groups.find((candidate) => candidate.slug === slug);
+  const libraryCases = useMemo<LibraryCase[]>(() => activeGroup?.subTopics.flatMap((topic) =>
+    (topic.cases ?? []).map((item) => ({ ...item, subTopic: topic.name, imageIcon: topic.imageIcon })),
+  ) ?? [], [activeGroup]);
+
+  const filteredCases = useMemo(() => libraryCases.filter((item) => {
+    const matchesTopic = subTopic === "all" || item.subTopic === subTopic;
+    const matchesYear = year === "all" || item.date.endsWith(year);
+    const matchesFormat = format === "all" || (format === "video" ? item.hasVideo : !item.hasVideo);
+    return matchesTopic && matchesYear && matchesFormat;
+  }), [format, libraryCases, subTopic, year]);
+
+  function selectTopic(event: MouseEvent, slug: string) {
+    if (!isPlainClick(event)) return;
+    event.preventDefault();
     setSelected(slug);
-    setOpenSub(firstSub(group));
+    setSubTopic("all");
+    setYear("all");
+    setFormat("all");
     window.history.pushState({}, "", localePath(locale, `topics/${slug}`));
   }
 
-  function close() {
-    setSelected(null);
-    setOpenSub(null);
-    window.history.pushState({}, "", localePath(locale, "topics"));
-  }
-
-  function onSelect(event: MouseEvent, slug: string) {
-    if (!isPlainClick(event)) return; // let modified clicks open in a new tab
-    event.preventDefault();
-    if (slug === selected) close();
-    else open(slug);
-  }
-
-  const activeCondition = activeGroup?.subTopics.find((sub) => sub.slug === openSub);
-  const activeCases = activeCondition?.cases ?? [];
-  const guideIntro = activeGroup
-    ? t.guideIntroActive.replace("{name}", activeGroup.name)
-    : t.guideIntro;
+  if (!activeGroup) return null;
 
   return (
-    <section className="topics-explorer" aria-labelledby="topics-explorer-heading">
-      <div className="topics-explorer-intro">
-        <p className="section-kicker">{t.guideKicker}</p>
-        <h2 id="topics-explorer-heading">{t.guideTitle}</h2>
-        <p aria-live="polite">{guideIntro}</p>
+    <section className="content-browser" aria-labelledby="content-browser-heading">
+      <div className="content-browser-hero">
+        <div className="content-browser-hero-copy">
+          <p className="section-kicker">{t.kicker}</p>
+          <h2 id="content-browser-heading">Learn through the anatomy.</h2>
+          <p>{t.intro}</p>
+          <span className="content-browser-count">{groups.length} surgical tracks · {libraryCases.length} learning cases</span>
+        </div>
+        <div className="content-browser-map-wrap">
+          <HeadNeckMap active={activeGroup.slug} />
+          <div className="content-browser-map-caption">
+            <span>Now exploring</span>
+            <strong>{activeGroup.name}</strong>
+          </div>
+        </div>
       </div>
 
-      <div className="topics-explorer-stage">
-        <HeadNeckMap active={selected} />
-        <div className="anatomy-map-label anatomy-map-label--thyroid-parathyroid">Thyroid</div>
-        <div className="anatomy-map-label anatomy-map-label--salivary-glands">Salivary glands</div>
-        <div className="anatomy-map-label anatomy-map-label--neck-lymphatic">Lymph nodes</div>
-        <div className="anatomy-map-label anatomy-map-label--skin-soft-tissue">Skin lesion</div>
-      </div>
-
-      {/* Level 1 — region chooser. Always visible so the user can switch
-          topics. Real links so the deep-link routes stay crawlable and the
-          experience works without JavaScript; the client intercepts plain
-          clicks to keep everything on one page. */}
-      <div className="topics-explorer-grid" aria-label="Topic areas">
-        {groups.map((group) => {
-          const isActive = selected === group.slug;
+      <nav className="content-topic-switcher" aria-label="Surgical topics">
+        {groups.map((group, index) => {
+          const isActive = group.slug === activeGroup.slug;
           return (
             <a
-              key={group.slug}
-              className={`topic-selector${isActive ? " is-active" : ""}`}
+              className={`content-topic-option${isActive ? " is-active" : ""}`}
               href={localePath(locale, `topics/${group.slug}`)}
-              aria-current={isActive ? "true" : undefined}
-              onClick={(event) => onSelect(event, group.slug)}
+              aria-current={isActive ? "page" : undefined}
+              onClick={(event) => selectTopic(event, group.slug)}
+              key={group.slug}
             >
-              <span className="topic-selector-glyph">
-                <TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={38} />
-              </span>
-              <span>
-                <strong>{group.name}</strong>
-                <small>{group.blurb}</small>
-              </span>
+              <span className="content-topic-index">0{index + 1}</span>
+              <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={38} /></span>
+              <span><strong>{group.name}</strong><small>{group.blurb}</small></span>
             </a>
           );
         })}
+      </nav>
+
+      <div className="content-library-heading">
+        <div>
+          <p className="section-kicker">{activeGroup.name}</p>
+          <h2>Case library</h2>
+          <p>{activeGroup.intro}</p>
+        </div>
+        <span className="content-results" aria-live="polite">{filteredCases.length} {filteredCases.length === 1 ? "case" : "cases"}</span>
       </div>
 
-      {/* Level 2/3 — only the chosen topic's branch is in the flow. Conditions
-          run horizontally; the chosen condition's case videos sit below. */}
-      {activeGroup ? (
-        <div className="topic-branch" key={activeGroup.slug}>
-          <div className="topic-branch-head">
-            <span
-              className={`topic-detail-glyph${activeGroup.imageIcon ? " topic-glyph-image" : ""}`}
-              aria-hidden="true"
-            >
-              <TopicGlyph icon={activeGroup.icon} imageIcon={activeGroup.imageIcon} size={58} />
-            </span>
-            <div>
-              <p className="section-kicker">{activeGroup.name}</p>
-              <h3>{t.conditions}</h3>
-              <p className="topic-branch-intro">{activeGroup.intro}</p>
-            </div>
-          </div>
+      <div className="content-filters" aria-label="Filter case library">
+        <span className="content-filter-label">Filter by</span>
+        <label className="content-select">
+          <span className="visually-hidden">Subtopic</span>
+          <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
+            <option value="all">All subtopics</option>
+            {activeGroup.subTopics.map((topic) => <option value={topic.name} key={topic.slug}>{topic.name}</option>)}
+          </select>
+          <IconChevronDown size={16} />
+        </label>
+        <label className="content-select">
+          <span className="visually-hidden">Publication year</span>
+          <select value={year} onChange={(event) => setYear(event.target.value)}>
+            <option value="all">Any time</option>
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+          </select>
+          <IconChevronDown size={16} />
+        </label>
+        <label className="content-select">
+          <span className="visually-hidden">Content format</span>
+          <select value={format} onChange={(event) => setFormat(event.target.value)}>
+            <option value="all">Video & case studies</option>
+            <option value="video">Video cases</option>
+            <option value="article">Case studies</option>
+          </select>
+          <IconChevronDown size={16} />
+        </label>
+      </div>
 
-          {/* Conditions — horizontal, selectable. */}
-          <div className="condition-rail" role="tablist" aria-label={t.conditions}>
-            {activeGroup.subTopics.map((sub) => {
-              const isOpen = openSub === sub.slug;
-              const count = sub.cases?.length ?? 0;
-              return (
-                <button
-                  type="button"
-                  key={sub.slug}
-                  role="tab"
-                  aria-selected={isOpen}
-                  aria-controls={`cases-${activeGroup.slug}`}
-                  className={`condition-chip${isOpen ? " is-open" : ""}`}
-                  onClick={() => setOpenSub(sub.slug)}
-                >
-                  <span className="condition-chip-glyph" aria-hidden="true">
-                    <TopicGlyph icon={activeGroup.icon} imageIcon={sub.imageIcon} size={30} />
-                  </span>
-                  <span className="condition-chip-name">{sub.name}</span>
-                  {count > 0 ? <span className="condition-chip-count">{count}</span> : null}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Case videos for the chosen condition, or an honest empty state. */}
-          <div className="condition-panel" id={`cases-${activeGroup.slug}`} role="tabpanel" aria-live="polite">
-            {activeCases.length > 0 ? (
-              <>
-                <p className="case-caption">{t.exampleCaption}</p>
-                <div className="case-grid" key={openSub ?? ""}>
-                  {activeCases.map((item) => (
-                    <CaseCard item={item} icon={activeGroup.icon} t={t} key={item.slug} />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="case-empty">
-                <span className="case-empty-icon" aria-hidden="true">
-                  <IconFile size={22} />
-                  <IconSparkle className="case-empty-sparkle" size={14} />
-                </span>
-                <div>
-                  <p className="section-kicker">{t.collectionKicker}</p>
-                  <h4>{t.caseEmptyTitle}</h4>
-                  <p>{t.caseEmptyBody}</p>
-                </div>
-              </div>
-            )}
-          </div>
+      {filteredCases.length > 0 ? (
+        <div className="content-case-grid">
+          {filteredCases.map((item) => <CaseCard item={item} icon={activeGroup.icon} t={t} key={item.slug} />)}
         </div>
       ) : (
-        <div className="topic-branch topic-branch--empty">
-          <p>{t.chooseRegion}</p>
+        <div className="content-empty">
+          <IconFile size={22} />
+          <div><h3>No cases match these filters.</h3><p>Try another subtopic, time period, or content format.</p></div>
         </div>
       )}
     </section>
