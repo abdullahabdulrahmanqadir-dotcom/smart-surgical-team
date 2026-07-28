@@ -2207,6 +2207,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  overflow: hidden;
   background: var(--primary-soft);
   color: var(--primary);
   font-size: 0.85rem;
@@ -2218,6 +2219,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  border-radius: inherit;
 }
 
 /* ============================================================
