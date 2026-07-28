@@ -149,8 +149,10 @@ export const SAMPLE_CONTENT: ContentRecord[] = [
   },
 ];
 
-function formatDuration(seconds: number | null): string {
-  if (!seconds) return "—";
+function formatDuration(seconds: number | null | undefined): string {
+  // 0 is a real timestamp — the opening chapter starts there — so only a
+  // missing value falls back to the dash.
+  if (seconds === null || seconds === undefined) return "—";
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const remaining = seconds % 60;
