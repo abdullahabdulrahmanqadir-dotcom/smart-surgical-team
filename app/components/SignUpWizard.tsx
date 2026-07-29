@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { signInWithGoogle } from "./AuthForm";
 import { IconArrowRight, IconCheck, IconEye, IconEyeOff, IconLock, IconMail } from "./icons";
 
 type Step = 1 | 2 | 3 | 4;
@@ -29,9 +30,21 @@ export default function SignUpWizard({ locale }: { locale: string }) {
   const [confirmation, setConfirmation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   function setError(text: string) { setMessage({ type: "error", text }); }
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    setMessage(null);
+    try {
+      await signInWithGoogle(locale);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "We could not start Google sign-in. Please try again.");
+      setGoogleLoading(false);
+    }
+  }
 
   async function sendCode() {
     if (!email.trim()) return setError("Enter the email address you would like to use.");
@@ -82,6 +95,8 @@ export default function SignUpWizard({ locale }: { locale: string }) {
   const status = message && <p className={`form-message is-${message.type}`} role={message.type === "error" ? "alert" : "status"}>{message.type === "success" && <IconCheck size={17} />}{message.text}</p>;
 
   return <div className="auth-card auth-card-wizard">{progress}<div className="auth-card-head wizard-head"><span className="auth-kicker">Step {step} of 4</span><h1>{heading}</h1><p>{description}</p></div>{status}
+    {step === 1 && <button className="auth-provider" type="button" onClick={handleGoogle} disabled={googleLoading}><span className="auth-provider-mark auth-provider-google" aria-hidden="true">G</span><span>{googleLoading ? "Redirecting…" : "Continue with Google"}</span><IconArrowRight size={18} /></button>}
+    {step === 1 && <div className="auth-divider"><span>or use your email</span></div>}
     {step === 1 && <form className="auth-form" noValidate onSubmit={requestCode}><div className="form-field"><label htmlFor="signup-email">Email address <span aria-hidden="true">*</span></label><div className="field-control"><IconMail size={18} /><input id="signup-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoFocus required /></div><small>We use this only to secure your account and send important learning updates.</small></div><button className="btn btn-primary auth-submit" type="submit" disabled={loading}>{loading ? "Sending code…" : "Send confirmation code"}{!loading && <IconArrowRight size={18} />}</button></form>}
     {step === 2 && <form className="auth-form" noValidate onSubmit={verifyCode}><div className="form-field"><label htmlFor="confirmation-code">Confirmation code <span aria-hidden="true">*</span></label><input className="code-field" id="confirmation-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" autoFocus required /><small>For your security, this code expires shortly after it is sent.</small></div><button className="btn btn-primary auth-submit" type="submit" disabled={loading}>{loading ? "Confirming…" : "Confirm email"}{!loading && <IconArrowRight size={18} />}</button><div className="wizard-secondary-actions"><button type="button" onClick={() => { setStep(1); setMessage(null); }}>Use a different email</button><button type="button" disabled={loading} onClick={() => void sendCode()}>Resend code</button></div></form>}
     {step === 3 && <form className="auth-form" noValidate onSubmit={saveDetails}><div className="wizard-field-grid"><div className="form-field"><label htmlFor="first-name">First name <span aria-hidden="true">*</span></label><div className="field-control"><input id="first-name" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} autoFocus required /></div></div><div className="form-field"><label htmlFor="last-name">Last name <span aria-hidden="true">*</span></label><div className="field-control"><input id="last-name" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required /></div></div><div className="form-field field-span-2"><label htmlFor="organisation">Organisation <span aria-hidden="true">*</span></label><div className="field-control"><input id="organisation" autoComplete="organization" value={organisation} onChange={(event) => setOrganisation(event.target.value)} placeholder="Hospital, university, or practice" required /></div></div><div className="form-field field-span-2"><label htmlFor="job-title">Job title <span aria-hidden="true">*</span></label><div className="field-control"><input id="job-title" autoComplete="organization-title" value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} placeholder="e.g. Otolaryngology resident" required /></div></div><div className="form-field"><label htmlFor="city">City <span aria-hidden="true">*</span></label><div className="field-control"><input id="city" autoComplete="address-level2" value={city} onChange={(event) => setCity(event.target.value)} required /></div></div><div className="form-field"><label htmlFor="country">Country <span aria-hidden="true">*</span></label><div className="field-control"><input id="country" autoComplete="country-name" value={country} onChange={(event) => setCountry(event.target.value)} required /></div></div></div><button className="btn btn-primary auth-submit" type="submit">Continue <IconArrowRight size={18} /></button><button className="wizard-back" type="button" onClick={() => { setStep(2); setMessage(null); }}>Back to email confirmation</button></form>}

@@ -8,23 +8,37 @@ import SignUpWizard from "./SignUpWizard";
 
 type Mode = "sign-in" | "sign-up";
 
-export default function AuthForm({
-  mode,
-  locale,
-  chatGPTPath,
-}: {
-  mode: Mode;
-  locale: string;
-  chatGPTPath: string;
-}) {
-  return mode === "sign-up" ? <SignUpWizard locale={locale} /> : <SignInForm locale={locale} chatGPTPath={chatGPTPath} />;
+export default function AuthForm({ mode, locale }: { mode: Mode; locale: string }) {
+  return mode === "sign-up" ? <SignUpWizard locale={locale} /> : <SignInForm locale={locale} />;
 }
 
-function SignInForm({ locale, chatGPTPath }: { locale: string; chatGPTPath: string }) {
+export async function signInWithGoogle(locale: string) {
+  const client = getSupabaseBrowserClient();
+  const { error } = await client.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/${locale}/profile` },
+  });
+  if (error) throw error;
+}
+
+function SignInForm({ locale }: { locale: string }) {
   const isSignUp = false;
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    setMessage(null);
+    try {
+      await signInWithGoogle(locale);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "We could not start Google sign-in. Please try again.";
+      setMessage({ type: "error", text });
+      setGoogleLoading(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,7 +76,7 @@ function SignInForm({ locale, chatGPTPath }: { locale: string; chatGPTPath: stri
       setMessage({
         type: "error",
         text: unconfigured
-          ? "Email sign-in is not available here yet. Continue with ChatGPT to access your learning profile."
+          ? "Email sign-in is not available here yet. Continue with Google to access your learning profile."
           : text,
       });
     } finally {
@@ -82,11 +96,11 @@ function SignInForm({ locale, chatGPTPath }: { locale: string; chatGPTPath: stri
         </p>
       </div>
 
-      <a className="auth-provider" href={chatGPTPath}>
-        <span className="auth-provider-mark" aria-hidden="true">AI</span>
-        <span>Continue with ChatGPT</span>
+      <button className="auth-provider" type="button" onClick={handleGoogle} disabled={googleLoading}>
+        <span className="auth-provider-mark auth-provider-google" aria-hidden="true">G</span>
+        <span>{googleLoading ? "Redirecting…" : "Continue with Google"}</span>
         <IconArrowRight size={18} />
-      </a>
+      </button>
 
       <div className="auth-divider"><span>or use your email</span></div>
 

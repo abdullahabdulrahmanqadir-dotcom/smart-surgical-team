@@ -9,7 +9,7 @@ type Member = { name: string; email: string } | null;
 
 const interests = ["Thyroid & Parathyroid", "Salivary Glands", "Neck & Lymphatic Surgery"];
 
-export default function MemberProfile({ locale, initialMember, chatGPTSignOutPath }: { locale: string; initialMember: Member; chatGPTSignOutPath: string }) {
+export default function MemberProfile({ locale, initialMember }: { locale: string; initialMember: Member }) {
   const [member, setMember] = useState<Member>(initialMember);
   const [emailUpdates, setEmailUpdates] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -30,7 +30,7 @@ export default function MemberProfile({ locale, initialMember, chatGPTSignOutPat
       client.auth.getUser().then(({ data }) => {
         if (data.user?.email) setMember({ name: String(data.user.user_metadata.full_name ?? data.user.email), email: data.user.email });
       });
-    } catch { /* ChatGPT sign-in remains available when Supabase is not configured. */ }
+    } catch { /* No active Supabase session. */ }
   }, [initialMember]);
 
   function savePreferences() {
@@ -43,9 +43,9 @@ export default function MemberProfile({ locale, initialMember, chatGPTSignOutPat
     try {
       await getSupabaseBrowserClient().auth.signOut();
     } catch {
-      /* The platform-managed session is cleared by the destination below. */
+      /* No active session to clear. */
     }
-    window.location.assign(chatGPTSignOutPath);
+    window.location.assign(`/${locale}/sign-in`);
   }
 
   if (!member) {
