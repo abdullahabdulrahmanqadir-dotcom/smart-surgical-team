@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
+import IntroductionVideo from "../components/IntroductionVideo";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
@@ -9,13 +10,11 @@ import {
   IconCheck,
   IconClock,
   IconGlobe,
-  IconPlay,
   IconPlus,
   IconSparkle,
 } from "../components/icons";
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
-import { getLibraryContent } from "../lib/content";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { EVENTS, eventDateRange } from "../lib/events";
 import { TEAM_GROUPS } from "../lib/team";
@@ -43,7 +42,6 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const latestPost = (await getLibraryContent())[0];
   const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming");
   // The contact route redirects back with ?interest=received after a successful save.
   const submitted = (await searchParams)?.interest === "received";
@@ -179,7 +177,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <span className="section-kicker">Stay connected</span>
-              <h2>Upcoming events and LATEST UPDATES</h2>
+              <h2>Upcoming Events and Latest Updates</h2>
               <p className="section-sub">
                 Join the conversations, teaching sessions and community behind Smart Surgical
                 Team.
@@ -222,32 +220,17 @@ export default async function Home({
               </Link>
             </article>
 
-            <article className="panel featured-panel" id="featured">
-              <div className="panel-heading">
+            <article className="panel featured-panel" id="introduction">
+              <div className="panel-heading introduction-heading">
                 <div>
-                  <h2>Latest Post</h2>
-                  <p className="panel-sub">New from Smart Surgical Team.</p>
+                  <span className="section-kicker">Introducing the clinic</span>
+                  <h2>Meet the Smart Health Tower Thyroid Clinic</h2>
+                  <p className="panel-sub">Discover the people, expertise and care behind our clinic.</p>
                 </div>
-                <span className="badge badge-accent">Latest</span>
+                <span className="badge badge-accent">Clinic overview</span>
               </div>
 
-              <Link href={localePath(active, `library/${latestPost.slug}`)} className="featured-media">
-                <span className="featured-scene" aria-hidden="true">
-                  <i className="scene-ring" />
-                  <i className="scene-ring scene-ring-2" />
-                  <i className="scene-line" />
-                </span>
-                <span className="featured-play">
-                  <IconPlay size={26} />
-                </span>
-                <small className="featured-time">{latestPost.duration}</small>
-              </Link>
-
-              <h3 className="featured-title">{latestPost.title}</h3>
-              <p className="featured-presenter">{latestPost.presenter.name} · {latestPost.topic}</p>
-              <p className="featured-copy">
-                {latestPost.summary}
-              </p>
+              <IntroductionVideo />
 
             </article>
           </div>
