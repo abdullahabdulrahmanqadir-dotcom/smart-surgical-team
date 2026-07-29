@@ -4,17 +4,23 @@ import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import {
   BrandMark,
   IconGlobe,
-  IconLinkedin,
   IconMail,
   IconPin,
-  IconYoutube,
 } from "./icons";
 
 // PLACEHOLDER: the address is confirmed, but the contact email and the domain
 // are both still to be supplied — the brief lists the domain as not yet chosen.
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
-const SITE_DOMAIN = "smartsurgicalteam.com";
-const ADDRESS = "Smart Health Tower, Sulaymaniah, Kurdistan Region, Iraq";
+const TOWER_URL = "https://smarthealth.group/ar";
+const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
+const SOCIAL_LINKS = [
+  { label: "Facebook", href: "https://www.facebook.com/SmartHTA" },
+  { label: "Instagram", href: "https://www.instagram.com/smarthealthtowerarabic/" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/smart-health-tower/" },
+  { label: "TikTok", href: "https://www.tiktok.com/@smarthealthtowerarabic?_t=8cT8B1EIlHy&_r=1" },
+  { label: "X", href: "https://twitter.com/smarthealthtow2" },
+  { label: "YouTube", href: "https://www.youtube.com/channel/UC03cV_1kafDf1uyZPXx93CA" },
+];
 
 /**
  * Extracted from the home page so every page shares one footer. The class names
@@ -36,16 +42,12 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             </span>
           </a>
           <p>{dict.footer.blurb}</p>
-          <div className="socials">
-            <a href={home} aria-label="YouTube">
-              <IconYoutube size={18} />
-            </a>
-            <a href={home} aria-label="LinkedIn">
-              <IconLinkedin size={18} />
-            </a>
-            <a href={`mailto:${CONTACT_EMAIL}`} aria-label={dict.nav.contact}>
-              <IconMail size={18} />
-            </a>
+          <div className="socials socials-expanded" aria-label="Smart Health Tower social media">
+            {SOCIAL_LINKS.map((social) => (
+              <a key={social.label} href={social.href} target="_blank" rel="noreferrer">
+                {social.label}
+              </a>
+            ))}
           </div>
         </div>
 
@@ -67,7 +69,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             <IconPin size={16} /> {ADDRESS}
           </p>
           <p>
-            <IconGlobe size={16} /> {SITE_DOMAIN}
+            <IconGlobe size={16} /> <a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a>
           </p>
         </div>
 
