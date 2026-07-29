@@ -116,7 +116,7 @@ function SignInForm({ locale }: { locale: string }) {
           <div className="field-control"><IconMail size={18} /><input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></div>
         </div>
         <div className="form-field">
-          <div className="field-label-row"><label htmlFor="password">Password <span aria-hidden="true">*</span></label>{!isSignUp && <a href="mailto:info@smartsurgicalteam.com?subject=Password%20reset">Forgot password?</a>}</div>
+          <div className="field-label-row"><label htmlFor="password">Password <span aria-hidden="true">*</span></label>{!isSignUp && <Link href={`/${locale}/forget-password`}>Forgot password?</Link>}</div>
           <div className="field-control"><IconLock size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSignUp ? "new-password" : "current-password"} placeholder="At least 8 characters" minLength={8} required /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}</button></div>
           {isSignUp && <small>Use 8 or more characters to protect your account.</small>}
         </div>
