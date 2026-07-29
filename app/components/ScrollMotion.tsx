@@ -7,7 +7,7 @@ const revealSelectors = [
   ".section-head",
   ".topic-card",
   ".dashboard > .panel",
-  ".lower-grid > .panel",
+  ".team-feature-panel",
   ".vision-panel",
   ".cta-inner",
 ];

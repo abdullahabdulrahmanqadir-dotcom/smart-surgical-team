@@ -25,7 +25,6 @@ export default function SiteHeader({
     [dict.nav.about, localePath(locale, "about")],
     [dict.nav.topics, localePath(locale, "topics")],
     [dict.nav.events, localePath(locale, "events")],
-    [dict.nav.team, localePath(locale, "about")],
     [dict.nav.contact, `${home}#contact`],
   ];
 

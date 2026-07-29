@@ -48,9 +48,10 @@ export const EVENTS: TeamEvent[] = [
       "Tumour board simulations",
     ],
     selectedFaculty: [
-      { name: "Prof. Dr. Abdulwahid M. Salih", specialty: "Head & Neck Surgeon", country: "Iraq", image: "https://event.smarthealth.group/api/Assets/Speakers/65cc8c8b-aeb7-47aa-93c0-e1876f3007b1-1080x1080.png" },
-      { name: "Dr. Mohammad Ghatasheh", specialty: "Radiologist", country: "Jordan", image: "https://event.smarthealth.group/api/Assets/Speakers/c4f7b095-65c6-46dc-bfb7-e2aa699c9ccd-1080x1080.png" },
-      { name: "Dr. Amr Redha", specialty: "Endocrine Surgeon", country: "Oman", image: "https://event.smarthealth.group/api/Assets/Speakers/9c58d31e-6204-4539-a9d3-ea0576358924-1080x1080.png" },
+      { name: "Prof. Dr. Abdulwahid Mohammed Salih", specialty: "Head, Neck & Breast Surgeon", country: "Iraq", image: "https://event.smarthealth.group/api/Assets/Speakers/65cc8c8b-aeb7-47aa-93c0-e1876f3007b1-1080x1080.png" },
+      { name: "Prof. Dr. Julie A. Sosa", specialty: "Endocrine Surgeon", country: "United States of America", image: "https://event.smarthealth.group/api/Assets/Speakers/4b05c8dc-8eba-47e5-bdd7-46f1fa4ceb2a-1080x1080.png" },
+      { name: "Prof. Dr. Kyung Tae", specialty: "Otolaryngologist - Head and Neck Surgeon", country: "Korea, Republic of", image: "https://event.smarthealth.group/api/Assets/Speakers/40d9a06e-70d7-4864-9f89-ef4dcc07cdf7-1080x1080.png" },
+      { name: "Prof. Dr. Neil Tolley", specialty: "Otolaryngologist - Head and Neck Surgeon", country: "United Kingdom", image: "https://event.smarthealth.group/api/Assets/Speakers/575c38ad-aaaf-4d3f-91ab-2219aecbbb01-1080x1080.png" },
     ],
   },
   {

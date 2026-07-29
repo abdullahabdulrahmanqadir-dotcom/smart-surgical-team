@@ -81,8 +81,8 @@ export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLa
             >
               <span className="content-map-dot" aria-hidden="true" />
               <span className="content-map-leader" aria-hidden="true" />
-              <span className="content-map-tag" aria-hidden="true">{item.label}</span>
-              {/* The short tag is for the eye; assistive tech gets the full topic name. */}
+              <span className="content-map-tag" aria-hidden="true">{labels[item.slug] ?? item.label}</span>
+              {/* The visual and accessible labels mirror the topic cards below. */}
               <span className="visually-hidden">{labels[item.slug] ?? item.label}</span>
             </button>
           ))}

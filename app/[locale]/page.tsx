@@ -253,71 +253,36 @@ export default async function Home({
           </div>
         </section>
 
-        {/* ---------------- Lower grid ---------------- */}
-        <section className="section section-explore">
-          <div className="lower-grid">
-            <article className="panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>Latest E-Poster</h2>
-                  <p className="panel-sub">Research from the unit.</p>
-                </div>
+        {/* ---------------- Expert team ---------------- */}
+        <section className="section section-explore" id="team" aria-labelledby="team-heading">
+          <article className="panel team-feature-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-kicker">The people behind the work</span>
+                <h2 id="team-heading">Our Expert Team</h2>
+                <p className="panel-sub">Practising head, neck and thyroid surgeons leading clinical care and education.</p>
               </div>
-              <div className="poster-art">
-                <span className="poster-tag">Poster · 2026</span>
-                <p className="poster-title">
-                  Outcomes of Transoral
-                  <br />
-                  Robotic Surgery
-                </p>
-                <span className="poster-label">Key findings</span>
-                <ul className="poster-list">
-                  <li>
-                    <IconCheck size={14} /> High local control rates
-                  </li>
-                  <li>
-                    <IconCheck size={14} /> Low complication profile
-                  </li>
-                  <li>
-                    <IconCheck size={14} /> Improved functional outcomes
-                  </li>
-                </ul>
-                <b className="poster-author">Smart Surgical Team</b>
-              </div>
-              <a className="panel-link" href="#join">
-                View e-poster
-                <IconArrowRight size={16} />
-              </a>
-            </article>
-
-            <article className="panel" id="team">
-              <div className="panel-heading">
-                <div>
-                  <h2>Our Expert Team</h2>
-                  <p className="panel-sub">Practising head &amp; neck surgeons.</p>
-                </div>
-              </div>
-              <div className="team-list">
-                {featuredTeam.map((member) => (
-                  <Link href={localePath(active, "about")} className="team-row" key={member.name}>
-                    <span className="portrait"><img src={member.portrait} alt="" /></span>
-                    <span className="team-body">
-                      <h3>{member.name}</h3>
-                      <p>{member.role}</p>
-                      <small>{member.credentials}</small>
-                    </span>
-                    <span className="row-action" aria-hidden="true">
-                      <IconArrowRight size={16} />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <Link className="panel-link" href={localePath(active, "about")}>
-                View all team
+              <Link className="text-link" href={localePath(active, "about")}>
+                Meet the full team
                 <IconArrowRight size={16} />
               </Link>
-            </article>
-          </div>
+            </div>
+            <div className="team-feature-list">
+              {featuredTeam.map((member) => (
+                <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
+                  <span className="team-feature-portrait"><img src={member.portrait} alt={`Portrait of ${member.name}`} width={96} height={96}/></span>
+                  <span className="team-feature-body">
+                    <h3>{member.name}</h3>
+                    <p>{member.role}</p>
+                    <small>{member.credentials}</small>
+                  </span>
+                  <span className="row-action" aria-hidden="true">
+                    <IconArrowRight size={16} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </article>
         </section>
 
         {/* ---------------- Vision ---------------- */}
