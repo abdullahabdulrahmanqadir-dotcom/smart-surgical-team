@@ -82,7 +82,7 @@ export default function SiteHeader({
             <IconSun className="theme-icon-dark" />
           </button>
 
-          <Link className="btn btn-ghost header-signin" href={`${home}#contact`}>
+          <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
             {dict.nav.signIn}
           </Link>
           {/* The brief specifies "Explore the Library" as the primary action and
@@ -117,7 +117,7 @@ export default function SiteHeader({
         <div className="mobile-nav-actions">
           <Link
             className="btn btn-ghost"
-            href={`${home}#contact`}
+            href={localePath(locale, "sign-in")}
             onClick={() => setMenuOpen(false)}
           >
             {dict.nav.signIn}

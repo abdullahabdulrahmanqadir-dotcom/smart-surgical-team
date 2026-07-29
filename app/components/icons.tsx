@@ -210,6 +210,74 @@ export function IconLayers(props: IconProps) {
   );
 }
 
+export function IconUser(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </svg>
+  );
+}
+
+export function IconLock(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <rect x="4.5" y="10" width="15" height="10" rx="2.5" />
+      <path d="M8 10V7.5a4 4 0 1 1 8 0V10M12 14v2" />
+    </svg>
+  );
+}
+
+export function IconEye(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M3.5 12s3.1-5.5 8.5-5.5 8.5 5.5 8.5 5.5-3.1 5.5-8.5 5.5S3.5 12 3.5 12Z" />
+      <circle cx="12" cy="12" r="2.4" />
+    </svg>
+  );
+}
+
+export function IconEyeOff(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M4 4 20 20M9.9 6.7A9.8 9.8 0 0 1 12 6.5c5.4 0 8.5 5.5 8.5 5.5a15.2 15.2 0 0 1-3.1 3.7M6.2 8.2A15.1 15.1 0 0 0 3.5 12s3.1 5.5 8.5 5.5c.8 0 1.5-.1 2.2-.3" />
+      <path d="M9.6 9.6a3.4 3.4 0 0 0 4.8 4.8" />
+    </svg>
+  );
+}
+
+export function IconBookmark(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M6.5 4.5A2.5 2.5 0 0 1 9 2h6a2.5 2.5 0 0 1 2.5 2.5V21L12 17.4 6.5 21V4.5Z" />
+    </svg>
+  );
+}
+
+export function IconBell(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M18.5 10.5a6.5 6.5 0 0 0-13 0c0 7-2.5 7.5-2.5 8.5h18c0-1-2.5-1.5-2.5-8.5ZM10 21h4" />
+    </svg>
+  );
+}
+
+export function IconSliders(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M4 7h5M14 7h6M4 17h9M18 17h2M9 4v6M13 14v6" />
+    </svg>
+  );
+}
+
+export function IconLogOut(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M10 4.5H6.5A2.5 2.5 0 0 0 4 7v10a2.5 2.5 0 0 0 2.5 2.5H10M13.5 8l4 4-4 4M17 12H8" />
+    </svg>
+  );
+}
+
 /* ---------- Topic glyphs ---------- */
 
 export function IconThyroid(props: IconProps) {
