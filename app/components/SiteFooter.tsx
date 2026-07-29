@@ -1,6 +1,7 @@
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
+import SocialLinks from "./SocialLinks";
 import {
   BrandMark,
   IconGlobe,
@@ -13,14 +14,6 @@ import {
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 const TOWER_URL = "https://smarthealth.group/ar";
 const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
-const SOCIAL_LINKS = [
-  { label: "Facebook", href: "https://www.facebook.com/SmartHTA" },
-  { label: "Instagram", href: "https://www.instagram.com/smarthealthtowerarabic/" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/company/smart-health-tower/" },
-  { label: "TikTok", href: "https://www.tiktok.com/@smarthealthtowerarabic?_t=8cT8B1EIlHy&_r=1" },
-  { label: "X", href: "https://twitter.com/smarthealthtow2" },
-  { label: "YouTube", href: "https://www.youtube.com/channel/UC03cV_1kafDf1uyZPXx93CA" },
-];
 
 /**
  * Extracted from the home page so every page shares one footer. The class names
@@ -42,13 +35,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             </span>
           </a>
           <p>{dict.footer.blurb}</p>
-          <div className="socials socials-expanded" aria-label="Smart Health Tower social media">
-            {SOCIAL_LINKS.map((social) => (
-              <a key={social.label} href={social.href} target="_blank" rel="noreferrer">
-                {social.label}
-              </a>
-            ))}
-          </div>
+          <SocialLinks className="socials" />
         </div>
 
         <nav className="footer-col" aria-label={dict.footer.quickLinks}>

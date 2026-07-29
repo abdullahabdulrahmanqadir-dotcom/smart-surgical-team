@@ -1,6 +1,7 @@
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ContactForm from "../../components/ContactForm";
+import SocialLinks from "../../components/SocialLinks";
 import { IconClock, IconGlobe, IconMail, IconPin } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
@@ -47,6 +48,10 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
                 <div><dt><IconClock size={19} /> Hours</dt><dd>Saturday to Thursday</dd></div>
                 <div><dt><IconGlobe size={19} /> Online</dt><dd><a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a></dd></div>
               </dl>
+              <div className="contact-social-section">
+                <p>Follow Smart Health Tower</p>
+                <SocialLinks className="socials contact-socials" />
+              </div>
             </aside>
           </div>
         </div>

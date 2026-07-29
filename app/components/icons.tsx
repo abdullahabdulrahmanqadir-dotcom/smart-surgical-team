@@ -142,6 +142,40 @@ export function IconLinkedin(props: IconProps) {
   );
 }
 
+export function IconFacebook(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M14.5 21v-7.8h2.8l.4-3.2h-3.2V8c0-.9.3-1.6 1.6-1.6H18V3.6c-.4-.1-1.2-.1-2.2-.1-2.5 0-4.2 1.5-4.2 4.4v2.3H9v3.2h2.6V21" />
+    </svg>
+  );
+}
+
+export function IconInstagram(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+      <circle cx="12" cy="12" r="3.6" />
+      <path d="M17.4 6.7h.1" strokeWidth="2.5" />
+    </svg>
+  );
+}
+
+export function IconTikTok(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M14.5 4.2c.6 2.2 2.2 3.8 4.4 4.3v3c-1.6-.1-3.1-.7-4.4-1.6v5.7a4.8 4.8 0 1 1-4.2-4.8v3.1a1.8 1.8 0 1 0 1.2 1.7V4.2h3Z" />
+    </svg>
+  );
+}
+
+export function IconX(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M5 4.2 18.6 19.8M18.6 4.2 5 19.8" strokeWidth="2" />
+    </svg>
+  );
+}
+
 export function IconSun(props: IconProps) {
   return (
     <svg {...svgProps(props)}>
