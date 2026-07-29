@@ -24,5 +24,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "We could not save your details. Please try again shortly." }, { status: 503 });
   }
 
-  return NextResponse.redirect(new URL("/?interest=received#contact", request.url), 303);
+  return NextResponse.json({ ok: true });
 }

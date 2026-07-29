@@ -34,7 +34,7 @@ export default function SiteHeader({
     [dict.nav.about, localePath(locale, "about")],
     [dict.nav.topics, localePath(locale, "topics")],
     [dict.nav.events, localePath(locale, "events")],
-    [dict.nav.contact, `${home}#contact`],
+    [dict.nav.contact, localePath(locale, "contact")],
   ];
 
   useEffect(() => {
