@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ContentPlayer from "../../../components/ContentPlayer";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import SaveCaseButton from "../../../components/SaveCaseButton";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
 import { CASE_SUMMARY_FIELDS, getContent, getLibraryContent, type CaseSummary } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
@@ -36,7 +37,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
       <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={`${home}#library`}>Library</Link><span>/</span>{topicIsPublished ? <Link href={localePath(active, `topics/${content.topicSlug}`)}>{content.topic}</Link> : <span>{content.topic}</span>}<span>/</span><b>{content.title}</b></nav>
-      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><button className="save-button" type="button"><span>+</span> Save for later</button></div>
+      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} /></div>
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />

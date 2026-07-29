@@ -41,7 +41,12 @@ test("server-renders the English home page", async () => {
   assert.match(html, /Head &amp; Neck/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
-  assert.match(html, /Latest Post/);
+  assert.match(html, /Introducing the clinic/);
+  assert.doesNotMatch(html, /Discover the people, expertise and care behind our clinic\./);
+  assert.match(html, /youtube-nocookie\.com\/embed\/gUKXoL-zXdM\?playsinline=1&amp;rel=0&amp;enablejsapi=1/);
+  assert.doesNotMatch(html, /gUKXoL-zXdM\?[^"']*start=/);
+  assert.match(html, /href="\/en\/sign-up"/);
+  assert.doesNotMatch(html, /class="cta-form"|homepage-join/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
 
@@ -142,7 +147,7 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
       4,
       `${locale} renders a labelled callout per region`,
     );
-    for (const label of ["Thyroid", "Salivary", "Lymph", "Skin"]) {
+    for (const label of ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"]) {
       assert.match(html, new RegExp(`content-map-tag[^>]*>${label}<`), `${locale} labels ${label}`);
     }
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);

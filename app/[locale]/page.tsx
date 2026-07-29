@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
+import IntroductionVideo from "../components/IntroductionVideo";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
@@ -9,13 +10,11 @@ import {
   IconCheck,
   IconClock,
   IconGlobe,
-  IconPlay,
   IconPlus,
   IconSparkle,
 } from "../components/icons";
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
-import { getLibraryContent } from "../lib/content";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { EVENTS, eventDateRange } from "../lib/events";
 import { TEAM_GROUPS } from "../lib/team";
@@ -35,18 +34,13 @@ const benefits = [
 
 export default async function Home({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const latestPost = (await getLibraryContent())[0];
-  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming");
-  // The contact route redirects back with ?interest=received after a successful save.
-  const submitted = (await searchParams)?.interest === "received";
+  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
     <>
@@ -179,7 +173,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <span className="section-kicker">Stay connected</span>
-              <h2>Upcoming events and LATEST UPDATES</h2>
+              <h2>Upcoming events and latest updates</h2>
               <p className="section-sub">
                 Join the conversations, teaching sessions and community behind Smart Surgical
                 Team.
@@ -222,102 +216,50 @@ export default async function Home({
               </Link>
             </article>
 
-            <article className="panel featured-panel" id="featured">
-              <div className="panel-heading">
+            <article className="panel featured-panel" id="introduction">
+              <div className="panel-heading introduction-heading">
                 <div>
-                  <h2>Latest Post</h2>
-                  <p className="panel-sub">New from Smart Surgical Team.</p>
+                  <span className="section-kicker">Introducing the clinic</span>
                 </div>
-                <span className="badge badge-accent">Latest</span>
+                <span className="badge badge-accent">Clinic overview</span>
               </div>
 
-              <Link href={localePath(active, `library/${latestPost.slug}`)} className="featured-media">
-                <span className="featured-scene" aria-hidden="true">
-                  <i className="scene-ring" />
-                  <i className="scene-ring scene-ring-2" />
-                  <i className="scene-line" />
-                </span>
-                <span className="featured-play">
-                  <IconPlay size={26} />
-                </span>
-                <small className="featured-time">{latestPost.duration}</small>
-              </Link>
-
-              <h3 className="featured-title">{latestPost.title}</h3>
-              <p className="featured-presenter">{latestPost.presenter.name} · {latestPost.topic}</p>
-              <p className="featured-copy">
-                {latestPost.summary}
-              </p>
+              <IntroductionVideo />
 
             </article>
           </div>
         </section>
 
-        {/* ---------------- Lower grid ---------------- */}
-        <section className="section section-explore">
-          <div className="lower-grid">
-            <article className="panel">
-              <div className="panel-heading">
-                <div>
-                  <h2>Latest E-Poster</h2>
-                  <p className="panel-sub">Research from the unit.</p>
-                </div>
+        {/* ---------------- Expert team ---------------- */}
+        <section className="section section-explore" id="team" aria-labelledby="team-heading">
+          <article className="panel team-feature-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-kicker">The people behind the work</span>
+                <h2 id="team-heading">Our Expert Team</h2>
+                <p className="panel-sub">Practising head, neck and thyroid surgeons leading clinical care and education.</p>
               </div>
-              <div className="poster-art">
-                <span className="poster-tag">Poster · 2026</span>
-                <p className="poster-title">
-                  Outcomes of Transoral
-                  <br />
-                  Robotic Surgery
-                </p>
-                <span className="poster-label">Key findings</span>
-                <ul className="poster-list">
-                  <li>
-                    <IconCheck size={14} /> High local control rates
-                  </li>
-                  <li>
-                    <IconCheck size={14} /> Low complication profile
-                  </li>
-                  <li>
-                    <IconCheck size={14} /> Improved functional outcomes
-                  </li>
-                </ul>
-                <b className="poster-author">Smart Surgical Team</b>
-              </div>
-              <a className="panel-link" href="#join">
-                View e-poster
-                <IconArrowRight size={16} />
-              </a>
-            </article>
-
-            <article className="panel" id="team">
-              <div className="panel-heading">
-                <div>
-                  <h2>Our Expert Team</h2>
-                  <p className="panel-sub">Practising head &amp; neck surgeons.</p>
-                </div>
-              </div>
-              <div className="team-list">
-                {featuredTeam.map((member) => (
-                  <Link href={localePath(active, "about")} className="team-row" key={member.name}>
-                    <span className="portrait"><img src={member.portrait} alt="" /></span>
-                    <span className="team-body">
-                      <h3>{member.name}</h3>
-                      <p>{member.role}</p>
-                      <small>{member.credentials}</small>
-                    </span>
-                    <span className="row-action" aria-hidden="true">
-                      <IconArrowRight size={16} />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <Link className="panel-link" href={localePath(active, "about")}>
-                View all team
+              <Link className="text-link" href={localePath(active, "about")}>
+                Meet the full team
                 <IconArrowRight size={16} />
               </Link>
-            </article>
-          </div>
+            </div>
+            <div className="team-feature-list">
+              {featuredTeam.map((member) => (
+                <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
+                  <span className="team-feature-portrait"><img src={member.portrait} alt={`Portrait of ${member.name}`} width={96} height={96}/></span>
+                  <span className="team-feature-body">
+                    <h3>{member.name}</h3>
+                    <p>{member.role}</p>
+                    <small>{member.credentials}</small>
+                  </span>
+                  <span className="row-action" aria-hidden="true">
+                    <IconArrowRight size={16} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </article>
         </section>
 
         {/* ---------------- Vision ---------------- */}
@@ -369,29 +311,10 @@ export default async function Home({
                 ))}
               </ul>
             </div>
-            <form className="cta-form" action="/api/contact" method="post">
-              {submitted && (
-                <p className="cta-success" role="status">
-                  <IconCheck size={16} />
-                  Thanks — we have your details and will be in touch shortly.
-                </p>
-              )}
-              <input type="hidden" name="source" value="homepage-join" />
-              <label htmlFor="cta-email">Work email</label>
-              <input
-                id="cta-email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@hospital.org"
-                autoComplete="email"
-              />
-              <button className="btn btn-primary btn-lg" type="submit">
-                Create free account
-                <IconArrowRight size={18} />
-              </button>
-              <small>No cost. Immediate access. Unsubscribe any time.</small>
-            </form>
+            <Link className="btn btn-primary btn-lg cta-signup-link" href={localePath(active, "sign-up")}>
+              Create free account
+              <IconArrowRight size={18} />
+            </Link>
           </div>
         </section>
       </main>

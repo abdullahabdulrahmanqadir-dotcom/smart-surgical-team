@@ -22,7 +22,6 @@ export const TEAM_GROUPS: TeamGroup[] = [
       { name: "Aso S. Muhialdeen", credentials: "F.K.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Aso S. Muhialdeen.avif" },
       { name: "Hardi M. Zahir", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Hardi M. Zahir.avif" },
       { name: "Karzan M. Salih", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Karzan M. Salih.avif" },
-      { name: "Imad S. Sedeeq", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Imad S. Sedeeq.avif" },
     ],
   },
   {

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import { IconGlobe, IconPin, IconUsers } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { TEAM_GROUPS } from "../../lib/team";
@@ -16,27 +15,14 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="about-page">
-      <section className="about-hero" aria-labelledby="about-title">
-        <div className="about-hero-orbit about-hero-orbit-one" aria-hidden="true" />
-        <div className="about-hero-orbit about-hero-orbit-two" aria-hidden="true" />
-        <div className="about-hero-inner">
-          <span className="eyebrow"><IconUsers size={15} /> About Smart Surgical Team</span>
-          <h1 id="about-title">Surgical expertise,<br /><span>working as one team.</span></h1>
-          <p>Smart Surgical Team brings together surgeons and multidisciplinary specialists dedicated to thoughtful, evidence-informed care across thyroid and head and neck surgery.</p>
-          <div className="about-hero-facts">
-            <span><IconPin size={17} /> Smart Health Tower · Sulaymaniyah</span>
-            <span><IconGlobe size={17} /> Clinical care · Education · Collaboration</span>
-          </div>
-        </div>
-      </section>
+      <h1 className="visually-hidden">About Smart Surgical Team</h1>
 
       <section className="about-statement" aria-labelledby="about-statement-title">
-        <div><span className="section-kicker">Our approach</span><h2 id="about-statement-title">Care that is precise, collaborative and human.</h2></div>
-        <p>We pair focused surgical practice with a collaborative approach to diagnosis, treatment planning and follow-up. Alongside clinical care, our team contributes to surgical education and professional exchange—helping strengthen head and neck care across our region.</p>
+        <div><span className="section-kicker">Our approach</span><h2 id="about-statement-title">Precise care. A team approach.</h2></div>
+        <p>Our surgeons and specialists work together to plan treatment, provide focused care and support recovery. Through education and collaboration, we help strengthen head and neck care across the region.</p>
       </section>
 
-      <section className="team-directory" aria-labelledby="team-directory-title">
-        <div className="team-directory-head"><div><span className="section-kicker">Our people</span><h2 id="team-directory-title">Meet the team</h2></div><p>Dedicated clinicians and research staff working across every stage of care.</p></div>
+      <section className="team-directory" aria-label="Team directory">
         {TEAM_GROUPS.map((group, index) => <section className={`team-group team-group-${index + 1}`} key={group.title} aria-labelledby={`group-${index}`}>
           <div className="team-group-head"><span className="team-group-number">0{index + 1}</span><div><h3 id={`group-${index}`}>{group.title}</h3>{group.intro && <p>{group.intro}</p>}</div></div>
           <div className="team-profile-grid">

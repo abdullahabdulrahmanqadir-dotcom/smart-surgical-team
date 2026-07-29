@@ -40,9 +40,6 @@ export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLa
     /** The sharp radius in stage terms: the camera magnifies it by the zoom. */
     "--veil-r": `${region ? Math.round(region.radius * region.zoom * 10) / 10 : 50}%`,
     "--plate-ratio": `${ANATOMY_PLATE.width} / ${ANATOMY_PLATE.height}`,
-    /** Same ratio as a bare number, so the stage can size itself from whichever
-     *  of the container's two dimensions runs out first. */
-    "--plate-ar": ANATOMY_PLATE.width / ANATOMY_PLATE.height,
   } as CSSProperties;
 
   return (
@@ -69,7 +66,14 @@ export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLa
           {ANATOMY_REGIONS.map((item, index) => (
             <button
               className={`content-map-callout content-map-callout--${item.side}`}
-              style={{ left: `${item.x}%`, top: `${item.y}%`, "--float-order": index } as CSSProperties}
+              // The button spans dot to tag, so the leader's percentage width
+              // resolves against the stage rather than a zero-width box.
+              style={{
+                left: `${item.side === "left" ? item.x - item.leader : item.x}%`,
+                top: `${item.y}%`,
+                width: `${item.leader}%`,
+                "--float-order": index,
+              } as CSSProperties}
               type="button"
               onClick={() => onSelect(item.slug)}
               tabIndex={region ? -1 : undefined}
@@ -77,8 +81,8 @@ export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLa
             >
               <span className="content-map-dot" aria-hidden="true" />
               <span className="content-map-leader" aria-hidden="true" />
-              <span className="content-map-tag" aria-hidden="true">{item.label}</span>
-              {/* The short tag is for the eye; assistive tech gets the full topic name. */}
+              <span className="content-map-tag" aria-hidden="true">{labels[item.slug] ?? item.label}</span>
+              {/* The visual and accessible labels mirror the topic cards below. */}
               <span className="visually-hidden">{labels[item.slug] ?? item.label}</span>
             </button>
           ))}
