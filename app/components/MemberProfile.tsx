@@ -7,6 +7,13 @@ import { IconArrowRight, IconBell, IconBookmark, IconCheck, IconLogOut, IconMail
 
 type Member = { name: string; email: string } | null;
 type SavedCase = { slug: string; title: string; summary: string; topic: string; format: string; duration: string };
+type ProfileSection = "overview" | "saved" | "preferences";
+
+const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
+  { id: "overview", label: "Overview", icon: IconUser },
+  { id: "saved", label: "Saved learning", icon: IconBookmark },
+  { id: "preferences", label: "Preferences", icon: IconSliders },
+];
 
 function savedCasesFrom(value: unknown): SavedCase[] {
   if (!Array.isArray(value)) return [];
@@ -20,6 +27,7 @@ function savedCasesFrom(value: unknown): SavedCase[] {
 
 export default function MemberProfile({ locale, initialMember }: { locale: string; initialMember: Member }) {
   const [member, setMember] = useState<Member>(initialMember);
+  const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
   const [emailUpdates, setEmailUpdates] = useState(() => {
     if (typeof window === "undefined") return true;
     try {
@@ -50,6 +58,17 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
     return () => { active = false; window.removeEventListener("sst-saved-cases-changed", updateSavedCases); };
   }, [initialMember]);
 
+  useEffect(() => {
+    const syncActiveSection = () => {
+      const section = window.location.hash.slice(1);
+      if (profileSections.some(({ id }) => id === section)) setActiveSection(section as ProfileSection);
+    };
+
+    syncActiveSection();
+    window.addEventListener("hashchange", syncActiveSection);
+    return () => window.removeEventListener("hashchange", syncActiveSection);
+  }, []);
+
   function savePreferences() {
     try { localStorage.setItem("sst-profile-preferences", JSON.stringify({ emailUpdates })); } catch { /* no persistent browser storage */ }
     setSaved(true);
@@ -74,7 +93,12 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
       <aside className="profile-identity">
         <div className="profile-avatar" aria-label={`${member.name} profile`}>{initials}</div>
         <div><span className="auth-kicker">Member profile</span><h1>{member.name}</h1><p><IconMail size={16} />{member.email}</p></div>
-        <nav className="profile-nav" aria-label="Profile sections"><a href="#overview" className="is-active"><IconUser size={18} />Overview</a><a href="#saved"><IconBookmark size={18} />Saved learning</a><a href="#preferences"><IconSliders size={18} />Preferences</a></nav>
+        <nav className="profile-nav" aria-label="Profile sections">
+          {profileSections.map(({ id, label, icon: Icon }) => {
+            const isActive = activeSection === id;
+            return <a href={`#${id}`} className={isActive ? "is-active" : undefined} aria-current={isActive ? "location" : undefined} onClick={() => setActiveSection(id)} key={id}><Icon size={18} />{label}</a>;
+          })}
+        </nav>
         <button className="profile-signout" type="button" onClick={signOut}><IconLogOut size={18} />Sign out</button>
       </aside>
 

@@ -34,17 +34,13 @@ const benefits = [
 
 export default async function Home({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming");
-  // The contact route redirects back with ?interest=received after a successful save.
-  const submitted = (await searchParams)?.interest === "received";
+  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
     <>
@@ -177,7 +173,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <span className="section-kicker">Stay connected</span>
-              <h2>Upcoming Events and Latest Updates</h2>
+              <h2>Upcoming events and latest updates</h2>
               <p className="section-sub">
                 Join the conversations, teaching sessions and community behind Smart Surgical
                 Team.
@@ -224,8 +220,6 @@ export default async function Home({
               <div className="panel-heading introduction-heading">
                 <div>
                   <span className="section-kicker">Introducing the clinic</span>
-                  <h2>Meet the Smart Health Tower Thyroid Clinic</h2>
-                  <p className="panel-sub">Discover the people, expertise and care behind our clinic.</p>
                 </div>
                 <span className="badge badge-accent">Clinic overview</span>
               </div>
@@ -317,29 +311,10 @@ export default async function Home({
                 ))}
               </ul>
             </div>
-            <form className="cta-form" action="/api/contact" method="post">
-              {submitted && (
-                <p className="cta-success" role="status">
-                  <IconCheck size={16} />
-                  Thanks — we have your details and will be in touch shortly.
-                </p>
-              )}
-              <input type="hidden" name="source" value="homepage-join" />
-              <label htmlFor="cta-email">Work email</label>
-              <input
-                id="cta-email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@hospital.org"
-                autoComplete="email"
-              />
-              <button className="btn btn-primary btn-lg" type="submit">
-                Create free account
-                <IconArrowRight size={18} />
-              </button>
-              <small>No cost. Immediate access. Unsubscribe any time.</small>
-            </form>
+            <Link className="btn btn-primary btn-lg cta-signup-link" href={localePath(active, "sign-up")}>
+              Create free account
+              <IconArrowRight size={18} />
+            </Link>
           </div>
         </section>
       </main>
