@@ -51,10 +51,10 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
 
         <nav className="footer-col" aria-label={dict.footer.quickLinks}>
           <h3>{dict.footer.quickLinks}</h3>
-          <a href={`${home}#library`}>{dict.nav.library}</a>
+          <a href={`${home}#contact`}>{dict.footer.contactUs}</a>
           <a href={localePath(locale, "topics")}>{dict.nav.topics}</a>
           <a href={localePath(locale, "events")}>{dict.nav.events}</a>
-          <a href={localePath(locale, "about")}>{dict.nav.team}</a>
+          <a href={localePath(locale, "about")}>{dict.nav.about}</a>
         </nav>
 
         <div className="footer-col">

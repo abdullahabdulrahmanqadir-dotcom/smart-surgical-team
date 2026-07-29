@@ -2,10 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BrandMark, IconClose, IconMenu, IconMoon, IconSun } from "./icons";
+import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
+import { BrandMark, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
+
+type HeaderMember = { name: string; email: string };
+
+function memberFromUser(user: { email?: string; user_metadata?: Record<string, unknown> } | null): HeaderMember | null {
+  if (!user?.email) return null;
+  return { name: String(user.user_metadata?.full_name ?? user.email), email: user.email };
+}
 
 export default function SiteHeader({
   locale,
@@ -15,6 +23,7 @@ export default function SiteHeader({
   dict: Dictionary;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [member, setMember] = useState<HeaderMember | null>(null);
 
   const home = localePath(locale);
 
@@ -33,6 +42,29 @@ export default function SiteHeader({
     return () => document.body.classList.remove("nav-open");
   }, [menuOpen]);
 
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    try {
+      const client = getSupabaseBrowserClient();
+      client.auth.getUser().then(({ data }) => {
+        if (active) setMember(memberFromUser(data.user));
+      });
+      const { data } = client.auth.onAuthStateChange((_event, session) => {
+        if (active) setMember(memberFromUser(session?.user ?? null));
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
+    } catch {
+      // Authentication is optional until Supabase public credentials are configured.
+    }
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, []);
+
   function toggleTheme() {
     // The active mode lives on <html data-theme>, set before paint by the inline
     // script in the layout — read it from there so there is nothing to hydrate.
@@ -44,6 +76,24 @@ export default function SiteHeader({
       /* storage unavailable — the toggle still works for this session */
     }
   }
+
+  const profilePath = localePath(locale, "profile");
+  const initials = member?.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const accountAction = member ? (
+    <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={`Open ${member.name}'s profile`}>
+      <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
+      <span>Profile</span>
+    </Link>
+  ) : (
+    <>
+      <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
+        {dict.nav.signIn}
+      </Link>
+      <Link className="btn btn-primary header-cta header-signup" href={localePath(locale, "sign-up")}>
+        {dict.nav.register}
+      </Link>
+    </>
+  );
 
   return (
     <header className="site-header">
@@ -82,14 +132,7 @@ export default function SiteHeader({
             <IconSun className="theme-icon-dark" />
           </button>
 
-          <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
-            {dict.nav.signIn}
-          </Link>
-          {/* The brief specifies "Explore the Library" as the primary action and
-              explicitly rules out a join-focused CTA on the home page. */}
-          <Link className="btn btn-primary header-cta" href={`${home}#library`}>
-            {dict.cta.exploreLibrary}
-          </Link>
+          {accountAction}
 
           <button
             type="button"
@@ -115,20 +158,12 @@ export default function SiteHeader({
           <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
         </div>
         <div className="mobile-nav-actions">
-          <Link
-            className="btn btn-ghost"
-            href={localePath(locale, "sign-in")}
-            onClick={() => setMenuOpen(false)}
-          >
-            {dict.nav.signIn}
-          </Link>
-          <Link
-            className="btn btn-primary"
-            href={`${home}#library`}
-            onClick={() => setMenuOpen(false)}
-          >
-            {dict.cta.exploreLibrary}
-          </Link>
+          {member ? (
+            <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
+              <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
+              <span>Profile</span>
+            </Link>
+          ) : <><Link className="btn btn-ghost" href={localePath(locale, "sign-in")} onClick={() => setMenuOpen(false)}>{dict.nav.signIn}</Link><Link className="btn btn-primary header-signup" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link></>}
         </div>
       </div>
     </header>
