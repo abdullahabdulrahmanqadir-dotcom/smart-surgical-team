@@ -3,6 +3,7 @@ import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import IntroductionVideo from "../components/IntroductionVideo";
+import JoinCtaLink from "../components/JoinCtaLink";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
@@ -311,10 +312,7 @@ export default async function Home({
                 ))}
               </ul>
             </div>
-            <Link className="btn btn-primary btn-lg cta-signup-link" href={localePath(active, "sign-up")}>
-              Create free account
-              <IconArrowRight size={18} />
-            </Link>
+            <JoinCtaLink locale={active} />
           </div>
         </section>
       </main>
