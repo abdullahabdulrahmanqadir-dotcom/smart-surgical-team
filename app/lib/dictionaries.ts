@@ -43,25 +43,23 @@ const en = {
     guideIntro:
       "Select a highlighted area or one of the topic cards to move from the whole head and neck to a focused surgical view.",
     guideIntroActive:
-      "Focused on {name}. Choose a condition below to browse its cases.",
+      "Focused on {name}. Browse published content by topic or format.",
     chooseRegion:
       "Select a region above and its focus areas will open here.",
     mapReset: "Back to the whole head and neck",
     focusAreas: "Focus areas",
     conditions: "Conditions",
     conditionCases: "Cases",
-    exampleCaption:
-      "Example cases from the team's current archive, shown to preview the layout. The new library is in preparation.",
     caseVideoLabel: "Case video",
     caseReadLabel: "Case study",
     minRead: "min read",
-    caseEmptyTitle: "Cases in preparation",
+    caseEmptyTitle: "No published content yet",
     caseEmptyBody:
-      "Approved case videos for this condition will appear here as the curriculum is published.",
+      "Published content for this topic will appear here.",
     collectionKicker: "Learning collection",
-    collectionTitle: "Programme in preparation",
+    collectionTitle: "Learning collection",
     collectionBody:
-      "The structure is ready. Approved operative videos, imaging reviews and discussions will appear here as the curriculum is published.",
+      "Published operative videos, imaging reviews and discussions appear here.",
     backToTopics: "All topics",
     otherTopics: "Continue exploring",
   },

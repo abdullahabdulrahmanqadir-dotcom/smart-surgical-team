@@ -155,40 +155,36 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
   }
 });
 
-test("every topic detail route renders a searchable case library", async () => {
-  // [slug, heading, a condition it lists, a case title fragment]
+test("every topic detail route renders its searchable admin-managed content library", async () => {
+  // [slug, heading, a condition it lists]
   const routes = [
-    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma", "Recurrent Papillary Thyroid Carcinoma"],
-    ["salivary-glands", "Salivary Glands", "Submandibular", "Recurrent Multifocal Pleomorphic Adenoma"],
-    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses", "Lymphangioma"],
-    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions", "Right Lower Eyelid Basal Cell Carcinoma"],
+    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma"],
+    ["salivary-glands", "Salivary Glands", "Submandibular"],
+    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses"],
+    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions"],
   ];
 
   for (const locale of ["en", "ar", "ckb"]) {
-    for (const [slug, heading, condition, caseTitle] of routes) {
+    for (const [slug, heading, condition] of routes) {
       const response = await fetchPath(`/${locale}/topics/${slug}`);
       assert.equal(response.status, 200, `${locale}/${slug} should resolve`);
       const html = await response.text();
 
       assert.match(html, new RegExp(heading));
-      // Conditions are now filter options, with case cards shown in the active
-      // topic's library rather than a condition-tab rail.
-      assert.match(html, /class="content-search"/, `${locale}/${slug} renders case search`);
+      assert.match(html, /class="content-search"/, `${locale}/${slug} renders content search`);
       assert.equal((html.match(/class="content-select"/g) ?? []).length, 3, `${locale}/${slug} renders three filters`);
       assert.match(html, new RegExp(condition), `${locale}/${slug} lists ${condition}`);
-      assert.match(html, /class="content-case-grid"/, `${locale}/${slug} shows the case grid`);
-      assert.match(html, /class="content-case-card"/, `${locale}/${slug} shows case cards`);
-      assert.match(html, new RegExp(caseTitle), `${locale}/${slug} shows its example case`);
+      assert.match(html, /No content matches this search./, `${locale}/${slug} has an honest empty state before content is published`);
+      assert.doesNotMatch(html, /class="content-case-card"/, `${locale}/${slug} does not show placeholder cards`);
       assert.match(html, new RegExp(`href="/${locale}/topics"`));
     }
   }
 });
 
-test("the thyroid route surfaces a real example case under papillary carcinoma", async () => {
+test("topic routes do not render placeholder case records", async () => {
   const html = await (await fetchPath("/en/topics/thyroid-parathyroid")).text();
-  assert.match(html, /Recurrent Papillary Thyroid Carcinoma/);
-  // Example cases must be labelled as placeholder previews, not real library content.
-  assert.match(html, /Example cases from the team/);
+  assert.doesNotMatch(html, /Recurrent Papillary Thyroid Carcinoma/);
+  assert.doesNotMatch(html, /Example cases from the team/);
 });
 
 test("thyroid detail keeps the approved topic and case artwork", async () => {

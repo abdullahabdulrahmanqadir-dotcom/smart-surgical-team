@@ -6,6 +6,7 @@ import ScrollMotion from "../../components/ScrollMotion";
 import TopicsExplorer from "../../components/TopicsExplorer";
 import { LOCALES, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getDictionary } from "../../lib/dictionaries";
+import { getLibraryContent } from "../../lib/content";
 import { PUBLIC_TOPIC_GROUPS } from "../../lib/topics";
 
 export function generateStaticParams() {
@@ -32,7 +33,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
   if (!isLocale(locale)) notFound();
 
   const active: Locale = locale;
-  const dict = getDictionary(active);
+  const [dict, items] = [getDictionary(active), await getLibraryContent()];
 
   return (
     <>
@@ -46,7 +47,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <main id="main-content">
         <section className="section section-topic-index" aria-labelledby="topic-index-heading">
           <h1 className="visually-hidden" id="topic-index-heading">{dict.topics.title}</h1>
-          <TopicsExplorer groups={PUBLIC_TOPIC_GROUPS} locale={active} t={dict.topics} />
+          <TopicsExplorer groups={PUBLIC_TOPIC_GROUPS} locale={active} t={dict.topics} items={items} />
         </section>
       </main>
 

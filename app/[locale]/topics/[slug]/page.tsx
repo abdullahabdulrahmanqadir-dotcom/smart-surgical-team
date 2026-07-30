@@ -5,6 +5,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import TopicsExplorer from "../../../components/TopicsExplorer";
 import { getDictionary } from "../../../lib/dictionaries";
+import { getLibraryContent } from "../../../lib/content";
 import { LOCALES, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup, PUBLIC_TOPIC_GROUPS } from "../../../lib/topics";
 
@@ -54,7 +55,7 @@ export default async function TopicDetailPage({
   if (!isLocale(locale) || !group) notFound();
 
   const active: Locale = locale;
-  const dict = getDictionary(active);
+  const [dict, items] = [getDictionary(active), await getLibraryContent()];
 
   return (
     <>
@@ -75,6 +76,7 @@ export default async function TopicDetailPage({
             locale={active}
             t={dict.topics}
             initialSlug={group.slug}
+            items={items}
           />
         </section>
       </main>

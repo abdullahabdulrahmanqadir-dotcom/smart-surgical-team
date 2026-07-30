@@ -29,13 +29,14 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   }
   const related = allContent.filter((item) => item.id !== content.id && (item.topicSlug === content.topicSlug || item.kind === content.kind)).slice(0, 3);
   const home = localePath(active);
-  const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : "Operative video";
+  const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
   // Some content sits under a taxonomy group that is not published yet
   // (visible: false), and linking there would 404. Show the label instead.
   const topicIsPublished = Boolean(getPublicTopicGroup(content.topicSlug));
   const summarySections = CASE_SUMMARY_FIELDS
     .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
     .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
+  const documents = content.media?.filter((item) => item.kind === "document") ?? [];
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
@@ -48,6 +49,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
         <section className="content-main"><ContentPlayer content={content} />
           {content.bodyHtml ? <section className="member-rich-content" dangerouslySetInnerHTML={{ __html: content.bodyHtml }} /> : null}
           {content.media?.filter((item) => item.kind === "image").map((item) => <figure className="member-content-image" key={item.id}><img src={item.publicUrl} alt={item.altText ?? ""}/>{item.caption ? <figcaption>{item.caption}</figcaption> : null}</figure>)}
+          {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">Resources</span><h2 id="content-downloads-title">Downloads</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || "Download document"}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">Clinical record</span><h2 id="case-summary-title">Case summary</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (

@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
+import type { ContentRecord } from "../lib/content";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
-import type { CaseVideo, TopicGroup } from "../lib/topics";
+import type { TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
 import HeadNeckMap from "./HeadNeckMap";
 import { fill } from "../lib/dictionaries";
 import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
-type LibraryCase = CaseVideo & { subTopic: string; imageIcon?: string };
+type LibraryItem = ContentRecord & { subTopic: string; imageIcon?: string; date: string; hasVideo: boolean };
 
 function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
 }
 
-function CaseCard({ item, icon, t, locale }: { item: LibraryCase; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
+function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
   return (
     <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">
@@ -35,7 +36,7 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryCase; icon: TopicIco
         <p className="content-case-summary">{item.summary}</p>
         <div className="content-case-meta">
           <span>{item.date}</span>
-          <span><IconClock size={14} /> {item.readMinutes} {t.minRead}</span>
+          {item.duration ? <span><IconClock size={14} /> {item.duration}</span> : null}
         </div>
       </div>
     </a>
@@ -47,11 +48,13 @@ export default function TopicsExplorer({
   locale,
   t,
   initialSlug,
+  items,
 }: {
   groups: TopicGroup[];
   locale: Locale;
   t: Dictionary["topics"];
   initialSlug?: string;
+  items: ContentRecord[];
 }) {
   // No slug means the whole head and neck, with nothing chosen yet. The map
   // waits for a click rather than opening a topic on the reader's behalf.
@@ -78,14 +81,28 @@ export default function TopicsExplorer({
     return () => window.removeEventListener("popstate", onPopState);
   }, [groups]);
 
-  const libraryCases = useMemo<LibraryCase[]>(() => activeGroup?.subTopics.flatMap((topic) =>
-    (topic.cases ?? []).map((item) => ({ ...item, subTopic: topic.name, imageIcon: topic.imageIcon })),
-  ) ?? [], [activeGroup]);
+  const libraryCases = useMemo<LibraryItem[]>(() => {
+    if (!activeGroup) return [];
+    return items
+      .filter((item) => item.topics.some(({ slug }) => slug === activeGroup.slug || activeGroup.subTopics.some((topic) => topic.slug === slug)))
+      .map((item) => {
+        const matchingSubTopic = activeGroup.subTopics.find((topic) => item.topics.some(({ slug }) => slug === topic.slug));
+        const date = item.publishedAt ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : "Recently added";
+        return {
+          ...item,
+          subTopic: matchingSubTopic?.name ?? activeGroup.name,
+          imageIcon: matchingSubTopic?.imageIcon ?? activeGroup.imageIcon,
+          date,
+          hasVideo: item.kind === "video" || item.kind === "webinar_recording",
+        };
+      });
+  }, [activeGroup, items]);
+  const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))], [libraryCases]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
     const searchTerm = searchQuery.trim().toLocaleLowerCase();
     const matchesTopic = subTopic === "all" || item.subTopic === subTopic;
-    const matchesYear = year === "all" || item.date.endsWith(year);
+    const matchesYear = year === "all" || item.publishedAt?.startsWith(year);
     const matchesFormat = format === "all" || (format === "video" ? item.hasVideo : !item.hasVideo);
     const matchesSearch = !searchTerm || [item.title, item.summary, item.subTopic, item.date]
       .join(" ")
@@ -176,22 +193,22 @@ export default function TopicsExplorer({
       <div className="content-library-heading">
         <div>
           <p className="section-kicker">{activeGroup.name}</p>
-          <h2>Case library</h2>
+          <h2>Content library</h2>
           <p>{activeGroup.intro}</p>
         </div>
-        <span className="content-results" aria-live="polite">{filteredCases.length} {filteredCases.length === 1 ? "case" : "cases"}</span>
+        <span className="content-results" aria-live="polite">{filteredCases.length} {filteredCases.length === 1 ? "item" : "items"}</span>
       </div>
 
       <div className="content-filters" aria-label="Filter case library">
         <span className="content-filter-label">Filter by</span>
         <label className="content-search">
           <IconSearch size={17} />
-          <span className="visually-hidden">Search cases</span>
+          <span className="visually-hidden">Search content</span>
           <input
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search cases"
+            placeholder="Search content"
           />
         </label>
         <label className="content-select">
@@ -206,17 +223,16 @@ export default function TopicsExplorer({
           <span className="visually-hidden">Publication year</span>
           <select value={year} onChange={(event) => setYear(event.target.value)}>
             <option value="all">Any time</option>
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
+            {availableYears.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
           <IconChevronDown size={16} />
         </label>
         <label className="content-select">
           <span className="visually-hidden">Content format</span>
           <select value={format} onChange={(event) => setFormat(event.target.value)}>
-            <option value="all">Video & case studies</option>
-            <option value="video">Video cases</option>
-            <option value="article">Case studies</option>
+            <option value="all">All formats</option>
+            <option value="video">Video lessons</option>
+            <option value="article">Articles & resources</option>
           </select>
           <IconChevronDown size={16} />
         </label>
@@ -230,7 +246,7 @@ export default function TopicsExplorer({
       ) : (
         <div className="content-empty">
           <IconFile size={22} />
-          <div><h3>No cases match this search.</h3><p>Try another phrase, or clear the filters to see every case.</p></div>
+          <div><h3>No content matches this search.</h3><p>Try another phrase, or clear the filters to see every published item.</p></div>
         </div>
       )}
       </>
