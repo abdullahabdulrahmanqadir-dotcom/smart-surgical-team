@@ -44,6 +44,7 @@ next-env.d.ts
 # local deployment archives and scratch
 archive/
 .openai/*.tgz
+site-package*.tgz
 
 # local tooling output
 tsconfig.tsbuildinfo
