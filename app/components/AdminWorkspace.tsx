@@ -25,17 +25,25 @@ const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
 // The stored session is restored asynchronously after the page loads, so the
 // first request has to wait for it. Sending an empty bearer token instead is
 // what used to lock staff out with a spurious "access required" screen.
-async function accessToken() {
+//
+// Whichever source answers first wins, and the timer always fires: getSession
+// can stall on its internal lock when another tab holds it, so it must never
+// be the only thing this waits on.
+function accessToken() {
   const client = getSupabaseBrowserClient();
-  const { data } = await client.auth.getSession();
-  if (data.session?.access_token) return data.session.access_token;
   return new Promise<string | null>((resolve) => {
+    let settled = false;
     let timer = 0;
-    const subscription = client.auth.onAuthStateChange((_event, session) => {
-      if (!session?.access_token) return;
-      window.clearTimeout(timer); subscription.data.subscription.unsubscribe(); resolve(session.access_token);
-    });
-    timer = window.setTimeout(() => { subscription.data.subscription.unsubscribe(); resolve(null); }, 4000);
+    let listener: { unsubscribe: () => void } | null = null;
+    function finish(token: string | null) {
+      if (settled) return;
+      settled = true; window.clearTimeout(timer); listener?.unsubscribe(); resolve(token);
+    }
+    listener = client.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) finish(session.access_token);
+    }).data.subscription;
+    timer = window.setTimeout(() => finish(null), 4000);
+    void client.auth.getSession().then(({ data }) => { if (data.session?.access_token) finish(data.session.access_token); }).catch(() => {});
   });
 }
 
@@ -93,6 +101,18 @@ export default function AdminWorkspace() {
   // Reload only when the selected workspace section changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, [active]);
+
+  // A session that lands after the first check gave up (slow restore, a sign-in
+  // in another tab, a token refresh) should re-open the workspace by itself.
+  const accessRef = useRef(access);
+  useEffect(() => { accessRef.current = access; }, [access]);
+  useEffect(() => {
+    const listener = getSupabaseBrowserClient().auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token && accessRef.current !== "ready") { setAccess("checking"); void load("overview"); }
+    });
+    return () => listener.data.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
   function startNew() {
