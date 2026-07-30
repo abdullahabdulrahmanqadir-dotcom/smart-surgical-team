@@ -411,20 +411,7 @@ input {
   gap: 0.65rem;
 }
 
-.brand-mark-plate {
-  fill: var(--primary-soft);
-  stroke: var(--primary);
-  stroke-width: 1.4;
-}
-
-.brand-mark-stroke {
-  stroke: var(--primary);
-  fill: none;
-}
-
-.brand-mark-dot {
-  fill: var(--primary);
-}
+.brand-mark { display: block; flex: none; object-fit: contain; }
 
 .brand-name {
   display: flex;
@@ -538,8 +525,8 @@ input {
 /* Admin workspace */
 .admin-shell { min-height: 100vh; display: grid; grid-template-columns: 262px minmax(0, 1fr); background: #f4f7f4; color: #173c3b; font-family: var(--font-body), Inter, sans-serif; }
 .admin-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 28px; padding: 26px 16px 18px; background: #103f3e; color: #f4f7f4; }
-.admin-brand { display: flex; align-items: baseline; gap: 8px; margin-inline: 8px; color: inherit; text-decoration: none; font-family: var(--font-display), serif; font-size: 24px; }
-.admin-brand span { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 10px; background: #cdebe5; color: #103f3e; font-family: var(--font-body), sans-serif; font-size: 13px; font-weight: 700; }
+.admin-brand { display: flex; align-items: center; gap: 8px; margin-inline: 8px; color: inherit; text-decoration: none; font-family: var(--font-display), serif; font-size: 24px; }
+.admin-logo { display: block; width: 48px; height: 48px; object-fit: contain; }
 .admin-owner { display: flex; align-items: center; gap: 10px; margin: 0 8px; padding: 13px 0 20px; border-bottom: 1px solid rgba(255,255,255,.16); }
 .admin-owner > span { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 50%; background: #c9824b; color: #fff; font-size: 12px; font-weight: 700; }
 .admin-owner b, .admin-owner small { display: block; max-width: 155px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.admin-owner b { font-size: 13px; }.admin-owner small { margin-top: 2px; color: #cdebe5; font-size: 12px; text-transform: capitalize; }
@@ -2688,6 +2675,17 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   background: #092c2b;
   box-shadow: var(--shadow-lg);
   color: #fff;
+}
+
+/* Native video elements default to a 300 × 150px rendering area. Make the
+   actual media fill the responsive player frame instead of sitting in its
+   top-left corner. */
+.content-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
 }
 
 .content-tabs { display: flex; gap: 1.35rem; border-bottom: 1px solid var(--line); margin-top: 1.55rem; }

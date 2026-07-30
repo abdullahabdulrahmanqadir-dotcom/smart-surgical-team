@@ -27,12 +27,8 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
     <footer className="site-footer" id="contact">
       <div className="footer-main">
         <div className="footer-brand">
-          <a className="brand" href={home}>
-            <BrandMark size={32} />
-            <span className="brand-name">
-              {dict.brand.name}
-              <small>Head &amp; Neck Education</small>
-            </span>
+          <a className="brand" href={home} aria-label={dict.brand.name}>
+            <BrandMark size={72} />
           </a>
           <p>{dict.footer.blurb}</p>
           <SocialLinks className="socials" />

@@ -80,7 +80,7 @@ export async function generateMetadata({
       // locales competing with each other as duplicate content.
       languages: Object.fromEntries(LOCALES.map((l) => [LOCALE_META[l].htmlLang, `/${l}`])),
     },
-    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+    icons: { icon: "/sst-logo.png", shortcut: "/sst-logo.png", apple: "/sst-logo.png" },
     openGraph: {
       title,
       description,

@@ -428,29 +428,13 @@ export type TopicIconName = keyof typeof topicIcons;
 
 export function BrandMark({ size = 34 }: { size?: number }) {
   return (
-    <svg
+    <img
+      src="/sst-logo.png"
       width={size}
       height={size}
-      viewBox="0 0 40 40"
-      fill="none"
+      alt=""
       aria-hidden="true"
-      focusable="false"
       className="brand-mark"
-    >
-      <rect x="1.2" y="1.2" width="37.6" height="37.6" rx="11" className="brand-mark-plate" />
-      <path
-        d="M14 10.5c-2.6 2.3-4 5.2-4 8.4 0 3.4 1.7 6 4.2 7.5 1.1.7 1.6 1.5 1.6 2.7v2.4"
-        className="brand-mark-stroke"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="M26.4 30v-3.1c0-1.6.7-2.5 2-3.4 2-1.4 3-3.3 3-5.6 0-4.6-3.8-8.4-8.6-8.4"
-        className="brand-mark-stroke"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <circle cx="20.5" cy="19" r="3" className="brand-mark-dot" />
-    </svg>
+    />
   );
 }
