@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
 
@@ -23,6 +24,29 @@ export function safeRichText(value: unknown) {
   });
 }
 
+type ProfileRow = { id: string; full_name: string | null; role: string };
+type ProfileRead = { data: ProfileRow | null; error: { message: string } | null };
+
+// If the server is configured with a publishable key instead of a secret one,
+// this read runs as an anonymous caller: row-level security then hides the row
+// and returns zero rows with no error, which is indistinguishable from a
+// missing profile. Retrying with the caller's own token satisfies the
+// "members read their profile" policy, so identity resolves under either key.
+async function readStaffProfile(client: ReturnType<typeof getSupabaseServerClient>, userId: string, token: string): Promise<ProfileRead> {
+  const select = "id, full_name, role";
+  const first = await client.from("profiles").select(select).eq("id", userId).maybeSingle();
+  if (first.error || first.data) return first as ProfileRead;
+
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !publicKey) return first as ProfileRead;
+  const asCaller = createClient(url, publicKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  return await asCaller.from("profiles").select(select).eq("id", userId).maybeSingle() as ProfileRead;
+}
+
 export type AdminIdentity = { id: string; email: string; name: string; role: StaffRole };
 export type AdminIdentityResult = { identity: AdminIdentity } | { identity: null; message: string; status: number };
 
@@ -37,19 +61,17 @@ export async function resolveAdminIdentity(request: Request, ownerOnly = false):
   let client: ReturnType<typeof getSupabaseServerClient>;
   try {
     client = getSupabaseServerClient();
-  } catch {
-    return { identity: null, status: 500, message: "The server is missing its Supabase configuration. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.";
+    return { identity: null, status: 500, message: `Server configuration problem: ${detail}` };
   }
 
   const { data: userData, error: userError } = await client.auth.getUser(token);
   if (userError || !userData.user) return { identity: null, status: 401, message: "Your session is no longer valid. Sign in again to open the workspace." };
-  const { data: profile, error: profileError } = await client
-    .from("profiles")
-    .select("id, full_name, role")
-    .eq("id", userData.user.id)
-    .maybeSingle();
-  if (profileError) return { identity: null, status: 500, message: `Could not read your staff profile: ${profileError.message}` };
   const email = userData.user.email ?? "";
+
+  const { data: profile, error: profileError } = await readStaffProfile(client, userData.user.id, token);
+  if (profileError) return { identity: null, status: 500, message: `Could not read your staff profile: ${profileError.message}` };
   if (!profile) return { identity: null, status: 403, message: `No profile record exists for ${email}. Ask the Owner to add one.` };
   if (!STAFF_ROLES.includes(profile.role as StaffRole)) {
     return { identity: null, status: 403, message: `${email} is registered as “${String(profile.role).replace(/_/g, " ")}”, which has no admin access. Ask the Owner to grant a staff role.` };
