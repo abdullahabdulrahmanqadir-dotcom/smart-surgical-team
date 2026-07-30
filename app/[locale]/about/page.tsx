@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
+import ScrollMotion from "../../components/ScrollMotion";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { TEAM_GROUPS } from "../../lib/team";
@@ -14,11 +15,12 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
+    <ScrollMotion />
     <main id="main-content" className="about-page">
       <h1 className="visually-hidden">About Smart Surgical Team</h1>
 
       <section className="about-statement" aria-labelledby="about-statement-title">
-        <div><span className="section-kicker">Our approach</span><h2 id="about-statement-title">Precise care. A team approach.</h2></div>
+        <div><span className="section-kicker">01 / Our approach</span><h2 id="about-statement-title">Precise care. A team approach.</h2></div>
         <p>Our surgeons and specialists work together to plan treatment, provide focused care and support recovery. Through education and collaboration, we help strengthen head and neck care across the region.</p>
       </section>
 

@@ -1,7 +1,8 @@
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import SocialLinks from "../../components/SocialLinks";
-import { IconClock, IconGlobe, IconMail, IconPin } from "../../components/icons";
+import ScrollMotion from "../../components/ScrollMotion";
+import { IconArrowRight, IconClock, IconGlobe, IconMail, IconPin } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { notFound } from "next/navigation";
@@ -9,6 +10,7 @@ import { notFound } from "next/navigation";
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
 const TOWER_URL = "https://smarthealth.group/ar";
+const DIRECTIONS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Smart Health Tower, Sulaymaniyah, Iraq")}`;
 
 export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -20,6 +22,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
     <>
       <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
       <SiteHeader locale={active} dict={dict}/>
+      <ScrollMotion />
       <main id="main-content" className="contact-page">
         <div className="contact-backdrop" aria-hidden="true"/>
         <div className="contact-shell">
@@ -44,6 +47,14 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
                 <SocialLinks className="socials contact-socials" />
               </div>
             </aside>
+            <section className="contact-location" aria-labelledby="visit-heading">
+              <div className="contact-location-orbit" aria-hidden="true"><span /><span /><i /></div>
+              <span className="auth-kicker">Visit us</span>
+              <h2 id="visit-heading">Smart Health Tower.</h2>
+              <p>Located beside the University of Sulaymaniyah Old Campus, our team is easy to find when you need to visit in person.</p>
+              <a className="contact-directions" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">Get directions <IconArrowRight size={17} /></a>
+              <small>Majid Bag Main Street · Sulaymaniyah, Iraq</small>
+            </section>
           </div>
         </div>
       </main>

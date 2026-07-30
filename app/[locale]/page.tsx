@@ -30,7 +30,7 @@ const featuredTeam = TEAM_GROUPS[0].members.slice(0, 3);
 const benefits = [
   "Free account, immediate access",
   "New lecture every week",
-  "Certificates for completed tracks",
+  "Save cases for your next study session",
 ];
 
 export default async function Home({

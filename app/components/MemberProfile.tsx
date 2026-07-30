@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { IconArrowRight, IconBell, IconBookmark, IconCheck, IconLogOut, IconMail, IconSliders, IconUser } from "./icons";
+import { IconArrowRight, IconBell, IconBookmark, IconCalendar, IconCheck, IconLayers, IconLogOut, IconMail, IconSliders, IconUser } from "./icons";
 
 type Member = { name: string; email: string } | null;
 type SavedCase = { slug: string; title: string; summary: string; topic: string; format: string; duration: string };
-type ProfileSection = "overview" | "saved" | "preferences";
+type ProfileSection = "overview" | "saved" | "events" | "preferences";
 
 const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
   { id: "overview", label: "Overview", icon: IconUser },
   { id: "saved", label: "Saved learning", icon: IconBookmark },
+  { id: "events", label: "Events", icon: IconCalendar },
   { id: "preferences", label: "Preferences", icon: IconSliders },
 ];
 
@@ -103,9 +104,13 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
       </aside>
 
       <div className="profile-content">
-        <section className="profile-welcome" id="overview"><span className="auth-kicker">Your learning space</span><h2>Good to have you here, {member.name.split(" ")[0]}.</h2><p>Keep the topics you care about close, and return to the library whenever you are ready to explore.</p><div className="profile-metrics"><div><IconBookmark size={19} /><strong>Saved cases</strong><span>{savedCases.length ? `${savedCases.length} case${savedCases.length === 1 ? "" : "s"} saved for later.` : "Your personal collection is ready."}</span></div></div></section>
+        <section className="profile-welcome" id="overview"><div className="profile-welcome-orbit" aria-hidden="true"><i /><i /><i /></div><span className="auth-kicker">Your learning space</span><h2>Good to have you here, {member.name.split(" ")[0]}.</h2><p>Keep the topics you care about close, and return to the library whenever you are ready to explore.</p><div className="profile-metrics"><div><IconBookmark size={19} /><strong>Saved cases</strong><span>{savedCases.length ? `${savedCases.length} case${savedCases.length === 1 ? "" : "s"} saved for later.` : "Your personal collection is ready."}</span></div><div><IconLayers size={19} /><strong>Learning path</strong><span>Explore focused teaching across four published specialties.</span></div><div><IconCalendar size={19} /><strong>Events</strong><span>Keep upcoming lectures and team events close by.</span></div></div></section>
 
         <section className="profile-panel" id="saved"><div className="profile-panel-heading"><div><span className="auth-kicker">Saved learning</span><h2>Build a reference library.</h2></div><Link href={`/${locale}/topics`} className="text-link">Browse topics</Link></div>{savedCases.length ? <div className="saved-case-list">{savedCases.map((savedCase) => <Link className="saved-case" href={`/${locale}/library/${savedCase.slug}`} key={savedCase.slug}><span className="saved-case-icon"><IconBookmark size={20} /></span><span><b>{savedCase.title}</b><small>{savedCase.topic} · {savedCase.format} · {savedCase.duration}</small><em>{savedCase.summary}</em></span><IconArrowRight size={18} /></Link>)}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>Nothing saved yet</h3><p>When a case or topic is useful for your next study session, save it here for easy return.</p></div></div>}</section>
+
+        <section className="profile-panel profile-recommendations"><div className="profile-panel-heading"><div><span className="auth-kicker">Continue exploring</span><h2>Find your next area of focus.</h2></div><Link href={`/${locale}/topics`} className="text-link">All specialties</Link></div><div className="recommendation-grid"><Link href={`/${locale}/topics/thyroid-parathyroid`}><span>01</span><strong>Thyroid &amp; Parathyroid</strong><small>Technique, anatomy and case learning.</small><IconArrowRight size={17} /></Link><Link href={`/${locale}/topics/salivary-glands`}><span>02</span><strong>Salivary Glands</strong><small>Focused approaches and facial nerve dissection.</small><IconArrowRight size={17} /></Link></div></section>
+
+        <section className="profile-panel profile-events" id="events"><div className="profile-panel-heading"><div><span className="auth-kicker">Events &amp; webinars</span><h2>Stay close to what is next.</h2></div><Link href={`/${locale}/events`} className="text-link">View events</Link></div><div className="profile-events-empty"><span className="profile-events-date">SST</span><div><h3>Upcoming learning, in one place.</h3><p>Explore the events programme for current registration details, practical sessions and on-demand learning.</p></div><Link href={`/${locale}/events`} aria-label="Explore Smart Surgical Team events"><IconArrowRight size={18} /></Link></div></section>
 
         <section className="profile-panel" id="preferences"><div className="profile-panel-heading"><div><span className="auth-kicker">Preferences</span><h2>Shape your updates.</h2></div></div><label className="preference-toggle"><span><IconBell size={19} /><span><b>Learning updates</b><small>Occasional event and library updates from Smart Surgical Team.</small></span></span><input type="checkbox" checked={emailUpdates} onChange={(event) => setEmailUpdates(event.target.checked)} /><i aria-hidden="true" /></label><div className="profile-save-row"><button className="btn btn-primary" type="button" onClick={savePreferences}>Save preferences</button>{saved && <p role="status"><IconCheck size={17} />Preferences saved in this browser.</p>}</div></section>
       </div>

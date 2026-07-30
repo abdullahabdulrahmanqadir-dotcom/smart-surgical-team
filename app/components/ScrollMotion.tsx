@@ -10,6 +10,16 @@ const revealSelectors = [
   ".team-feature-panel",
   ".vision-panel",
   ".cta-inner",
+  ".about-statement",
+  ".team-group-head",
+  ".team-profile",
+  ".about-closing",
+  ".contact-intro",
+  ".contact-details",
+  ".contact-location",
+  ".profile-identity",
+  ".profile-welcome",
+  ".profile-panel",
 ];
 
 export default function ScrollMotion() {
