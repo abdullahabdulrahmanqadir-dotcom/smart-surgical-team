@@ -6,6 +6,11 @@ import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
 
 type Section = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "messages";
+type Access = "checking" | "signed_out" | "denied" | "ready";
+class RequestError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.status = status; }
+}
 type RecordItem = Record<string, unknown>;
 type ContentItem = RecordItem & { id?: string; title?: string; status?: string; kind?: string; access_level?: string; topic_ids?: string[]; chapters?: { title: string; starts_at_seconds: number }[]; content_media?: Media[] };
 type Media = { storage_path: string; public_url: string; kind: "image" | "document"; alt_text?: string; caption?: string };
@@ -16,6 +21,23 @@ const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "contributors", label: "Contributors", icon: IconUsers }, { id: "people", label: "People & roles", icon: IconUser },
   { id: "messages", label: "Contact inbox", icon: IconFile },
 ];
+
+// The stored session is restored asynchronously after the page loads, so the
+// first request has to wait for it. Sending an empty bearer token instead is
+// what used to lock staff out with a spurious "access required" screen.
+async function accessToken() {
+  const client = getSupabaseBrowserClient();
+  const { data } = await client.auth.getSession();
+  if (data.session?.access_token) return data.session.access_token;
+  return new Promise<string | null>((resolve) => {
+    let timer = 0;
+    const subscription = client.auth.onAuthStateChange((_event, session) => {
+      if (!session?.access_token) return;
+      window.clearTimeout(timer); subscription.data.subscription.unsubscribe(); resolve(session.access_token);
+    });
+    timer = window.setTimeout(() => { subscription.data.subscription.unsubscribe(); resolve(null); }, 4000);
+  });
+}
 
 const emptyContent = (): ContentItem => ({ kind: "case_article", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical education", topic_ids: [], chapters: [], content_media: [] });
 
@@ -38,24 +60,34 @@ export default function AdminWorkspace() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
+  const [access, setAccess] = useState<Access>("checking");
+  const [accessMessage, setAccessMessage] = useState("");
+
   async function authHeaders() {
-    const { data } = await getSupabaseBrowserClient().auth.getSession();
-    return { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` };
+    return { "Content-Type": "application/json", Authorization: `Bearer ${(await accessToken()) ?? ""}` };
   }
   async function request(resource: Section, init?: RequestInit) {
     const headers = await authHeaders();
     const response = await fetch(`/api/admin/${resource}`, { ...init, headers: { ...headers, ...(init?.headers ?? {}) } });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error ?? "Something went wrong.");
+    if (!response.ok) throw new RequestError(result.error ?? "Something went wrong.", response.status);
     return result;
   }
   async function load(resource = active) {
     setLoading(true); setNotice("");
     try {
+      if (resource === "overview" && !(await accessToken())) { setAccess("signed_out"); setAccessMessage("Sign in with your staff account to open the workspace."); return; }
       const result = await request(resource);
-      if (resource === "overview") { setIdentity(result.identity); setMetrics(result.metrics ?? {}); }
+      if (resource === "overview") { setIdentity(result.identity); setMetrics(result.metrics ?? {}); setAccess("ready"); }
       else { setItems(result.data ?? []); if (resource === "content") { const topicResult = await request("topics"); const contributorResult = await request("contributors"); setTopics(topicResult.data ?? []); setContributors(contributorResult.data ?? []); } }
-    } catch (error) { setNotice(error instanceof Error ? error.message : "Unable to load this area."); }
+    } catch (error) {
+      const status = error instanceof RequestError ? error.status : 0;
+      const message = error instanceof Error ? error.message : "Unable to load this area.";
+      // Only the first identity check can decide that access itself is missing.
+      // A rejected section (or a flaky request) must not blank the workspace.
+      if (resource === "overview" && (status === 401 || status === 403)) { setAccess(status === 401 ? "signed_out" : "denied"); setAccessMessage(message); }
+      else setNotice(message);
+    }
     finally { setLoading(false); }
   }
   // Reload only when the selected workspace section changes.
@@ -81,7 +113,9 @@ export default function AdminWorkspace() {
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
-  if (!identity && !loading && notice) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{notice}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
+  if (access === "checking" && !identity) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Checking your access…</h1><p>Restoring your staff session.</p></main>;
+  if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
+  if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><span>SST</span><b>Admin</b></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className="admin-notice" role="status"><IconCheck size={17}/>{notice}</p>}{loading ? <div className="admin-loading">Loading workspace…</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
@@ -99,7 +133,7 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [] }));
   const [uploading, setUploading] = useState(false);
   const set = (key: string, next: unknown) => setForm((current) => ({ ...current, [key]: next }));
-  async function upload(file: File) { setUploading(true); try { const { data } = await getSupabaseBrowserClient().auth.getSession(); const body = new FormData(); body.append("file", file); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` }, body }); const result = await response.json(); if (!response.ok) throw new Error(result.error); set("content_media", [...(form.content_media as Media[]), { storage_path: result.path, public_url: result.publicUrl, kind: result.kind, alt_text: "", caption: "" }]); } finally { setUploading(false); } }
+  async function upload(file: File) { setUploading(true); try { const token = await accessToken(); const body = new FormData(); body.append("file", file); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body }); const result = await response.json(); if (!response.ok) throw new Error(result.error); set("content_media", [...(form.content_media as Media[]), { storage_path: result.path, public_url: result.publicUrl, kind: result.kind, alt_text: "", caption: "" }]); } finally { setUploading(false); } }
   function submit(event: FormEvent) { event.preventDefault(); onSave({ ...form, media: form.content_media }); }
   if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="URL slug" hint="Leave this blank to generate it from the title." value={form.slug} onChange={(value) => set("slug", value)}/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Format" value={form.kind} onChange={(value) => set("kind", value)} options={[['case_article','Case article'],['video','Video lesson'],['webinar_recording','Recorded webinar'],['poster','E-poster']]}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<div className="admin-field-grid"><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/><Select label="Contributor" value={form.contributor_id} onChange={(value) => set("contributor_id", value)} options={[["", "Smart Surgical Team"], ...contributors.map((person) => [String(person.id), String(person.display_name)])]}/></div><label className="admin-label">Topics<select multiple value={(form.topic_ids as string[]) ?? []} onChange={(event) => set("topic_ids", Array.from(event.target.selectedOptions).map((option) => option.value))}>{topics.map((topic) => <option value={String(topic.id)} key={String(topic.id)}>{String(topic.name)}</option>)}</select><small>Choose every relevant topic. Hold Ctrl/Cmd to select more than one.</small></label><div className="admin-field-grid"><Field label="Video URL (optional)" type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Field label="Reading time (minutes)" type="number" value={form.reading_minutes} onChange={(value) => set("reading_minutes", value)}/></div><Field label="Clinical level" value={form.level} onChange={(value) => set("level", value)}/><label className="admin-label">Article body<RichEditor value={String(form.body_html ?? "")} onChange={(value) => set("body_html", value)}/></label><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={upload} uploading={uploading}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div><EditorFoot onCancel={onCancel}/></form>;
   if (section === "topics") return <SimpleEditor title={form.id ? "Edit topic" : "New topic"} fields={[['name','Topic name'],['slug','URL slug'],['description','Description'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit} topics={topics}/>;

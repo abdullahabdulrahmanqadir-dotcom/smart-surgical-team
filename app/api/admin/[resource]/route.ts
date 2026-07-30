@@ -1,4 +1,4 @@
-import { apiError, getAdminIdentity, jsonObject, safeRichText, slugify } from "../../../lib/admin-server";
+import { apiError, jsonObject, resolveAdminIdentity, safeRichText, slugify } from "../../../lib/admin-server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
@@ -14,10 +14,11 @@ function optionalText(value: unknown) { const result = text(value); return resul
 function date(value: unknown) { const result = text(value); return result || null; }
 
 export async function GET(request: Request, context: RouteContext) {
-  const identity = await getAdminIdentity(request, (await context.params).resource === "people");
-  if (!identity) return apiError("You do not have access to the admin workspace.", 403);
   const resource = asResource((await context.params).resource);
   if (!resource) return apiError("Unknown admin resource.", 404);
+  const access = await resolveAdminIdentity(request, resource === "people");
+  if (!access.identity) return apiError(access.message, access.status);
+  const identity = access.identity;
   const client = getSupabaseServerClient();
 
   if (resource === "overview") {
@@ -70,8 +71,9 @@ export async function GET(request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
   if (!resource || resource === "overview" || resource === "messages") return apiError("This resource cannot be created here.", 404);
-  const identity = await getAdminIdentity(request, resource === "people");
-  if (!identity) return apiError("You do not have permission to make this change.", 403);
+  const access = await resolveAdminIdentity(request, resource === "people");
+  if (!access.identity) return apiError(access.message, access.status);
+  const identity = access.identity;
   const body = jsonObject(await request.json().catch(() => null));
   if (!body) return apiError("The submitted data was invalid.");
   const client = getSupabaseServerClient();
@@ -150,8 +152,8 @@ export async function POST(request: Request, context: RouteContext) {
 export async function DELETE(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
   if (!resource || !["content", "topics", "events", "contributors"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
-  const identity = await getAdminIdentity(request);
-  if (!identity) return apiError("You do not have permission to delete this item.", 403);
+  const access = await resolveAdminIdentity(request);
+  if (!access.identity) return apiError(access.message, access.status);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return apiError("Choose an item to delete.");
   const table = resource === "content" ? "content_items" : resource;
