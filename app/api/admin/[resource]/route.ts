@@ -35,7 +35,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   if (resource === "content") {
     const { data, error } = await client.from("content_items")
-      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,duration_seconds,reading_minutes,level,published_at,scheduled_for,contributor_id,body_html,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,duration_seconds,reading_minutes,level,published_at,scheduled_for,contributor_id,body_html,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
       .order("updated_at", { ascending: false });
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
@@ -84,12 +84,13 @@ export async function POST(request: Request, context: RouteContext) {
     const slug = slugify(text(body.slug) || title);
     if (!slug) return apiError("Add a usable title or URL slug.");
     const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "published";
+    const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
       title, slug, summary: optionalText(body.summary), kind: ["video", "webinar_recording", "poster", "case_article"].includes(text(body.kind)) ? text(body.kind) : "case_article",
       status, access_level: text(body.access_level) === "members_only" ? "members_only" : "public", video_url: optionalText(body.video_url),
       poster_url: optionalText(body.poster_url), duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
-      level: optionalText(body.level), body_html: safeRichText(body.body_html), contributor_id: optionalText(body.contributor_id),
+      level: optionalText(body.level), body_html: safeRichText(body.body_html), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
       case_presentation: optionalText(body.case_presentation), case_imaging: optionalText(body.case_imaging), case_procedure: optionalText(body.case_procedure),
       case_histopathology: optionalText(body.case_histopathology), case_outcome: optionalText(body.case_outcome),
       scheduled_for: status === "scheduled" ? date(body.scheduled_for) : null, published_at: status === "published" ? new Date().toISOString() : null, updated_by: identity.id,
@@ -101,6 +102,8 @@ export async function POST(request: Request, context: RouteContext) {
     const topicIds = Array.isArray(body.topic_ids) ? body.topic_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     await client.from("content_topics").delete().eq("content_id", saved.id);
     if (topicIds.length) await client.from("content_topics").insert(topicIds.map((topic_id) => ({ content_id: saved.id, topic_id })));
+    await client.from("content_contributors").delete().eq("content_id", saved.id);
+    if (contributorIds.length) await client.from("content_contributors").insert(contributorIds.map((contributor_id) => ({ content_id: saved.id, contributor_id })));
     const chapters = Array.isArray(body.chapters) ? body.chapters : [];
     await client.from("content_chapters").delete().eq("content_id", saved.id);
     const validChapters = chapters.flatMap((chapter, position) => {
@@ -129,7 +132,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (resource === "events") {
     const title = text(body.title);
     if (!title) return apiError("An event title is required.");
-    const payload = { title, slug: slugify(text(body.slug) || title), summary: optionalText(body.summary), event_type: optionalText(body.event_type) ?? "Event", topic: optionalText(body.topic), format: optionalText(body.format) ?? "in-person", status: ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "published", starts_at: date(body.starts_at), ends_at: date(body.ends_at), location: optionalText(body.location), image_url: optionalText(body.image_url), official_url: optionalText(body.official_url), registration_url: optionalText(body.registration_url), programme_url: optionalText(body.programme_url), updated_at: new Date().toISOString() };
+    const highlights = typeof body.highlights === "string" ? body.highlights.split("\n").map((line) => line.trim()).filter(Boolean) : Array.isArray(body.highlights) ? body.highlights : [];
+    const payload = { title, slug: slugify(text(body.slug) || title), summary: optionalText(body.summary), event_type: optionalText(body.event_type) ?? "Event", topic: optionalText(body.topic), format: optionalText(body.format) ?? "in-person", status: ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "published", starts_at: date(body.starts_at), ends_at: date(body.ends_at), location: optionalText(body.location), image_url: optionalText(body.image_url), official_url: optionalText(body.official_url), registration_url: optionalText(body.registration_url), programme_url: optionalText(body.programme_url), faculty_url: optionalText(body.faculty_url), highlights, updated_at: new Date().toISOString() };
     const { data, error } = body.id ? await client.from("events").update(payload).eq("id", text(body.id)).select("id").single() : await client.from("events").insert(payload).select("id").single();
     return error ? apiError(error.message, 500) : Response.json({ data });
   }

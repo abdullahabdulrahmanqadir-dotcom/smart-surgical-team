@@ -429,7 +429,7 @@ export type TopicIconName = keyof typeof topicIcons;
 export function BrandMark({ size = 34 }: { size?: number }) {
   return (
     <img
-      src="/sst-logo.png"
+      src="/sst-mark.png"
       width={size}
       height={size}
       alt=""

@@ -17,7 +17,7 @@ import {
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
-import { EVENTS, eventDateRange } from "../lib/events";
+import { getPublicEvents, eventDateRange } from "../lib/events";
 import { TEAM_GROUPS } from "../lib/team";
 
 const credentials = [
@@ -41,7 +41,8 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const upcomingEvents = EVENTS.filter((event) => event.status === "upcoming").slice(0, 3);
+  const events = await getPublicEvents();
+  const upcomingEvents = events.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
     <>

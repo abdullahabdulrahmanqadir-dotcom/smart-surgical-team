@@ -103,7 +103,8 @@ export default function SiteHeader({
           href={home}
           aria-label={`${dict.brand.name}, ${dict.nav.home}`}
         >
-          <BrandMark size={58} />
+          <BrandMark size={48} />
+          <span className="brand-name">{dict.brand.name}</span>
         </Link>
 
         <nav className="primary-nav" aria-label="Main">
