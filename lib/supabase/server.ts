@@ -1,5 +1,20 @@
 import { createClient } from "@supabase/supabase-js";
 
+const SUPABASE_REQUEST_TIMEOUT_MS = 10_000;
+
+const fetchWithTimeout: typeof fetch = async (input, init) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT_MS);
+  const abortFromCaller = () => controller.abort();
+  init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+    init?.signal?.removeEventListener("abort", abortFromCaller);
+  }
+};
+
 function decodedKeyRole(key: string) {
   const payload = key.split(".")[1];
   if (!payload) return null;
@@ -25,5 +40,8 @@ export function getSupabaseServerClient() {
 
   return createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // A network stall must become a reportable server error instead of leaving
+    // an admin page request open forever.
+    global: { fetch: fetchWithTimeout },
   });
 }

@@ -6,7 +6,8 @@ import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
 
 type Section = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "messages";
-type Access = "checking" | "signed_out" | "denied" | "ready";
+type Access = "checking" | "signed_out" | "denied" | "unavailable" | "ready";
+const ADMIN_REQUEST_TIMEOUT_MS = 12_000;
 class RequestError extends Error {
   status: number;
   constructor(message: string, status: number) { super(message); this.status = status; }
@@ -76,10 +77,24 @@ export default function AdminWorkspace() {
   }
   async function request(resource: Section, init?: RequestInit) {
     const headers = await authHeaders();
-    const response = await fetch(`/api/admin/${resource}`, { ...init, headers: { ...headers, ...(init?.headers ?? {}) } });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new RequestError(result.error ?? "Something went wrong.", response.status);
-    return result;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), ADMIN_REQUEST_TIMEOUT_MS);
+    const abortFromCaller = () => controller.abort();
+    init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
+    try {
+      const response = await fetch(`/api/admin/${resource}`, { ...init, signal: controller.signal, headers: { ...headers, ...(init?.headers ?? {}) } });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new RequestError(result.error ?? "Something went wrong.", response.status);
+      return result;
+    } catch (error) {
+      if (controller.signal.aborted && !init?.signal?.aborted) {
+        throw new RequestError("The admin service took too long to respond. Please try again.", 504);
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+      init?.signal?.removeEventListener("abort", abortFromCaller);
+    }
   }
   async function load(resource = active) {
     setLoading(true); setNotice("");
@@ -93,8 +108,11 @@ export default function AdminWorkspace() {
       const message = error instanceof Error ? error.message : "Unable to load this area.";
       // Only the first identity check can decide that access itself is missing.
       // A rejected section (or a flaky request) must not blank the workspace.
-      if (resource === "overview" && (status === 401 || status === 403)) { setAccess(status === 401 ? "signed_out" : "denied"); setAccessMessage(message); }
-      else setNotice(message);
+      if (resource === "overview") {
+        if (status === 401 || status === 403) setAccess(status === 401 ? "signed_out" : "denied");
+        else setAccess("unavailable");
+        setAccessMessage(message);
+      } else setNotice(message);
     }
     finally { setLoading(false); }
   }
@@ -136,6 +154,7 @@ export default function AdminWorkspace() {
   if (access === "checking" && !identity) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Checking your access…</h1><p>Restoring your staff session.</p></main>;
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
+  if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We couldn’t verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
   return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><span>SST</span><b>Admin</b></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className="admin-notice" role="status"><IconCheck size={17}/>{notice}</p>}{loading ? <div className="admin-loading">Loading workspace…</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
