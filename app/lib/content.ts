@@ -48,6 +48,9 @@ export type ContentRecord = {
   caseSummary?: CaseSummary;
   learnerCount?: number;
   progress?: number;
+  accessLevel?: "public" | "members_only";
+  bodyHtml?: string;
+  media?: { id: string; kind: "image" | "document"; publicUrl: string; altText?: string; caption?: string }[];
 };
 
 /*
@@ -188,25 +191,30 @@ type ContentItemRow = {
   case_procedure: string | null;
   case_histopathology: string | null;
   case_outcome: string | null;
+  access_level: "public" | "members_only" | null;
+  body_html: string | null;
   contributors: OneOrMany<ContributorRow>;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
   content_chapters: ChapterRow[] | null;
+  content_media: { id: string; kind: "image" | "document"; public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
 };
 
 function firstOf<T>(value: OneOrMany<T>): T | undefined {
   return (Array.isArray(value) ? value[0] : value) ?? undefined;
 }
 
-async function getPublishedContent(): Promise<ContentRecord[] | null> {
+async function getPublishedContent(includeMembersOnly = false): Promise<ContentRecord[] | null> {
   if (!canUseContentDatabase()) return null;
 
   try {
     const client = getSupabaseServerClient();
-    const { data, error } = await client
+    let query = client
       .from("content_items")
-      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds)")
+      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
+    if (!includeMembersOnly) query = query.eq("access_level", "public");
+    const { data, error } = await query;
     if (error || !data || data.length === 0) return null;
 
     return (data as unknown as ContentItemRow[]).map((row) => {
@@ -225,6 +233,8 @@ async function getPublishedContent(): Promise<ContentRecord[] | null> {
           presentation: row.case_presentation ?? undefined, imaging: row.case_imaging ?? undefined, procedure: row.case_procedure ?? undefined,
           histopathology: row.case_histopathology ?? undefined, outcome: row.case_outcome ?? undefined,
         },
+        accessLevel: row.access_level ?? "public", bodyHtml: row.body_html ?? undefined,
+        media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
       } satisfies ContentRecord;
     });
   } catch {
@@ -269,4 +279,10 @@ export async function getLibraryContent() {
 export async function getContent(identifier: string) {
   const matches = (item: ContentRecord) => item.id === identifier || item.slug === identifier;
   return (await getLibraryContent()).find(matches) ?? getTopicCaseContent().find(matches);
+}
+
+/** Used only after the API has verified that the caller has a member session. */
+export async function getContentForMember(identifier: string) {
+  const matches = (item: ContentRecord) => item.id === identifier || item.slug === identifier;
+  return (await getPublishedContent(true))?.find(matches) ?? getTopicCaseContent().find(matches);
 }

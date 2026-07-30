@@ -6,14 +6,14 @@ import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import { IconArrowRight, IconCalendar, IconCheck, IconFile, IconGlobe, IconPin, IconUsers } from "../../../components/icons";
-import { eventDateRange, getEvent } from "../../../lib/events";
+import { eventDateRange, getPublicEvent } from "../../../lib/events";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await params;
   if (!isLocale(locale)) notFound();
-  const event = getEvent(slug); if (!event) notFound();
+  const event = await getPublicEvent(slug); if (!event) notFound();
   const active: Locale = locale; const dict = getDictionary(active);
   return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><main id="main-content">
     <section className="event-detail-hero">{event.image && <div className="event-detail-image"><img src={event.image} alt=""/></div>}<div className="event-detail-hero-inner"><nav className="event-breadcrumb" aria-label="Breadcrumb"><Link href={localePath(active, "events")}>Events</Link><span>/</span><b>{event.shortTitle}</b></nav><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? "Past event" : "Upcoming"}</span><span>{event.type}</span><span>{event.format.replace("-", " ")}</span></div><h1>{event.title}</h1><p>{event.summary}</p><div className="event-detail-facts"><span><IconCalendar size={19}/>{eventDateRange(event)}</span><span><IconPin size={19}/>{event.location}</span></div>{event.status === "upcoming" && <a className="btn btn-primary btn-lg" href={event.officialUrl} target="_blank" rel="noreferrer">Visit official event site <IconArrowRight size={18}/></a>}</div></section>

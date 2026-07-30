@@ -77,6 +77,24 @@ export function getEvent(slug: string) {
   return EVENTS.find((event) => event.slug === slug);
 }
 
+function canUseEventsDatabase() { return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY); }
+
+export async function getPublicEvents(): Promise<TeamEvent[]> {
+  if (!canUseEventsDatabase()) return EVENTS;
+  try {
+    const { data, error } = await getSupabaseServerClient().from("events").select("*").eq("status", "published").order("starts_at", { ascending: false });
+    if (error || !data?.length) return EVENTS;
+    const today = new Date().toISOString().slice(0, 10);
+    return data.map((event) => {
+      const startDate = event.starts_at ? String(event.starts_at).slice(0, 10) : today;
+      const endDate = event.ends_at ? String(event.ends_at).slice(0, 10) : startDate;
+      return { slug: event.slug, title: event.title, shortTitle: event.title, status: endDate < today ? "past" : "upcoming", type: event.event_type || "Event", topic: event.topic || "Clinical education", format: event.format === "hybrid" || event.format === "online" ? event.format : "in-person", startDate, endDate, location: event.location || "Location to be confirmed", summary: event.summary || "Event details will be published shortly.", image: event.image_url || undefined, officialUrl: event.official_url || event.registration_url || "#", registrationUrl: event.registration_url || undefined, programmeUrl: event.programme_url || undefined, highlights: [], selectedFaculty: [] } as TeamEvent;
+    });
+  } catch { return EVENTS; }
+}
+
+export async function getPublicEvent(slug: string) { return (await getPublicEvents()).find((event) => event.slug === slug); }
+
 export function eventDateRange(event: TeamEvent) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
@@ -88,3 +106,4 @@ export function eventDateRange(event: TeamEvent) {
     ? `${format(start, { day: "numeric" })}–${format(end, { day: "numeric", month: "long", year: "numeric" })}`
     : `${format(start, { day: "numeric", month: "short" })} – ${format(end, { day: "numeric", month: "short", year: "numeric" })}`;
 }
+import { getSupabaseServerClient } from "../../lib/supabase/server";

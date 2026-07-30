@@ -5,8 +5,9 @@ import ContentPlayer from "../../../components/ContentPlayer";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import SaveCaseButton from "../../../components/SaveCaseButton";
+import MemberContentGate from "../../../components/MemberContentGate";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
-import { CASE_SUMMARY_FIELDS, getContent, getLibraryContent, type CaseSummary } from "../../../lib/content";
+import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup } from "../../../lib/topics";
@@ -21,7 +22,11 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   if (!isLocale(locale)) notFound();
   const active: Locale = locale;
   const [dict, content, allContent] = [getDictionary(active), await getContent(id), await getLibraryContent()];
-  if (!content) notFound();
+  if (!content) {
+    const memberContent = await getContentForMember(id);
+    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} /></main><SiteFooter locale={active} dict={dict} /></>;
+    notFound();
+  }
   const related = allContent.filter((item) => item.id !== content.id && (item.topicSlug === content.topicSlug || item.kind === content.kind)).slice(0, 3);
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : "Operative video";
@@ -41,6 +46,8 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />
+          {content.bodyHtml ? <section className="member-rich-content" dangerouslySetInnerHTML={{ __html: content.bodyHtml }} /> : null}
+          {content.media?.filter((item) => item.kind === "image").map((item) => <figure className="member-content-image" key={item.id}><img src={item.publicUrl} alt={item.altText ?? ""}/>{item.caption ? <figcaption>{item.caption}</figcaption> : null}</figure>)}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">Clinical record</span><h2 id="case-summary-title">Case summary</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
