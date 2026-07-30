@@ -1,6 +1,5 @@
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import ContactForm from "../../components/ContactForm";
 import SocialLinks from "../../components/SocialLinks";
 import { IconClock, IconGlobe, IconMail, IconPin } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
@@ -26,21 +25,13 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="contact-shell">
           <header className="contact-intro">
             <span className="eyebrow">Contact Smart Surgical Team</span>
-            <h1>Start a useful conversation.</h1>
-            <p>Whether you have a clinical education question, an event enquiry, or an idea for collaboration, we would be glad to hear from you.</p>
+            <h1>Find our team.</h1>
+            <p>Visit Smart Health Tower or use the details below to connect with Smart Surgical Team.</p>
           </header>
           <div className="contact-layout">
-            <section className="contact-panel" aria-labelledby="contact-form-heading">
-              <div className="contact-panel-head">
-                <span className="auth-kicker">Send us a message</span>
-                <h2 id="contact-form-heading">How can we help?</h2>
-                <p>Share a few details and the right member of our team will follow up.</p>
-              </div>
-              <ContactForm />
-            </section>
             <aside className="contact-details" aria-labelledby="contact-details-heading">
               <span className="auth-kicker">Direct details</span>
-              <h2 id="contact-details-heading">Reach our team.</h2>
+              <h2 id="contact-details-heading">Our details.</h2>
               <p>For general enquiries, email is the quickest way to reach us. You are also welcome to visit us at Smart Health Tower.</p>
               <dl>
                 <div><dt><IconMail size={19} /> Email</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
