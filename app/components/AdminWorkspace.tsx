@@ -16,6 +16,18 @@ type RecordItem = Record<string, unknown>;
 type ContentItem = RecordItem & { id?: string; title?: string; status?: string; kind?: string; access_level?: string; topic_ids?: string[]; chapters?: { title: string; starts_at_seconds: number }[]; content_media?: Media[] };
 type Media = { storage_path: string; public_url: string; kind: "image" | "document"; alt_text?: string; caption?: string };
 
+function asRecord(value: unknown): RecordItem {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as RecordItem : {};
+}
+
+function asRecords(value: unknown): RecordItem[] {
+  return Array.isArray(value) ? value.filter((item): item is RecordItem => item !== null && typeof item === "object" && !Array.isArray(item)) : [];
+}
+
+function errorMessage(value: unknown, fallback: string) {
+  return typeof value === "string" && value ? value : fallback;
+}
+
 const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "overview", label: "Overview", icon: IconLayers }, { id: "content", label: "Content", icon: IconFile },
   { id: "topics", label: "Topics", icon: IconLayers }, { id: "events", label: "Events & webinars", icon: IconPlus },
@@ -75,7 +87,7 @@ export default function AdminWorkspace() {
   async function authHeaders() {
     return { "Content-Type": "application/json", Authorization: `Bearer ${(await accessToken()) ?? ""}` };
   }
-  async function request(resource: Section, init?: RequestInit) {
+  async function request(resource: Section, init?: RequestInit): Promise<RecordItem> {
     const headers = await authHeaders();
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), ADMIN_REQUEST_TIMEOUT_MS);
@@ -83,8 +95,8 @@ export default function AdminWorkspace() {
     init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
     try {
       const response = await fetch(`/api/admin/${resource}`, { ...init, signal: controller.signal, headers: { ...headers, ...(init?.headers ?? {}) } });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new RequestError(result.error ?? "Something went wrong.", response.status);
+      const result = asRecord(await response.json().catch(() => ({})));
+      if (!response.ok) throw new RequestError(errorMessage(result.error, "Something went wrong."), response.status);
       return result;
     } catch (error) {
       if (controller.signal.aborted && !init?.signal?.aborted) {
@@ -96,14 +108,31 @@ export default function AdminWorkspace() {
       init?.signal?.removeEventListener("abort", abortFromCaller);
     }
   }
+  // Switching sections quickly used to let a slow earlier response land last and
+  // overwrite the newer section's list — leaving, say, content rows on the
+  // Events screen, where Delete would then target the wrong table. Every load
+  // claims a token and only commits while it is still the newest one.
+  const loadToken = useRef(0);
   async function load(resource = active) {
+    const token = ++loadToken.current;
+    const current = () => loadToken.current === token;
     setLoading(true); setNotice("");
     try {
-      if (resource === "overview" && !(await accessToken())) { setAccess("signed_out"); setAccessMessage("Sign in with your staff account to open the workspace."); return; }
+      if (resource === "overview" && !(await accessToken())) { if (current()) { setAccess("signed_out"); setAccessMessage("Sign in with your staff account to open the workspace."); } return; }
       const result = await request(resource);
-      if (resource === "overview") { setIdentity(result.identity); setMetrics(result.metrics ?? {}); setAccess("ready"); }
-      else { setItems(result.data ?? []); if (resource === "content") { const topicResult = await request("topics"); const contributorResult = await request("contributors"); setTopics(topicResult.data ?? []); setContributors(contributorResult.data ?? []); } }
+      if (!current()) return;
+      if (resource === "overview") { setIdentity(asRecord(result.identity)); setMetrics(asRecord(result.metrics)); setAccess("ready"); }
+      else {
+        setItems(asRecords(result.data));
+        if (resource === "content") {
+          // Independent lookups: fetched together rather than back to back.
+          const [topicResult, contributorResult] = await Promise.all([request("topics"), request("contributors")]);
+          if (!current()) return;
+          setTopics(asRecords(topicResult.data)); setContributors(asRecords(contributorResult.data));
+        }
+      }
     } catch (error) {
+      if (!current()) return;
       const status = error instanceof RequestError ? error.status : 0;
       const message = error instanceof Error ? error.message : "Unable to load this area.";
       // Only the first identity check can decide that access itself is missing.
@@ -114,7 +143,7 @@ export default function AdminWorkspace() {
         setAccessMessage(message);
       } else setNotice(message);
     }
-    finally { setLoading(false); }
+    finally { if (current()) setLoading(false); }
   }
   // Reload only when the selected workspace section changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,7 +161,17 @@ export default function AdminWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtered = useMemo(() => items.filter((item) => JSON.stringify(item).toLowerCase().includes(search.toLowerCase())), [items, search]);
+  // The haystack is built once per list rather than re-serialising every record
+  // (including full article bodies) on each keystroke, and it searches the
+  // labelling fields instead of raw markup.
+  const searchable = useMemo(
+    () => items.map((item) => ({ item, haystack: ["title", "name", "display_name", "slug", "summary", "kind", "status", "level", "email", "full_name", "topic", "event_type", "location"].map((key) => typeof item[key] === "string" ? item[key] as string : "").join(" ").toLowerCase() })),
+    [items],
+  );
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return needle ? searchable.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.item) : items;
+  }, [searchable, items, search]);
   function startNew() {
     if (active === "content") setEditing(emptyContent());
     else if (active === "topics") setEditing({ name: "", slug: "", description: "", sort_order: 0 });
@@ -147,7 +186,7 @@ export default function AdminWorkspace() {
   }
   async function remove(item: RecordItem) {
     if (!window.confirm(`Delete “${String(item.title ?? item.name ?? item.display_name ?? "this item")}”? This cannot be undone.`)) return;
-    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
+    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = asRecord(await response.json()); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
@@ -171,10 +210,13 @@ function List({ section, items, search, setSearch, onEdit, onDelete }: { section
 function Editor({ section, value, topics, contributors, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; contributors: RecordItem[]; onCancel: () => void; onSave: (value: RecordItem) => void }) {
   const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [] }));
   const [uploading, setUploading] = useState(false);
+  // A rejected upload used to throw out of an event handler with no catch: the
+  // spinner stopped and the editor said nothing at all.
+  const [uploadError, setUploadError] = useState("");
   const set = (key: string, next: unknown) => setForm((current) => ({ ...current, [key]: next }));
-  async function upload(file: File) { setUploading(true); try { const token = await accessToken(); const body = new FormData(); body.append("file", file); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body }); const result = await response.json(); if (!response.ok) throw new Error(result.error); set("content_media", [...(form.content_media as Media[]), { storage_path: result.path, public_url: result.publicUrl, kind: result.kind, alt_text: "", caption: "" }]); } finally { setUploading(false); } }
+  async function upload(file: File) { setUploading(true); try { const token = await accessToken(); const body = new FormData(); body.append("file", file); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body }); const result = asRecord(await response.json()); if (!response.ok) throw new Error(errorMessage(result.error, "Could not upload this file.")); const path = typeof result.path === "string" ? result.path : ""; const publicUrl = typeof result.publicUrl === "string" ? result.publicUrl : ""; const kind = result.kind === "document" ? "document" : result.kind === "image" ? "image" : null; if (!path || !publicUrl || !kind) throw new Error("The upload service returned an incomplete file record."); setUploadError(""); setForm((current) => ({ ...current, content_media: [...(Array.isArray(current.content_media) ? current.content_media as Media[] : []), { storage_path: path, public_url: publicUrl, kind, alt_text: "", caption: "" }] })); } catch (error) { setUploadError(error instanceof Error ? error.message : "Could not upload this file."); } finally { setUploading(false); } }
   function submit(event: FormEvent) { event.preventDefault(); onSave({ ...form, media: form.content_media }); }
-  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="URL slug" hint="Leave this blank to generate it from the title." value={form.slug} onChange={(value) => set("slug", value)}/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Format" value={form.kind} onChange={(value) => set("kind", value)} options={[['case_article','Case article'],['video','Video lesson'],['webinar_recording','Recorded webinar'],['poster','E-poster']]}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/><TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><label className="admin-label">Contributors<select multiple value={(form.contributor_ids as string[]) ?? []} onChange={(event) => set("contributor_ids", Array.from(event.target.selectedOptions).map((option) => option.value))}>{contributors.map((person) => <option value={String(person.id)} key={String(person.id)}>{String(person.display_name)}</option>)}</select><small>Choose every credited contributor. The first selected is the lead author. Leave empty for “Smart Surgical Team”. Hold Ctrl/Cmd to select more than one.</small></label><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Field label="Reading time (minutes)" type="number" value={form.reading_minutes} onChange={(value) => set("reading_minutes", value)}/></div><Field label="Clinical level" value={form.level} onChange={(value) => set("level", value)}/><label className="admin-label">Article body<RichEditor value={String(form.body_html ?? "")} onChange={(value) => set("body_html", value)}/></label><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={upload} uploading={uploading}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div><EditorFoot onCancel={onCancel}/></form>;
+  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="URL slug" hint="Leave this blank to generate it from the title." value={form.slug} onChange={(value) => set("slug", value)}/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Format" value={form.kind} onChange={(value) => set("kind", value)} options={[['case_article','Case article'],['video','Video lesson'],['webinar_recording','Recorded webinar'],['poster','E-poster']]}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/><TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><label className="admin-label">Contributors<select multiple value={(form.contributor_ids as string[]) ?? []} onChange={(event) => set("contributor_ids", Array.from(event.target.selectedOptions).map((option) => option.value))}>{contributors.map((person) => <option value={String(person.id)} key={String(person.id)}>{String(person.display_name)}</option>)}</select><small>Choose every credited contributor. The first selected is the lead author. Leave empty for “Smart Surgical Team”. Hold Ctrl/Cmd to select more than one.</small></label><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Field label="Reading time (minutes)" type="number" value={form.reading_minutes} onChange={(value) => set("reading_minutes", value)}/></div><Field label="Clinical level" value={form.level} onChange={(value) => set("level", value)}/><label className="admin-label">Article body<RichEditor value={String(form.body_html ?? "")} onChange={(value) => set("body_html", value)}/></label><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={upload} uploading={uploading} error={uploadError}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div><EditorFoot onCancel={onCancel}/></form>;
   if (section === "topics") return <SimpleEditor title={form.id ? "Edit topic" : "New topic"} fields={[['name','Topic name'],['slug','URL slug'],['description','Description'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit} topics={topics}/>;
   if (section === "events") return <SimpleEditor title={form.id ? "Edit event" : "New event or webinar"} fields={[['title','Title'],['slug','URL slug'],['summary','Summary'],['event_type','Type'],['topic','Topic'],['format','Format'],['status','Status'],['starts_at','Starts at'],['ends_at','Ends at'],['location','Location'],['image_url','Image URL'],['official_url','Official URL'],['registration_url','Registration URL'],['programme_url','Programme URL'],['faculty_url','Faculty page URL'],['highlights','Programme highlights']]} form={{ ...form, highlights: Array.isArray(form.highlights) ? form.highlights.join("\n") : form.highlights }} set={set} onCancel={onCancel} onSave={submit}/>;
   if (section === "people") return <form className="admin-editor admin-simple-editor" onSubmit={submit}><EditorHead title={`Manage ${String(form.full_name ?? form.email)}`} onCancel={onCancel}/><div className="admin-simple-fields"><Field label="Email" value={form.email} onChange={() => {}}/><Select label="Platform role" value={form.role} onChange={(value) => set("role", value)} options={[['owner','Owner'],['content_manager','Content manager'],['editor','Editor'],['contributor','Contributor'],['member','Member']]}/><p className="admin-role-note">Only the Owner can change roles. The designated Owner account cannot be downgraded here.</p></div><EditorFoot onCancel={onCancel}/></form>;
@@ -201,7 +243,7 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
   </section>;
 }
 function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <Field key={key} label={label} type="textarea" value={form[key]} onChange={(value) => set(key, value)}/>)}</section>; }
-function MediaManager({ media, setMedia, upload, uploading }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Video is optional and entered in the main form.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "Uploading…" : "Upload file"}</label>{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}><span>{item.kind === "image" ? "Image" : "PDF"}</span><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
+function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Video is optional and entered in the main form.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "Uploading…" : "Upload file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}><span>{item.kind === "image" ? "Image" : "PDF"}</span><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
 function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}>×</button></div>) : <p>No chapters added.</p>}</section>; }
 function EditorHead({ title, onCancel }: { title: string; onCancel: () => void }) { return <div className="admin-editor-head"><div><span className="admin-kicker">Content editor</span><h2>{title}</h2></div><button type="button" className="admin-close" onClick={onCancel}>Close</button></div>; }
 function EditorFoot({ onCancel }: { onCancel: () => void }) { return <div className="admin-editor-foot"><button className="btn btn-primary" type="submit">Save changes <IconArrowRight size={17}/></button><button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button></div>; }

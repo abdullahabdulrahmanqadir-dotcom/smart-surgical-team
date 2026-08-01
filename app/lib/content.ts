@@ -97,7 +97,9 @@ function firstOf<T>(value: OneOrMany<T>): T | undefined {
   return (Array.isArray(value) ? value[0] : value) ?? undefined;
 }
 
-async function getPublishedContent(includeMembersOnly = false): Promise<ContentRecord[]> {
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getPublishedContent(includeMembersOnly = false, identifier?: string): Promise<ContentRecord[]> {
   if (!canUseContentDatabase()) return [];
 
   try {
@@ -108,6 +110,10 @@ async function getPublishedContent(includeMembersOnly = false): Promise<ContentR
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (!includeMembersOnly) query = query.eq("access_level", "public");
+    // Single-item lookups used to pull the whole catalogue and `.find()` in JS,
+    // which shipped every other members-only article to answer one request.
+    // `id` is a uuid column, so only compare it when the input actually is one.
+    if (identifier) query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
     const { data, error } = await query;
     if (error || !data) return [];
 
@@ -163,12 +169,10 @@ export async function getLibraryContent() {
 }
 
 export async function getContent(identifier: string) {
-  const matches = (item: ContentRecord) => item.id === identifier || item.slug === identifier;
-  return (await getLibraryContent()).find(matches);
+  return (await getPublishedContent(false, identifier))[0];
 }
 
 /** Used only after the API has verified that the caller has a member session. */
 export async function getContentForMember(identifier: string) {
-  const matches = (item: ContentRecord) => item.id === identifier || item.slug === identifier;
-  return (await getPublishedContent(true)).find(matches);
+  return (await getPublishedContent(true, identifier))[0];
 }

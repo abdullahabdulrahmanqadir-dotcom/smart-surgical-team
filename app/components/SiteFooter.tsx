@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
@@ -27,20 +28,20 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
     <footer className="site-footer" id="contact">
       <div className="footer-main">
         <div className="footer-brand">
-          <a className="brand" href={home} aria-label={dict.brand.name}>
+          <Link className="brand" href={home} aria-label={dict.brand.name}>
             <BrandMark size={54} />
             <span className="brand-name">{dict.brand.name}</span>
-          </a>
+          </Link>
           <p>{dict.footer.blurb}</p>
           <SocialLinks className="socials" />
         </div>
 
         <nav className="footer-col" aria-label={dict.footer.quickLinks}>
           <h3>{dict.footer.quickLinks}</h3>
-          <a href={localePath(locale, "contact")}>{dict.footer.contactUs}</a>
-          <a href={localePath(locale, "topics")}>{dict.nav.topics}</a>
-          <a href={localePath(locale, "events")}>{dict.nav.events}</a>
-          <a href={localePath(locale, "about")}>{dict.nav.about}</a>
+          <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
+          <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
+          <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
+          <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
         </nav>
 
         <div className="footer-col">
@@ -64,9 +65,9 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
         <nav className="footer-col" aria-label={dict.topics.title}>
           <h3>{dict.topics.title}</h3>
           {PUBLIC_TOPIC_GROUPS.map((group) => (
-            <a key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
+            <Link key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
               {group.name}
-            </a>
+            </Link>
           ))}
         </nav>
       </div>
@@ -76,8 +77,8 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           © {new Date().getFullYear()} {dict.brand.name}. {dict.footer.rights}
         </span>
         <span className="footer-legal">
-          <a href={home}>{dict.footer.privacy}</a>
-          <a href={home}>{dict.footer.terms}</a>
+          <Link href={home}>{dict.footer.privacy}</Link>
+          <Link href={home}>{dict.footer.terms}</Link>
         </span>
       </div>
     </footer>

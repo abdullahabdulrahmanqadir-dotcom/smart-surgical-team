@@ -7,6 +7,10 @@ import type { ContentRecord } from "../lib/content";
 import ContentPlayer from "./ContentPlayer";
 import { CASE_SUMMARY_FIELDS } from "../lib/content";
 
+function responseRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
 export default function MemberContentGate({ identifier, locale }: { identifier: string; locale: string }) {
   const [content, setContent] = useState<ContentRecord | null>(null);
   const [state, setState] = useState<"loading" | "signed_out" | "error" | "ready">("loading");
@@ -17,9 +21,10 @@ export default function MemberContentGate({ identifier, locale }: { identifier: 
         const { data } = await getSupabaseBrowserClient().auth.getSession();
         if (!data.session) { setState("signed_out"); return; }
         const response = await fetch(`/api/library/${identifier}`, { headers: { Authorization: `Bearer ${data.session.access_token}` } });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-        setContent(result.data);
+        const result = responseRecord(await response.json());
+        if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "Unable to load this item.");
+        if (!result.data || typeof result.data !== "object" || Array.isArray(result.data)) throw new Error("The library returned an invalid item.");
+        setContent(result.data as ContentRecord);
         setState("ready");
       } catch { setState("error"); }
     })();

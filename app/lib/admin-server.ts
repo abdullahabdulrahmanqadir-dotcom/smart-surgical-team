@@ -1,9 +1,47 @@
-import { createClient } from "@supabase/supabase-js";
 import sanitizeHtml from "sanitize-html";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
 
 export const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
+
+export type AdminResource = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "messages";
+
+// Membership in STAFF_ROLES alone used to grant every staff tier the power to
+// delete any record. The four tiers are now actually enforced: writing content
+// is broadly delegated, but reshaping the taxonomy and destroying records stay
+// with the senior roles.
+const WRITABLE: Record<StaffRole, AdminResource[]> = {
+  owner: ["content", "topics", "events", "contributors", "people"],
+  content_manager: ["content", "topics", "events", "contributors"],
+  editor: ["content", "events", "contributors"],
+  contributor: ["content"],
+};
+
+const DELETABLE: Record<StaffRole, AdminResource[]> = {
+  owner: ["content", "topics", "events", "contributors"],
+  content_manager: ["content", "topics", "events", "contributors"],
+  editor: ["content"],
+  contributor: [],
+};
+
+export function canWrite(role: StaffRole, resource: AdminResource) {
+  return WRITABLE[role].includes(resource);
+}
+
+export function canDelete(role: StaffRole, resource: AdminResource) {
+  return DELETABLE[role].includes(resource);
+}
+
+const ROLE_LABEL: Record<StaffRole, string> = {
+  owner: "Owner",
+  content_manager: "Content manager",
+  editor: "Editor",
+  contributor: "Contributor",
+};
+
+export function roleLabel(role: StaffRole) {
+  return ROLE_LABEL[role];
+}
 
 export function slugify(value: string) {
   return value
@@ -27,24 +65,13 @@ export function safeRichText(value: unknown) {
 type ProfileRow = { id: string; full_name: string | null; role: string };
 type ProfileRead = { data: ProfileRow | null; error: { message: string } | null };
 
-// If the server is configured with a publishable key instead of a secret one,
-// this read runs as an anonymous caller: row-level security then hides the row
-// and returns zero rows with no error, which is indistinguishable from a
-// missing profile. Retrying with the caller's own token satisfies the
-// "members read their profile" policy, so identity resolves under either key.
-async function readStaffProfile(client: ReturnType<typeof getSupabaseServerClient>, userId: string, token: string): Promise<ProfileRead> {
-  const select = "id, full_name, role";
-  const first = await client.from("profiles").select(select).eq("id", userId).maybeSingle();
-  if (first.error || first.data) return first as ProfileRead;
-
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !publicKey) return first as ProfileRead;
-  const asCaller = createClient(url, publicKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  return await asCaller.from("profiles").select(select).eq("id", userId).maybeSingle() as ProfileRead;
+// `getSupabaseServerClient` rejects publishable keys outright, so this read
+// always runs as service-role and row-level security never hides the row: an
+// empty result genuinely means the profile is missing. An earlier retry-as-the-
+// caller fallback lived here; it was unreachable, and its key fallback could
+// have sent the secret key as the `apikey` header on an untrusted request.
+async function readStaffProfile(client: ReturnType<typeof getSupabaseServerClient>, userId: string): Promise<ProfileRead> {
+  return await client.from("profiles").select("id, full_name, role").eq("id", userId).maybeSingle() as ProfileRead;
 }
 
 export type AdminIdentity = { id: string; email: string; name: string; role: StaffRole };
@@ -70,7 +97,7 @@ export async function resolveAdminIdentity(request: Request, ownerOnly = false):
   if (userError || !userData.user) return { identity: null, status: 401, message: "Your session is no longer valid. Sign in again to open the workspace." };
   const email = userData.user.email ?? "";
 
-  const { data: profile, error: profileError } = await readStaffProfile(client, userData.user.id, token);
+  const { data: profile, error: profileError } = await readStaffProfile(client, userData.user.id);
   if (profileError) return { identity: null, status: 500, message: `Could not read your staff profile: ${profileError.message}` };
   if (!profile) return { identity: null, status: 403, message: `No profile record exists for ${email}. Ask the Owner to add one.` };
   if (!STAFF_ROLES.includes(profile.role as StaffRole)) {

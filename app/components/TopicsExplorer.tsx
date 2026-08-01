@@ -12,7 +12,7 @@ import HeadNeckMap from "./HeadNeckMap";
 import { fill } from "../lib/dictionaries";
 import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
-type LibraryItem = ContentRecord & { subTopic: string; imageIcon?: string; date: string; hasVideo: boolean };
+type LibraryItem = ContentRecord & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
 
 function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
@@ -86,22 +86,26 @@ export default function TopicsExplorer({
     return items
       .filter((item) => item.topics.some(({ slug }) => slug === activeGroup.slug || activeGroup.subTopics.some((topic) => topic.slug === slug)))
       .map((item) => {
-        const matchingSubTopic = activeGroup.subTopics.find((topic) => item.topics.some(({ slug }) => slug === topic.slug));
+        // An item can carry several subtopics. Only the first was kept, so
+        // filtering by any of its other subtopics made the item disappear.
+        const matchingSubTopics = activeGroup.subTopics.filter((topic) => item.topics.some(({ slug }) => slug === topic.slug));
+        const matchingSubTopic = matchingSubTopics[0];
         const date = item.publishedAt ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : "Recently added";
         return {
           ...item,
           subTopic: matchingSubTopic?.name ?? activeGroup.name,
+          subTopicNames: matchingSubTopics.length ? matchingSubTopics.map((topic) => topic.name) : [activeGroup.name],
           imageIcon: matchingSubTopic?.imageIcon ?? activeGroup.imageIcon,
           date,
           hasVideo: item.kind === "video" || item.kind === "webinar_recording",
         };
       });
   }, [activeGroup, items]);
-  const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))], [libraryCases]);
+  const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))].sort((a, b) => b.localeCompare(a)), [libraryCases]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
     const searchTerm = searchQuery.trim().toLocaleLowerCase();
-    const matchesTopic = subTopic === "all" || item.subTopic === subTopic;
+    const matchesTopic = subTopic === "all" || item.subTopicNames.includes(subTopic);
     const matchesYear = year === "all" || item.publishedAt?.startsWith(year);
     const matchesFormat = format === "all" || (format === "video" ? item.hasVideo : !item.hasVideo);
     const matchesSearch = !searchTerm || [item.title, item.summary, item.subTopic, item.date]

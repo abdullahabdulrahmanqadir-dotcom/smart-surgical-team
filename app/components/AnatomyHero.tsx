@@ -49,14 +49,23 @@ export default function AnatomyHero() {
   const position = useRef({ ...route[0] });
   const target = useRef({ ...route[0] });
   const reducedMotionRef = useRef(false);
-  const [view, setView] = useState({ ...route[0], tissue: "thyroid" as Tissue });
+  const tissueRef = useRef<Tissue>("thyroid");
   const [touchInteractionEnabled, setTouchInteractionEnabled] = useState(false);
 
+  // The lens position only ever feeds CSS custom properties on the root node.
+  // It used to be React state written ~33 times a second, which re-rendered the
+  // whole hero subtree continuously for as long as the home page was open, even
+  // while scrolled out of view. Writing the properties directly costs no render,
+  // and the loop now parks itself when the hero is hidden or off-screen.
   useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
     reducedMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     let lastPaint = 0;
+    let onScreen = true;
     const start = performance.now();
+
     const animate = (now: number) => {
       if (!activeRef.current) target.current = idlePosition(now - start);
       const smoothing = reducedMotionRef.current ? 0.035 : 0.12;
@@ -64,14 +73,36 @@ export default function AnatomyHero() {
       position.current.y += (target.current.y - position.current.y) * smoothing;
       if (now - lastPaint > 30) {
         const { x, y } = position.current;
-        setView({ x, y, tissue: tissueAt(x, y) });
+        root.style.setProperty("--lens-x", `${x}%`);
+        root.style.setProperty("--lens-y", `${y}%`);
+        root.style.setProperty("--micro-x", `${16 + x * 0.68}%`);
+        root.style.setProperty("--micro-y", `${16 + y * 0.68}%`);
+        const tissue = tissueAt(x, y);
+        if (tissue !== tissueRef.current) {
+          tissueRef.current = tissue;
+          root.style.setProperty("--micro-image", `url(${tissueImages[tissue]})`);
+        }
         lastPaint = now;
       }
       frame = requestAnimationFrame(animate);
     };
-    frame = requestAnimationFrame(animate);
+
+    const stop = () => { if (frame) { cancelAnimationFrame(frame); frame = 0; } };
+    const sync = () => {
+      const shouldRun = onScreen && document.visibilityState === "visible";
+      if (shouldRun && !frame) frame = requestAnimationFrame(animate);
+      else if (!shouldRun) stop();
+    };
+
+    const observer = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; sync(); }, { threshold: 0 });
+    observer.observe(root);
+    document.addEventListener("visibilitychange", sync);
+    sync();
+
     return () => {
-      cancelAnimationFrame(frame);
+      stop();
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", sync);
       if (resumeTimer.current) clearTimeout(resumeTimer.current);
     };
   }, []);
@@ -128,7 +159,7 @@ export default function AnatomyHero() {
       }}
       onPointerCancel={resume}
       onKeyDown={handleKeyDown}
-      style={{ "--lens-x": `${view.x}%`, "--lens-y": `${view.y}%`, "--micro-x": `${16 + view.x * 0.68}%`, "--micro-y": `${16 + view.y * 0.68}%`, "--micro-image": `url(${tissueImages[view.tissue]})` } as React.CSSProperties}
+      style={{ "--lens-x": `${route[0].x}%`, "--lens-y": `${route[0].y}%`, "--micro-x": `${16 + route[0].x * 0.68}%`, "--micro-y": `${16 + route[0].y * 0.68}%`, "--micro-image": `url(${tissueImages.thyroid})` } as React.CSSProperties}
     >
       <span className="anatomy-hero-base" aria-hidden="true" />
       <span className="anatomy-hero-lens" aria-hidden="true" />

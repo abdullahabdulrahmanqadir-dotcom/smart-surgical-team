@@ -44,8 +44,11 @@ next-env.d.ts
 # local deployment archives and scratch
 archive/
 .openai/*.tgz
+.openai/package-stage-*/
 site-package*.tgz
 
 # local tooling output
 tsconfig.tsbuildinfo
 .playwright-mcp/
+local-host.log
+local-host.error.log

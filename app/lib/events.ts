@@ -95,6 +95,21 @@ export async function getPublicEvents(): Promise<TeamEvent[]> {
 
 export async function getPublicEvent(slug: string) { return (await getPublicEvents()).find((event) => event.slug === slug); }
 
+/**
+ * Day range and month for the featured-event stamp. The card used to print a
+ * hardcoded "27–28 AUG", which stayed on screen once a different event became
+ * featured.
+ */
+export function eventDateStamp(event: TeamEvent) {
+  const start = new Date(`${event.startDate}T12:00:00`);
+  const end = new Date(`${event.endDate}T12:00:00`);
+  const day = (date: Date) => new Intl.DateTimeFormat("en", { day: "numeric" }).format(date);
+  return {
+    days: event.startDate === event.endDate ? day(start) : `${day(start)}–${day(end)}`,
+    month: new Intl.DateTimeFormat("en", { month: "short" }).format(start).toUpperCase(),
+  };
+}
+
 export function eventDateRange(event: TeamEvent) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);

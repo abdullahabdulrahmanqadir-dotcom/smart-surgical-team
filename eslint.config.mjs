@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    ".openai/package-stage-*/**",
     "next-env.d.ts",
   ]),
 ]);
