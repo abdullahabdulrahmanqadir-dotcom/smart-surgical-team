@@ -106,7 +106,13 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
     const client = getSupabaseServerClient();
     let query = client
       .from("content_items")
-      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
+      // `contributors` must be disambiguated: migration 0006 added the
+      // content_contributors join table, so content_items now has two paths to
+      // contributors (the lead-author FK and the many-to-many join). Since
+      // then PostgREST rejects the bare embed as ambiguous, this query has
+      // been failing outright and getPublishedContent's catch was turning
+      // every failure into an empty list — no content showed anywhere.
+      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (!includeMembersOnly) query = query.eq("access_level", "public");
@@ -115,6 +121,9 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
     // `id` is a uuid column, so only compare it when the input actually is one.
     if (identifier) query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
     const { data, error } = await query;
+    // A query error used to be indistinguishable from "no content published
+    // yet" — the exact PostgREST ambiguous-embed failure this file just had.
+    if (error) console.error("getPublishedContent query failed:", error.message);
     if (error || !data) return [];
 
     return (data as unknown as ContentItemRow[]).map((row) => {
