@@ -1,5 +1,5 @@
+import { env } from "cloudflare:workers";
 import { apiError, getAdminIdentity, slugify } from "../../../lib/admin-server";
-import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
@@ -11,10 +11,13 @@ export async function POST(request: Request) {
   if (!(file instanceof File)) return apiError("Choose a file to upload.");
   if (!ACCEPTED_TYPES.includes(file.type) || file.size > 25 * 1024 * 1024) return apiError("Use a JPG, PNG, WebP, or PDF smaller than 25 MB.");
   const extension = file.name.split(".").pop()?.toLowerCase() || "file";
-  const path = `${identity.id}/${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, "")) || "upload"}.${extension}`;
-  const client = getSupabaseServerClient();
-  const { error } = await client.storage.from("sst-content").upload(path, new Uint8Array(await file.arrayBuffer()), { contentType: file.type, upsert: false });
-  if (error) return apiError(error.message, 500);
-  const { data } = client.storage.from("sst-content").getPublicUrl(path);
-  return Response.json({ path, publicUrl: data.publicUrl, kind: file.type === "application/pdf" ? "document" : "image" });
+  // Folder-like key prefix so the R2 dashboard browses like topic/case/files,
+  // even though R2 has no real directories. Re-slugify client-supplied values
+  // here rather than trusting them, since they land directly in a storage key.
+  const topicSlug = slugify(String(form.get("topicSlug") ?? "")) || "unfiled";
+  const caseSlug = slugify(String(form.get("caseSlug") ?? "")) || "untitled";
+  const filename = `${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, "")) || "upload"}.${extension}`;
+  const path = `topics/${topicSlug}/${caseSlug}/${filename}`;
+  await env.MEDIA_BUCKET.put(path, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  return Response.json({ path, publicUrl: `/api/media/${path}`, kind: file.type === "application/pdf" ? "document" : "image" });
 }
