@@ -50,11 +50,6 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     intro: "Management of skin and soft tissue lesions of the head and neck, from excision and margin planning through to reconstruction.",
     icon: "skin", featured: true, subTopics: [{ slug: "skin-lesions", name: "Skin Lesions" }],
   },
-  {
-    slug: "upper-aerodigestive", name: "Upper Aerodigestive Tract", blurb: "Oral cavity and laryngeal anatomy, access and technique.",
-    intro: "Anatomy, access and operative technique across the oral cavity and larynx, with an emphasis on function-preserving approaches.",
-    icon: "larynx", featured: false, visible: false, subTopics: [{ slug: "oral-cavity", name: "Oral Cavity" }, { slug: "larynx", name: "Larynx" }],
-  },
 ];
 
 export function getTopicGroup(slug: string): TopicGroup | undefined {

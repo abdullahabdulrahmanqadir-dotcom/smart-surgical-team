@@ -3064,3 +3064,5 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 /* Saved learning is intentionally a plain page section: only its content cards
    are surfaced, with no enclosing background, border, radius, or shadow. */
 .profile-saved-section { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+.admin-content-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px;padding:14px;border:1px solid #d6e1de;border-radius:11px;background:#f7faf9}.admin-content-filters label{display:grid;gap:5px;color:#4f6b69;font-size:11px;font-weight:700;text-transform:uppercase}.admin-content-filters select,.admin-content-filters input{min-height:38px;padding:0 9px;border:1px solid #cbdad7;border-radius:7px;background:#fff;color:#173c3b;font:inherit;font-size:13px}.admin-content-filters button{min-height:38px;align-self:end;border:0;border-radius:7px;background:#e4efec;color:#14615b;font:inherit;font-weight:700;cursor:pointer}@media(max-width:900px){.admin-content-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.admin-content-filters{grid-template-columns:1fr}}

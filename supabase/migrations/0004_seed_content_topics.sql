@@ -6,8 +6,7 @@ values
   ('Thyroid & Parathyroid', 'thyroid-parathyroid', 'Thyroid and parathyroid surgery.', 10),
   ('Salivary Glands', 'salivary-glands', 'Parotid and submandibular gland surgery.', 20),
   ('Neck & Lymphatic Surgery', 'neck-lymphatic', 'Neck dissection, staging and nodal disease.', 30),
-  ('Skin & Soft Tissue', 'skin-soft-tissue', 'Head and neck skin and soft-tissue surgery.', 40),
-  ('Upper Aerodigestive Tract', 'upper-aerodigestive', 'Oral cavity and laryngeal surgery.', 50)
+  ('Skin & Soft Tissue', 'skin-soft-tissue', 'Head and neck skin and soft-tissue surgery.', 40)
 on conflict (slug) do update set
   name = excluded.name,
   description = excluded.description,
@@ -27,9 +26,7 @@ from (
     ('Submandibular', 'submandibular', 'salivary-glands', 22),
     ('Lymph Nodes', 'lymph-nodes', 'neck-lymphatic', 31),
     ('Neck Masses', 'neck-masses', 'neck-lymphatic', 32),
-    ('Skin Lesions', 'skin-lesions', 'skin-soft-tissue', 41),
-    ('Oral Cavity', 'oral-cavity', 'upper-aerodigestive', 51),
-    ('Larynx', 'larynx', 'upper-aerodigestive', 52)
+    ('Skin Lesions', 'skin-lesions', 'skin-soft-tissue', 41)
 ) as child(name, slug, parent_slug, sort_order)
 join public.topics as parent on parent.slug = child.parent_slug
 on conflict (slug) do update set

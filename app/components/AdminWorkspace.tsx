@@ -15,6 +15,8 @@ class RequestError extends Error {
 type RecordItem = Record<string, unknown>;
 type ContentItem = RecordItem & { id?: string; title?: string; status?: string; kind?: string; access_level?: string; topic_ids?: string[]; chapters?: { title: string; starts_at_seconds: number }[]; content_media?: Media[] };
 type Media = { storage_path: string; public_url: string; kind: "image" | "document"; alt_text?: string; caption?: string };
+type ContentFilters = { major: string; subtopic: string; status: string; access: string; from: string; to: string; sort: "published_desc" | "published_asc" | "updated_desc" };
+const EMPTY_CONTENT_FILTERS: ContentFilters = { major: "", subtopic: "", status: "", access: "", from: "", to: "", sort: "published_desc" };
 
 function asRecord(value: unknown): RecordItem {
   return value && typeof value === "object" && !Array.isArray(value) ? value as RecordItem : {};
@@ -81,7 +83,7 @@ function clinicalLevelOptions(current: unknown) {
 
 // Everything the editor is allowed to produce, mapped to the one tag the
 // server-side sanitiser keeps. Browsers emit `<b>`, `<i>` and `<div>` for the
-// same intentions, and those used to be stripped on save — which is why bold
+// same intentions, and those used to be stripped on save ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â which is why bold
 // text looked right in the editor and plain on the public page.
 const RICH_TAGS: Record<string, string> = {
   P: "p", DIV: "p", BR: "br", STRONG: "strong", B: "strong", EM: "em", I: "em", U: "u",
@@ -128,7 +130,7 @@ function convertRichNode(node: Node, into: HTMLElement) {
     }
   }
   // Pasted markup carries its styling in `style`; keep the meaning, drop the
-  // CSS. This goes inside the block it decorates — an `<em>` wrapped around a
+  // CSS. This goes inside the block it decorates ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â an `<em>` wrapped around a
   // `<li>` would sit illegally between the list and its items.
   for (const wrapper of inlineWrappers(source)) { const wrap = document.createElement(wrapper); target.appendChild(wrap); target = wrap; }
   source.childNodes.forEach((child) => convertRichNode(child, target));
@@ -140,7 +142,7 @@ function normalizeRichText(html: string) {
   source.innerHTML = html;
   const output = document.createElement("div");
   source.childNodes.forEach((child) => convertRichNode(child, output));
-  // Unwrapping a browser's invalid `<p><ul>…</ul></p>` leaves empty paragraphs
+  // Unwrapping a browser's invalid `<p><ul>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</ul></p>` leaves empty paragraphs
   // behind, and those render as blank gaps in the article.
   output.querySelectorAll("p, h2, h3, blockquote").forEach((block) => {
     if (!block.textContent?.trim() && !block.querySelector("br, img, a")) block.remove();
@@ -156,10 +158,10 @@ function blockName() {
   try { return String(document.queryCommandValue("formatBlock") || "p").toLowerCase(); } catch { return "p"; }
 }
 
-function RichEditor({ value, onChange, placeholder = "Write the article introduction and supporting detail…" }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+function RichEditor({ value, onChange, placeholder = "Write the article introduction and supporting detailÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
   const element = useRef<HTMLDivElement>(null);
-  // What this editor last handed upwards. The contenteditable node — not React
-  // state — owns the text while the caret is inside it; rewriting innerHTML on
+  // What this editor last handed upwards. The contenteditable node ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â not React
+  // state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â owns the text while the caret is inside it; rewriting innerHTML on
   // every keystroke is what threw the caret to the start after each Enter.
   //
   // It starts as null, never as the incoming value: seeding it with the value
@@ -175,7 +177,7 @@ function RichEditor({ value, onChange, placeholder = "Write the article introduc
   }, [value]);
 
   // Without these, Chrome wraps formatting in `<span style>` and separates
-  // paragraphs with bare `<div>`s — both of which the sanitiser discards.
+  // paragraphs with bare `<div>`s ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â both of which the sanitiser discards.
   useEffect(() => {
     try { document.execCommand("styleWithCSS", false, "false"); document.execCommand("defaultParagraphSeparator", false, "p"); } catch { /* older engines ignore both */ }
   }, []);
@@ -218,7 +220,7 @@ function RichEditor({ value, onChange, placeholder = "Write the article introduc
 
   function run(command: string, argument?: string) {
     focusEditor();
-    try { document.execCommand(command, false, argument); } catch { /* unsupported command — nothing to apply */ }
+    try { document.execCommand(command, false, argument); } catch { /* unsupported command ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â nothing to apply */ }
     emit();
     readMarks();
   }
@@ -232,7 +234,7 @@ function RichEditor({ value, onChange, placeholder = "Write the article introduc
     focusEditor();
     const current = window.getSelection();
     if (!current || current.isCollapsed) { window.alert("Select the words you want to link first."); return; }
-    const href = window.prompt("Link address (https://…)", "https://");
+    const href = window.prompt("Link address (https://ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦)", "https://");
     if (!href) return;
     if (!/^(https?:\/\/|mailto:)/i.test(href)) { window.alert("Use a full https:// or mailto: address."); return; }
     run("createLink", href);
@@ -250,9 +252,9 @@ function RichEditor({ value, onChange, placeholder = "Write the article introduc
       <span className="admin-rich-divider" aria-hidden="true"/>
       {button("h2", "H2", "Section heading", marks.block === "h2", () => toggleBlock("h2"))}
       {button("h3", "H3", "Sub heading", marks.block === "h3", () => toggleBlock("h3"))}
-      {button("quote", "❝", "Quote", marks.block === "blockquote", () => toggleBlock("blockquote"))}
+      {button("quote", "ÃƒÂ¢Ã‚ÂÃ‚Â", "Quote", marks.block === "blockquote", () => toggleBlock("blockquote"))}
       <span className="admin-rich-divider" aria-hidden="true"/>
-      {button("bullets", "• List", "Bulleted list", marks.bullets, () => run("insertUnorderedList"))}
+      {button("bullets", "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ List", "Bulleted list", marks.bullets, () => run("insertUnorderedList"))}
       {button("numbers", "1. List", "Numbered list", marks.numbers, () => run("insertOrderedList"))}
       <span className="admin-rich-divider" aria-hidden="true"/>
       <label className="admin-font-size"><span className="visually-hidden">Text size</span><select defaultValue="" onMouseDown={(event) => event.stopPropagation()} onChange={(event) => { const size = event.target.value; event.target.value = ""; if (size) run("fontSize", size); }}><option value="">Size</option>{RICH_SIZES.map(([size, label]) => <option key={size} value={size}>{label}</option>)}</select></label>
@@ -281,6 +283,7 @@ export default function AdminWorkspace() {
   const [notice, setNotice] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [contentFilters, setContentFilters] = useState<ContentFilters>(EMPTY_CONTENT_FILTERS);
 
   const [access, setAccess] = useState<Access>("checking");
   const [accessMessage, setAccessMessage] = useState("");
@@ -310,7 +313,7 @@ export default function AdminWorkspace() {
     }
   }
   // Switching sections quickly used to let a slow earlier response land last and
-  // overwrite the newer section's list — leaving, say, content rows on the
+  // overwrite the newer section's list ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â leaving, say, content rows on the
   // Events screen, where Delete would then target the wrong table. Every load
   // claims a token and only commits while it is still the newest one.
   const loadToken = useRef(0);
@@ -371,8 +374,19 @@ export default function AdminWorkspace() {
   );
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return needle ? searchable.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.item) : items;
-  }, [searchable, items, search]);
+    const searched = needle ? searchable.filter((entry) => entry.haystack.includes(needle)).map((entry) => entry.item) : items;
+    if (active !== "content") return searched;
+    const childIds = new Set(topics.filter((topic) => String(topic.parent_id ?? "") === contentFilters.major).map((topic) => String(topic.id)));
+    const dateOf = (value: unknown) => typeof value === "string" ? value.slice(0, 10) : "";
+    return searched.filter((item) => {
+      const ids = Array.isArray(item.content_topics) ? item.content_topics.flatMap((entry) => typeof entry === "object" && entry ? [String((entry as RecordItem).topic_id)] : []) : [];
+      const date = dateOf(item.published_at);
+      return (!contentFilters.major || ids.includes(contentFilters.major) || ids.some((id) => childIds.has(id))) && (!contentFilters.subtopic || ids.includes(contentFilters.subtopic)) && (!contentFilters.status || item.status === contentFilters.status) && (!contentFilters.access || item.access_level === contentFilters.access) && (!contentFilters.from || date >= contentFilters.from) && (!contentFilters.to || date <= contentFilters.to);
+    }).sort((a, b) => {
+      const field = contentFilters.sort === "updated_desc" ? "updated_at" : "published_at";
+      return (contentFilters.sort === "published_asc" ? 1 : -1) * String(a[field] ?? "").localeCompare(String(b[field] ?? ""));
+    });
+  }, [active, contentFilters, items, search, searchable, topics]);
   function startNew() {
     if (active === "content") setEditing(emptyContent());
     else if (active === "topics") setEditing({ name: "", slug: "", description: "", sort_order: 0 });
@@ -386,28 +400,30 @@ export default function AdminWorkspace() {
     } catch (error) { setNotice(error instanceof Error ? error.message : "Could not save this item."); }
   }
   async function remove(item: RecordItem) {
-    if (!window.confirm(`Delete “${String(item.title ?? item.name ?? item.display_name ?? "this item")}”? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ${String(item.title ?? item.name ?? item.display_name ?? "this item")}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â? This cannot be undone.`)) return;
     try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = asRecord(await response.json()); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
-  if (access === "checking" && !identity) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Checking your access…</h1><p>Restoring your staff session.</p></main>;
+  if (access === "checking" && !identity) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Checking your accessÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</h1><p>Restoring your staff session.</p></main>;
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
-  if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We couldn’t verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className="admin-notice" role="status"><IconCheck size={17}/>{notice}</p>}{loading ? <div className="admin-loading">Loading workspace…</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We couldnÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className="admin-notice" role="status"><IconCheck size={17}/>{notice}</p>}{loading ? <div className="admin-loading">Loading workspaceÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} filters={contentFilters} setFilters={setContentFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
 function Overview({ metrics, setActive }: { metrics: RecordItem; setActive: (section: Section) => void }) {
   const cards: { key: string; label: string; section: Section }[] = [{ key: "published", label: "Published items", section: "content" }, { key: "drafts", label: "Drafts & unpublishing", section: "content" }, { key: "events", label: "Published events", section: "events" }, { key: "contributors", label: "Contributors", section: "contributors" }, { key: "members", label: "Members", section: "people" }, { key: "messages", label: "Inbox messages", section: "messages" }];
-  return <div className="admin-overview"><section className="admin-welcome"><div><span className="admin-kicker">Control room</span><h2>Keep the platform current, carefully.</h2><p>Publish case articles, update the team, and keep events and learning material accurate from one place.</p></div><button className="btn btn-primary" type="button" onClick={() => setActive("content")}>Create a case article <IconArrowRight size={17}/></button></section><div className="admin-metric-grid">{cards.map((card) => <button type="button" onClick={() => setActive(card.section)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div><section className="admin-safety"><h2>Clinical publishing reminder</h2><p>Only publish material that has been de-identified, consented, and approved by the team. Articles are public unless you select “Site users only” in the content editor.</p></section></div>;
+  return <div className="admin-overview"><section className="admin-welcome"><div><span className="admin-kicker">Control room</span><h2>Keep the platform current, carefully.</h2><p>Publish case articles, update the team, and keep events and learning material accurate from one place.</p></div><button className="btn btn-primary" type="button" onClick={() => setActive("content")}>Create a case article <IconArrowRight size={17}/></button></section><div className="admin-metric-grid">{cards.map((card) => <button type="button" onClick={() => setActive(card.section)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div><section className="admin-safety"><h2>Clinical publishing reminder</h2><p>Only publish material that has been de-identified, consented, and approved by the team. Articles are public unless you select ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œSite users onlyÃƒÂ¢Ã¢â€šÂ¬Ã‚Â in the content editor.</p></section></div>;
 }
 
-function List({ section, items, search, setSearch, onEdit, onDelete }: { section: Section; items: RecordItem[]; search: string; setSearch: (value: string) => void; onEdit: (item: RecordItem) => void; onDelete: (item: RecordItem) => void }) {
+function List({ section, items, search, setSearch, topics, filters, setFilters, onEdit, onDelete }: { section: Section; items: RecordItem[]; search: string; setSearch: (value: string) => void; topics: RecordItem[]; filters: ContentFilters; setFilters: (filters: ContentFilters) => void; onEdit: (item: RecordItem) => void; onDelete: (item: RecordItem) => void }) {
   const isMessages = section === "messages";
-  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section.replace("people", "people and roles")}…`}/></label><span>{items.length} item{items.length === 1 ? "" : "s"}</span></div>{items.length ? <div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? item.role ?? "default")}`}>{String(item.status ?? item.role ?? (item.published === false ? "hidden" : "active")).replace(/_/g, " ")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{String(item.summary ?? item.description ?? item.message ?? item.credentials ?? item.role_title ?? item.email ?? "No additional detail.")}</p></div><div className="admin-item-meta">{section === "content" && <><span>{String(item.kind ?? "article").replace(/_/g, " ")}</span><span>{String(item.access_level === "members_only" ? "Site users only" : "Public")}</span></>}{section === "events" && <span>{item.starts_at ? new Date(String(item.starts_at)).toLocaleDateString() : "Date to be confirmed"}</span>}{section === "people" && <span>{String(item.email ?? "")}</span>}{!isMessages && <div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className="admin-delete" type="button" onClick={() => onDelete(item)}>Delete</button>}</div>}</div></article>)}</div> : <div className="admin-empty"><IconFile size={23}/><h2>Nothing here yet</h2><p>Create the first item when you are ready.</p></div>}</div>;
+  const majors = topics.filter((topic) => !topic.parent_id);
+  const subtopics = topics.filter((topic) => String(topic.parent_id ?? "") === filters.major);
+  const change = (key: keyof ContentFilters, value: string) => setFilters({ ...filters, [key]: value, ...(key === "major" ? { subtopic: "" } : {}) });
+  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}…`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{String(item.summary ?? item.description ?? item.message ?? "No additional detail.")}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{!isMessages && <div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className="admin-delete" type="button" onClick={() => onDelete(item)}>Delete</button>}</div>}</div></article>)}</div></div>;
 }
-
 function Editor({ section, value, topics, contributors, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; contributors: RecordItem[]; onCancel: () => void; onSave: (value: RecordItem) => void }) {
   const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [] }));
   const [uploading, setUploading] = useState(false);
@@ -437,8 +453,8 @@ function ContributorPicker({ contributors, value, onChange }: { contributors: Re
     <span className="admin-label-text">Contributors</span>
     {contributors.length
       ? <div className="admin-subtopic-grid">{contributors.map((person) => <label className="admin-checkbox" key={String(person.id)}><input type="checkbox" checked={selected.includes(String(person.id))} onChange={(event) => toggle(String(person.id), event.target.checked)}/>{String(person.display_name)}</label>)}</div>
-      : <small>No contributors have been added yet. Create them under “Contributors”.</small>}
-    <p className="admin-picker-summary">{selected.length ? <>Credited: {selected.map(nameOf).filter(Boolean).join(", ")}. <b>{nameOf(selected[0])}</b> is the lead author.</> : "Nobody selected — this will be credited to Smart Surgical Team."}</p>
+      : <small>No contributors have been added yet. Create them under ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œContributorsÃƒÂ¢Ã¢â€šÂ¬Ã‚Â.</small>}
+    <p className="admin-picker-summary">{selected.length ? <>Credited: {selected.map(nameOf).filter(Boolean).join(", ")}. <b>{nameOf(selected[0])}</b> is the lead author.</> : "Nobody selected ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â this will be credited to Smart Surgical Team."}</p>
   </section>;
 }
 
@@ -451,7 +467,7 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
   const selectedSubIds = value.filter((id) => subTopics.some((topic) => String(topic.id) === id));
 
   // The picker shows a major topic from the moment it opens, so an item saved
-  // without touching it must actually be filed there — otherwise it belongs to
+  // without touching it must actually be filed there ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â otherwise it belongs to
   // no topic and never appears in any public list.
   useEffect(() => { if (!value.length && majorId) onChange([majorId]); }, [majorId, value.length, onChange]);
 
@@ -466,10 +482,10 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
     {subTopics.length > 0 && <div className="admin-subtopic-list"><span className="admin-label-text">Subtopics in this major topic</span><div className="admin-subtopic-grid">{subTopics.map((topic) => <label className="admin-checkbox" key={String(topic.id)}><input type="checkbox" checked={selectedSubIds.includes(String(topic.id))} onChange={(event) => toggleSub(String(topic.id), event.target.checked)}/>{String(topic.name)}</label>)}</div><small>Choose every subtopic that applies. Leave all unchecked to file this under the major topic only.</small></div>}
   </section>;
 }
-function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <div className="admin-label" key={key}><span className="admin-label-text">{label}</span><RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}…`}/></div>)}</section>; }
-function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Maximum file size: 10 MB.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "Uploading…" : "Upload file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
-function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this item’s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => <label key={item.storage_path}><input type="radio" name="thumbnail-image" checked={selectedPath === item.storage_path} onChange={() => onSelect(item.storage_path)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>)}</div> : <p className="admin-upload-error">Upload an image first, then select it here.</p>)}</section>; }
-function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}>×</button></div>) : <p>No chapters added.</p>}</section>; }
+function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <div className="admin-label" key={key}><span className="admin-label-text">{label}</span><RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦`}/></div>)}</section>; }
+function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Maximum file size: 10 MB.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "UploadingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : "Upload file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
+function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itemÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => <label key={item.storage_path}><input type="radio" name="thumbnail-image" checked={selectedPath === item.storage_path} onChange={() => onSelect(item.storage_path)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>)}</div> : <p className="admin-upload-error">Upload an image first, then select it here.</p>)}</section>; }
+function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}>ÃƒÆ’Ã¢â‚¬â€</button></div>) : <p>No chapters added.</p>}</section>; }
 // Saving lives in the header, and the header sticks: long case records used to
 // hide the only save button several screens below the fold.
 function EditorHead({ title, onCancel }: { title: string; onCancel: () => void }) { return <div className="admin-editor-head"><div><span className="admin-kicker">Content editor</span><h2>{title}</h2></div><div className="admin-editor-actions"><button className="btn btn-primary" type="submit">Save changes <IconArrowRight size={17}/></button><button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button></div></div>; }

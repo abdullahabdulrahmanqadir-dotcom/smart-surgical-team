@@ -37,7 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   if (resource === "content") {
     const { data, error } = await client.from("content_items")
-      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
       .order("updated_at", { ascending: false });
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
