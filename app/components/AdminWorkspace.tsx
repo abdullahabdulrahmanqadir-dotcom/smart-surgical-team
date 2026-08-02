@@ -161,7 +161,11 @@ function RichEditor({ value, onChange, placeholder = "Write the article introduc
   // What this editor last handed upwards. The contenteditable node — not React
   // state — owns the text while the caret is inside it; rewriting innerHTML on
   // every keystroke is what threw the caret to the start after each Enter.
-  const emitted = useRef(value);
+  //
+  // It starts as null, never as the incoming value: seeding it with the value
+  // made the first sync below decide the DOM was already up to date, so an
+  // existing article opened blank and saving wrote that blank back.
+  const emitted = useRef<string | null>(null);
   const [marks, setMarks] = useState({ bold: false, italic: false, underline: false, bullets: false, numbers: false, block: "p" });
 
   useEffect(() => {
