@@ -37,7 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   if (resource === "content") {
     const { data, error } = await client.from("content_items")
-      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,contributor_id,body_html,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
       .order("updated_at", { ascending: false });
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
@@ -112,7 +112,7 @@ export async function POST(request: Request, context: RouteContext) {
       poster_url: optionalText(body.poster_url), thumbnail_source: text(body.thumbnail_source) === "image" ? "image" : "youtube",
       thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
-      level: optionalText(body.level), body_html: safeRichText(body.body_html), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
+      level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
       case_presentation: safeRichText(body.case_presentation) || null, case_imaging: safeRichText(body.case_imaging) || null, case_procedure: safeRichText(body.case_procedure) || null,
       case_histopathology: safeRichText(body.case_histopathology) || null, case_outcome: safeRichText(body.case_outcome) || null,
       scheduled_for: status === "scheduled" ? date(body.scheduled_for) : null, published_at: publishedAt, updated_by: identity.id,

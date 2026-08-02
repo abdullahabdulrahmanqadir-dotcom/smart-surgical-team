@@ -53,7 +53,6 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />
-          {content.bodyHtml ? <section className="member-rich-content" dangerouslySetInnerHTML={{ __html: content.bodyHtml }} /> : null}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">Resources</span><h2 id="content-downloads-title">Downloads</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || "Download document"}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">Overview</span><h2 id="case-summary-title">Case details</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>

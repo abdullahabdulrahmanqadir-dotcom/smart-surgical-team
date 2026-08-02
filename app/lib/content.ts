@@ -51,7 +51,6 @@ export type ContentRecord = {
   learnerCount?: number;
   progress?: number;
   accessLevel?: "public" | "members_only";
-  bodyHtml?: string;
   media?: { id: string; storagePath: string; kind: "image" | "document"; publicUrl: string; altText?: string; caption?: string }[];
 };
 
@@ -91,7 +90,6 @@ type ContentItemRow = {
   case_histopathology: string | null;
   case_outcome: string | null;
   access_level: "public" | "members_only" | null;
-  body_html: string | null;
   contributors: OneOrMany<ContributorRow>;
   content_contributors: OneOrMany<{ contributors: OneOrMany<ContributorRow> }>;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
@@ -118,7 +116,7 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
       // then PostgREST rejects the bare embed as ambiguous, this query has
       // been failing outright and getPublishedContent's catch was turning
       // every failure into an empty list — no content showed anywhere.
-      .select("id,title,slug,summary,kind,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography,photo_url),content_contributors(contributors(display_name,credentials,biography,photo_url)),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,contributors!content_items_contributor_id_fkey(display_name,credentials,biography,photo_url),content_contributors(contributors(display_name,credentials,biography,photo_url)),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (!includeMembersOnly) query = query.eq("access_level", "public");
@@ -187,7 +185,6 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
           outcome: row.case_outcome ?? undefined,
         },
         accessLevel: row.access_level ?? "public",
-        bodyHtml: row.body_html ?? undefined,
         media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, storagePath: item.storage_path, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
       } satisfies ContentRecord;
     });
