@@ -53,12 +53,26 @@ export function slugify(value: string) {
     .slice(0, 96);
 }
 
+const RICH_TEXT_SIZES = ["2", "3", "4", "5"];
+
+// The editor normalises its output before saving, but browsers and pasted
+// documents still produce `<b>`, `<i>` and `<div>`. Those were being stripped
+// outright, so bold and italic looked applied in the workspace and arrived
+// plain on the public page: accept them and fold them into the kept tag.
 export function safeRichText(value: unknown) {
   return sanitizeHtml(typeof value === "string" ? value : "", {
-    allowedTags: ["p", "br", "strong", "em", "u", "a", "ul", "ol", "li", "h2", "h3", "blockquote"],
-    allowedAttributes: { a: ["href", "target", "rel"] },
+    allowedTags: ["p", "br", "strong", "b", "em", "i", "u", "a", "ul", "ol", "li", "h2", "h3", "blockquote", "font"],
+    allowedAttributes: { a: ["href", "target", "rel"], font: ["size"] },
     allowedSchemes: ["http", "https", "mailto"],
-    transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noreferrer noopener", target: "_blank" }) },
+    transformTags: {
+      a: sanitizeHtml.simpleTransform("a", { rel: "noreferrer noopener", target: "_blank" }),
+      b: "strong",
+      i: "em",
+      div: "p",
+      // Only the four documented steps have styling on the public page; any
+      // other size would render as an unstyled inline wrapper.
+      font: (_tagName, attribs) => ({ tagName: "font", attribs: (RICH_TEXT_SIZES.includes(attribs.size) ? { size: attribs.size } : {}) as Record<string, string> }),
+    },
   });
 }
 

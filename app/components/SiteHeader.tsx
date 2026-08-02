@@ -9,8 +9,13 @@ import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 
 type HeaderMember = { name: string; email: string };
+type HeaderUser = { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
 
-function memberFromUser(user: { email?: string; user_metadata?: Record<string, unknown> } | null): HeaderMember | null {
+// Mirrors STAFF_ROLES in app/lib/admin-server.ts. The link is a convenience
+// only: /admin re-checks the role on the server before showing anything.
+const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"];
+
+function memberFromUser(user: HeaderUser): HeaderMember | null {
   if (!user?.email) return null;
   return { name: String(user.user_metadata?.full_name ?? user.email), email: user.email };
 }
@@ -24,6 +29,7 @@ export default function SiteHeader({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [member, setMember] = useState<HeaderMember | null>(null);
+  const [isStaff, setIsStaff] = useState(false);
 
   const home = localePath(locale);
 
@@ -48,11 +54,20 @@ export default function SiteHeader({
 
     try {
       const client = getSupabaseBrowserClient();
-      client.auth.getUser().then(({ data }) => {
-        if (active) setMember(memberFromUser(data.user));
-      });
+      // Row-level security only ever returns the caller's own profile row, so
+      // this reveals nothing beyond whether *you* can open the workspace.
+      const apply = async (user: HeaderUser) => {
+        if (!active) return;
+        setMember(memberFromUser(user));
+        if (!user?.id) { setIsStaff(false); return; }
+        // The browser client is created without generated database types, so
+        // this row arrives untyped.
+        const { data } = await client.from("profiles").select("role").eq("id", user.id).maybeSingle() as { data: { role?: string } | null };
+        if (active) setIsStaff(STAFF_ROLES.includes(String(data?.role ?? "")));
+      };
+      void client.auth.getUser().then(({ data }) => apply(data.user));
       const { data } = client.auth.onAuthStateChange((_event, session) => {
-        if (active) setMember(memberFromUser(session?.user ?? null));
+        void apply(session?.user ?? null);
       });
       unsubscribe = () => data.subscription.unsubscribe();
     } catch {
@@ -79,11 +94,20 @@ export default function SiteHeader({
 
   const profilePath = localePath(locale, "profile");
   const initials = member?.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-  const accountAction = member ? (
-    <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={`Open ${member.name}'s profile`}>
-      <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-      <span>Profile</span>
+  const adminPath = localePath(locale, "admin");
+  const adminLink = member && isStaff ? (
+    <Link className="btn btn-ghost header-admin" href={adminPath}>
+      Admin
     </Link>
+  ) : null;
+  const accountAction = member ? (
+    <>
+      {adminLink}
+      <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={`Open ${member.name}'s profile`}>
+        <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
+        <span>Profile</span>
+      </Link>
+    </>
   ) : (
     <>
       <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
@@ -156,10 +180,13 @@ export default function SiteHeader({
         </div>
         <div className="mobile-nav-actions">
           {member ? (
-            <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
-              <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-              <span>Profile</span>
-            </Link>
+            <>
+              {isStaff && <Link className="btn btn-ghost" href={adminPath} onClick={() => setMenuOpen(false)}>Admin</Link>}
+              <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
+                <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
+                <span>Profile</span>
+              </Link>
+            </>
           ) : <><Link className="btn btn-ghost" href={localePath(locale, "sign-in")} onClick={() => setMenuOpen(false)}>{dict.nav.signIn}</Link><Link className="btn btn-primary header-signup" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link></>}
         </div>
       </div>
