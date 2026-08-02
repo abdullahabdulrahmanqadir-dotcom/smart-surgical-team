@@ -30,6 +30,20 @@ function errorMessage(value: unknown, fallback: string) {
   return typeof value === "string" && value ? value : fallback;
 }
 
+// Not every response is JSON. A request the platform rejects before it reaches
+// a route comes back as plain text — a 413 body reads "Payload Too Large" —
+// which surfaced in the editor as an "Unexpected token 'P'" parse error rather
+// than as anything the person uploading could act on.
+async function readResponse(response: Response): Promise<RecordItem> {
+  const text = await response.text().catch(() => "");
+  try {
+    return asRecord(JSON.parse(text));
+  } catch {
+    if (response.ok) return {};
+    return { error: response.status === 413 ? "That file is too large to upload. Choose one no larger than 10 MB." : `The server responded with ${response.status}.` };
+  }
+}
+
 const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "overview", label: "Overview", icon: IconLayers }, { id: "content", label: "Content", icon: IconFile },
   { id: "topics", label: "Topics", icon: IconLayers }, { id: "events", label: "Events & webinars", icon: IconPlus },
@@ -299,7 +313,7 @@ export default function AdminWorkspace() {
     init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
     try {
       const response = await fetch(`/api/admin/${resource}`, { ...init, signal: controller.signal, headers: { ...headers, ...(init?.headers ?? {}) } });
-      const result = asRecord(await response.json().catch(() => ({})));
+      const result = await readResponse(response);
       if (!response.ok) throw new RequestError(errorMessage(result.error, "Something went wrong."), response.status);
       return result;
     } catch (error) {
@@ -401,7 +415,7 @@ export default function AdminWorkspace() {
   }
   async function remove(item: RecordItem) {
     if (!window.confirm(`Delete a&S${String(item.title ?? item.name ?? item.display_name ?? "this item")}a? This cannot be undone.`)) return;
-    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = asRecord(await response.json()); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
+    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
@@ -431,7 +445,7 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   // spinner stopped and the editor said nothing at all.
   const [uploadError, setUploadError] = useState("");
   const set = (key: string, next: unknown) => setForm((current) => ({ ...current, [key]: next }));
-  async function upload(file: File) { if (file.size > 10 * 1024 * 1024) { setUploadError("Choose a file no larger than 10 MB."); return; } setUploading(true); try { const token = await accessToken(); const body = new FormData(); body.append("file", file); const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); if (typeof form.title === "string") body.append("caseSlug", form.title); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body }); const result = asRecord(await response.json()); if (!response.ok) throw new Error(errorMessage(result.error, "Could not upload this file.")); const path = typeof result.path === "string" ? result.path : ""; const publicUrl = typeof result.publicUrl === "string" ? result.publicUrl : ""; const kind = result.kind === "document" ? "document" : result.kind === "image" ? "image" : null; if (!path || !publicUrl || !kind) throw new Error("The upload service returned an incomplete file record."); setUploadError(""); setForm((current) => ({ ...current, content_media: [...(Array.isArray(current.content_media) ? current.content_media as Media[] : []), { storage_path: path, public_url: publicUrl, kind, alt_text: "", caption: "" }] })); } catch (error) { setUploadError(error instanceof Error ? error.message : "Could not upload this file."); } finally { setUploading(false); } }
+  async function upload(file: File) { if (file.size > 10 * 1024 * 1024) { setUploadError("Choose a file no larger than 10 MB."); return; } setUploading(true); try { const token = await accessToken(); const body = new FormData(); body.append("file", file); const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); if (typeof form.title === "string") body.append("caseSlug", form.title); const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not upload this file.")); const path = typeof result.path === "string" ? result.path : ""; const publicUrl = typeof result.publicUrl === "string" ? result.publicUrl : ""; const kind = result.kind === "document" ? "document" : result.kind === "image" ? "image" : null; if (!path || !publicUrl || !kind) throw new Error("The upload service returned an incomplete file record."); setUploadError(""); setForm((current) => ({ ...current, content_media: [...(Array.isArray(current.content_media) ? current.content_media as Media[] : []), { storage_path: path, public_url: publicUrl, kind, alt_text: "", caption: "" }] })); } catch (error) { setUploadError(error instanceof Error ? error.message : "Could not upload this file."); } finally { setUploading(false); } }
   function submit(event: FormEvent) { event.preventDefault(); onSave({ ...form, media: form.content_media }); }
   if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={upload} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "topics") return <SimpleEditor title={form.id ? "Edit topic" : "New topic"} fields={[['name','Topic name'],['description','Description'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit} topics={topics}/>;
