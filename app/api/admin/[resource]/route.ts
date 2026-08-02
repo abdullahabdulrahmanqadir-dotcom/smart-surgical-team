@@ -112,8 +112,8 @@ export async function POST(request: Request, context: RouteContext) {
       poster_url: optionalText(body.poster_url), duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), body_html: safeRichText(body.body_html), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
-      case_presentation: optionalText(body.case_presentation), case_imaging: optionalText(body.case_imaging), case_procedure: optionalText(body.case_procedure),
-      case_histopathology: optionalText(body.case_histopathology), case_outcome: optionalText(body.case_outcome),
+      case_presentation: safeRichText(body.case_presentation) || null, case_imaging: safeRichText(body.case_imaging) || null, case_procedure: safeRichText(body.case_procedure) || null,
+      case_histopathology: safeRichText(body.case_histopathology) || null, case_outcome: safeRichText(body.case_outcome) || null,
       scheduled_for: status === "scheduled" ? date(body.scheduled_for) : null, published_at: publishedAt, updated_by: identity.id,
       // Without this the admin list, which orders by `updated_at desc`, never
       // reorders: there is no database trigger maintaining the column.

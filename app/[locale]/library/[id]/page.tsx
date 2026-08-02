@@ -54,7 +54,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
             <div className="section-mini-head"><div><span className="section-kicker">Clinical record</span><h2 id="case-summary-title">Case summary</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
               <dl className="case-summary-list">
-                {summarySections.map(({ key, label, value }) => <div key={key}><dt>{label}</dt><dd>{value}</dd></div>)}
+                {summarySections.map(({ key, label, value }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: value }} /></div>)}
               </dl>
             ) : (
               <div className="case-summary-empty"><IconFile size={20} /><div><b>Case detail is not published yet.</b><span>Presentation, imaging, procedure, histopathology and outcome appear here once the team has reviewed and de-identified them.</span></div></div>

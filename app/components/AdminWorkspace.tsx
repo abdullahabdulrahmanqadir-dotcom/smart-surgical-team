@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
@@ -62,19 +62,24 @@ function accessToken() {
 
 const emptyContent = (): ContentItem => ({ kind: "case_article", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical education", topic_ids: [], chapters: [], content_media: [] });
 
-function RichEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function RichEditor({ value, onChange, placeholder = "Write the article introduction and supporting detail…" }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
   const element = useRef<HTMLDivElement>(null);
+  const selection = useRef<Range | null>(null);
   useEffect(() => { if (element.current && element.current.innerHTML !== value) element.current.innerHTML = value; }, [value]);
-  useEffect(() => {
-    const toolbar = element.current?.previousElementSibling;
-    const preserveSelection = (event: Event) => event.preventDefault();
-    // Toolbar buttons must not steal focus: doing so clears the selected text
-    // before execCommand runs, which made bold and italic appear broken.
-    toolbar?.addEventListener("mousedown", preserveSelection);
-    return () => toolbar?.removeEventListener("mousedown", preserveSelection);
-  }, []);
-  function format(command: string) { element.current?.focus(); document.execCommand(command); onChange(element.current?.innerHTML ?? ""); }
-  return <div className="admin-rich-editor"><div className="admin-rich-actions" aria-label="Text formatting"><button type="button" onClick={() => format("bold")}><b>B</b></button><button type="button" onClick={() => format("italic")}><i>I</i></button><button type="button" onClick={() => format("insertUnorderedList")}>List</button><button type="button" onClick={() => format("formatBlock")}>Heading</button></div><div ref={element} className="admin-rich-input" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder="Write the article introduction and supporting detail…" onInput={() => onChange(element.current?.innerHTML ?? "")} /></div>;
+  function rememberSelection() {
+    const current = window.getSelection();
+    if (current?.rangeCount && element.current?.contains(current.anchorNode)) selection.current = current.getRangeAt(0).cloneRange();
+  }
+  function format(command: string, argument?: string) {
+    const current = window.getSelection();
+    element.current?.focus();
+    if (selection.current && current) { current.removeAllRanges(); current.addRange(selection.current); }
+    document.execCommand(command, false, argument);
+    rememberSelection();
+    onChange(element.current?.innerHTML ?? "");
+  }
+  function applyFromToolbar(event: ReactMouseEvent<HTMLButtonElement>, command: string, argument?: string) { event.preventDefault(); format(command, argument); }
+  return <div className="admin-rich-editor"><div className="admin-rich-actions" aria-label="Text formatting"><button type="button" aria-label="Bold selected text" title="Bold" onMouseDown={(event) => applyFromToolbar(event, "bold")}><b>B</b></button><button type="button" aria-label="Italicize selected text" title="Italic" onMouseDown={(event) => applyFromToolbar(event, "italic")}><i>I</i></button><button type="button" onMouseDown={(event) => applyFromToolbar(event, "insertUnorderedList")}>List</button><button type="button" onMouseDown={(event) => applyFromToolbar(event, "formatBlock", "h2")}>Heading</button></div><div ref={element} className="admin-rich-input" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder={placeholder} onKeyUp={rememberSelection} onMouseUp={rememberSelection} onInput={() => { rememberSelection(); onChange(element.current?.innerHTML ?? ""); }} /></div>;
 }
 
 export default function AdminWorkspace() {
@@ -250,7 +255,7 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
     {subTopics.length > 0 && <div className="admin-subtopic-list"><span className="admin-label-text">Subtopics in this major topic</span><div className="admin-subtopic-grid">{subTopics.map((topic) => <label className="admin-checkbox" key={String(topic.id)}><input type="checkbox" checked={selectedSubIds.includes(String(topic.id))} onChange={(event) => toggleSub(String(topic.id), event.target.checked)}/>{String(topic.name)}</label>)}</div><small>Choose every subtopic that applies. Leave all unchecked to file this under the major topic only.</small></div>}
   </section>;
 }
-function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <Field key={key} label={label} type="textarea" value={form[key]} onChange={(value) => set(key, value)}/>)}</section>; }
+function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <label className="admin-label" key={key}>{label}<RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}…`}/></label>)}</section>; }
 function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Video is optional and entered in the main form.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "Uploading…" : "Upload file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}><span>{item.kind === "image" ? "Image" : "PDF"}</span><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
 function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}>×</button></div>) : <p>No chapters added.</p>}</section>; }
 function EditorHead({ title, onCancel }: { title: string; onCancel: () => void }) { return <div className="admin-editor-head"><div><span className="admin-kicker">Content editor</span><h2>{title}</h2></div><button type="button" className="admin-close" onClick={onCancel}>Close</button></div>; }
