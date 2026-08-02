@@ -2882,6 +2882,32 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 .profile-metrics { grid-template-columns: minmax(0, 1fr); }
 
+/* A saved item is a destination and a collection action. Keeping those controls
+   separate prevents the remove button from competing with the card link. */
+.profile-saved-section { padding: clamp(1.25rem, 3vw, 1.9rem); border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--line)); border-radius: var(--radius-xl); background: linear-gradient(150deg, color-mix(in srgb, var(--primary-soft) 52%, var(--surface)), var(--surface) 38%); box-shadow: var(--shadow-sm); }
+.profile-saved-section .profile-panel-heading > div > p { max-width: 50ch; margin-top: .55rem; color: var(--text-muted); font-size: .86rem; line-height: 1.55; }
+.saved-content-grid { display: grid; grid-auto-rows: 28rem; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 1.35rem); margin-top: 1.5rem; }
+.saved-content-card { position: relative; min-width: 0; height: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease; }
+.saved-content-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+.saved-content-open { display: flex; height: 100%; flex-direction: column; color: inherit; text-decoration: none; }
+.saved-content-open:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
+.saved-content-art { position: relative; display: grid; flex: 0 0 11rem; place-items: center; overflow: hidden; background: radial-gradient(circle at 76% 15%, rgba(255,255,255,.2), transparent 32%), linear-gradient(145deg, var(--brand-teal-deep), var(--brand-teal)); color: rgba(255,255,255,.28); }
+.saved-content-card:nth-child(3n + 2) .saved-content-art { background: radial-gradient(circle at 76% 15%, rgba(255,255,255,.2), transparent 32%), linear-gradient(145deg, #45543d, var(--brand-olive)); }
+.saved-content-card:nth-child(3n) .saved-content-art { background: radial-gradient(circle at 76% 15%, rgba(255,255,255,.2), transparent 32%), linear-gradient(145deg, #805148, var(--brand-rose)); }
+.saved-content-art img { width: 100%; height: 100%; object-fit: cover; }
+.saved-content-type { position: absolute; top: .8rem; inset-inline-start: .8rem; display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .55rem; border-radius: 999px; background: rgba(255,255,255,.92); color: var(--brand-teal-deep); font-size: .65rem; font-weight: 750; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.saved-content-copy { display: flex; flex: 1; flex-direction: column; padding: 1rem 1rem .85rem; }
+.saved-content-copy > p { color: var(--primary); font-size: .69rem; font-weight: 750; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.saved-content-copy h3 { display: -webkit-box; overflow: hidden; margin-top: .42rem; font-size: 1rem; line-height: 1.32; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.saved-content-copy > span { display: -webkit-box; overflow: hidden; margin-top: .6rem; color: var(--text-muted); font-size: .8rem; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.saved-content-copy > div { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: auto; padding-top: 1rem; color: var(--text-soft); }
+.saved-content-copy small { display: inline-flex; align-items: center; gap: .3rem; font-size: .73rem; }
+.saved-content-copy small svg, .saved-content-copy > div > svg { color: var(--primary); }
+.saved-content-remove { position: absolute; z-index: 1; top: .55rem; inset-inline-end: .55rem; min-height: 32px; padding: .3rem .55rem; border: 1px solid rgba(255,255,255,.72); border-radius: 999px; background: rgba(24,36,33,.72); color: #fff; cursor: pointer; font: inherit; font-size: .69rem; font-weight: 750; transition: background 180ms ease, transform 180ms ease; }
+.saved-content-remove:hover, .saved-content-remove:focus-visible { background: var(--brand-plum); outline: 2px solid var(--surface); outline-offset: 2px; }
+.saved-content-remove:active { transform: scale(.97); }
+@media (max-width: 620px) { .saved-content-grid { grid-auto-rows: 27rem; grid-template-columns: 1fr; }.saved-content-art { flex-basis: 11rem; } }
+
 /* ============================================================
    Editorial refresh — warm clinical depth without a teal wash.
    These layers are intentionally restrained: copper marks structure, while

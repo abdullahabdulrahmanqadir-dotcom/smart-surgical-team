@@ -11,6 +11,7 @@ type SavedCase = {
   topic: string;
   format: string;
   duration: string;
+  posterUrl?: string;
 };
 
 function savedCasesFrom(value: unknown): SavedCase[] {
@@ -19,7 +20,7 @@ function savedCasesFrom(value: unknown): SavedCase[] {
     if (!item || typeof item !== "object") return [];
     const candidate = item as Record<string, unknown>;
     if (!["slug", "title", "summary", "topic", "format", "duration"].every((key) => typeof candidate[key] === "string")) return [];
-    return [{ slug: candidate.slug as string, title: candidate.title as string, summary: candidate.summary as string, topic: candidate.topic as string, format: candidate.format as string, duration: candidate.duration as string }];
+    return [{ slug: candidate.slug as string, title: candidate.title as string, summary: candidate.summary as string, topic: candidate.topic as string, format: candidate.format as string, duration: candidate.duration as string, ...(typeof candidate.posterUrl === "string" ? { posterUrl: candidate.posterUrl } : {}) }];
   });
 }
 
@@ -33,17 +34,14 @@ export default function SaveCaseButton({ locale, item }: { locale: string; item:
     try {
       const client = getSupabaseBrowserClient();
       client.auth.getUser().then(({ data }) => {
-        if (!active) return;
-        setIsSaved(savedCasesFrom(data.user?.user_metadata.saved_cases).some((savedCase) => savedCase.slug === item.slug));
-      }).catch(() => { /* the click handler will surface a configuration or network error */ });
-    } catch {
-      /* The click handler will surface a configuration or network error. */
-    }
+        if (active) setIsSaved(savedCasesFrom(data.user?.user_metadata.saved_cases).some((savedCase) => savedCase.slug === item.slug));
+      }).catch(() => { /* The click handler will surface a configuration or network error. */ });
+    } catch { /* The click handler will surface a configuration or network error. */ }
     return () => { active = false; };
   }, [item.slug]);
 
-  async function saveCase() {
-    if (isSaved || saving) return;
+  async function toggleSavedCase() {
+    if (saving) return;
     setSaving(true);
     setMessage(null);
     try {
@@ -55,17 +53,17 @@ export default function SaveCaseButton({ locale, item }: { locale: string; item:
         return;
       }
       const savedCases = savedCasesFrom(user.user_metadata.saved_cases);
-      const nextSavedCases = savedCases.some((savedCase) => savedCase.slug === item.slug) ? savedCases : [...savedCases, item];
+      const nextSavedCases = isSaved ? savedCases.filter((savedCase) => savedCase.slug !== item.slug) : [...savedCases, item];
       const { error } = await client.auth.updateUser({ data: { saved_cases: nextSavedCases } });
       if (error) throw error;
-      setIsSaved(true);
+      setIsSaved(!isSaved);
       window.dispatchEvent(new CustomEvent("sst-saved-cases-changed", { detail: nextSavedCases }));
     } catch {
-      setMessage("We couldn’t save this case. Please try again.");
+      setMessage(isSaved ? "We couldn't remove this case. Please try again." : "We couldn't save this case. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
-  return <div className="save-case-control"><button className={`save-button${isSaved ? " is-saved" : ""}`} type="button" onClick={saveCase} disabled={saving || isSaved} aria-live="polite"><span>{isSaved ? <IconCheck size={18} /> : "+"}</span>{saving ? "Saving…" : isSaved ? "Saved to profile" : "Save for later"}</button>{message && <p role="alert">{message}</p>}</div>;
+  return <div className="save-case-control"><button className={`save-button${isSaved ? " is-saved" : ""}`} type="button" onClick={toggleSavedCase} disabled={saving} aria-live="polite"><span>{isSaved ? <IconCheck size={18} /> : "+"}</span>{saving ? "Saving..." : isSaved ? "Remove from saved" : "Save for later"}</button>{message && <p role="alert">{message}</p>}</div>;
 }

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { IconArrowRight, IconBell, IconBookmark, IconCalendar, IconCheck, IconLayers, IconLogOut, IconMail, IconSliders, IconUser } from "./icons";
+import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
+import { IconArrowRight, IconBell, IconBookmark, IconCalendar, IconCheck, IconClock, IconFile, IconLayers, IconLogOut, IconMail, IconPlay, IconSliders, IconUser } from "./icons";
+import TopicGlyph from "./TopicGlyph";
 
 type Member = { name: string; email: string } | null;
-type SavedCase = { slug: string; title: string; summary: string; topic: string; format: string; duration: string };
+type SavedCase = { slug: string; title: string; summary: string; topic: string; format: string; duration: string; posterUrl?: string };
 type ProfileSection = "overview" | "saved" | "events" | "preferences";
 
 const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
@@ -22,8 +24,14 @@ function savedCasesFrom(value: unknown): SavedCase[] {
     if (!item || typeof item !== "object") return [];
     const candidate = item as Record<string, unknown>;
     if (!["slug", "title", "summary", "topic", "format", "duration"].every((key) => typeof candidate[key] === "string")) return [];
-    return [{ slug: candidate.slug as string, title: candidate.title as string, summary: candidate.summary as string, topic: candidate.topic as string, format: candidate.format as string, duration: candidate.duration as string }];
+    return [{ slug: candidate.slug as string, title: candidate.title as string, summary: candidate.summary as string, topic: candidate.topic as string, format: candidate.format as string, duration: candidate.duration as string, ...(typeof candidate.posterUrl === "string" ? { posterUrl: candidate.posterUrl } : {}) }];
   });
+}
+
+function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {
+  if (savedCase.posterUrl) return <img src={savedCase.posterUrl} alt="" />;
+  const topic = PUBLIC_TOPIC_GROUPS.find((group) => group.name === savedCase.topic || group.subTopics.some((subTopic) => subTopic.name === savedCase.topic));
+  return topic ? <TopicGlyph icon={topic.icon} imageIcon={topic.imageIcon} size={86} /> : <IconBookmark size={58} aria-hidden="true" />;
 }
 
 export default function MemberProfile({ locale, initialMember }: { locale: string; initialMember: Member }) {
@@ -76,6 +84,18 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
     window.setTimeout(() => setSaved(false), 3200);
   }
 
+  async function removeSavedCase(slug: string) {
+    const nextSavedCases = savedCases.filter((savedCase) => savedCase.slug !== slug);
+    setSavedCases(nextSavedCases);
+    try {
+      const { error } = await getSupabaseBrowserClient().auth.updateUser({ data: { saved_cases: nextSavedCases } });
+      if (error) throw error;
+      window.dispatchEvent(new CustomEvent("sst-saved-cases-changed", { detail: nextSavedCases }));
+    } catch {
+      setSavedCases(savedCases);
+    }
+  }
+
   async function signOut() {
     try {
       await getSupabaseBrowserClient().auth.signOut();
@@ -104,15 +124,16 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
       </aside>
 
       <div className="profile-content">
+        {activeSection !== "saved" && <>
         <section className="profile-welcome" id="overview"><div className="profile-welcome-orbit" aria-hidden="true"><i /><i /><i /></div><span className="auth-kicker">Your learning space</span><h2>Good to have you here, {member.name.split(" ")[0]}.</h2><p>Keep the topics you care about close, and return to the library whenever you are ready to explore.</p><div className="profile-metrics"><div><IconBookmark size={19} /><strong>Saved cases</strong><span>{savedCases.length ? `${savedCases.length} case${savedCases.length === 1 ? "" : "s"} saved for later.` : "Your personal collection is ready."}</span></div><div><IconLayers size={19} /><strong>Learning path</strong><span>Explore focused teaching across four published specialties.</span></div><div><IconCalendar size={19} /><strong>Events</strong><span>Keep upcoming lectures and team events close by.</span></div></div></section>
-
-        <section className="profile-panel" id="saved"><div className="profile-panel-heading"><div><span className="auth-kicker">Saved learning</span><h2>Build a reference library.</h2></div><Link href={`/${locale}/topics`} className="text-link">Browse topics</Link></div>{savedCases.length ? <div className="saved-case-list">{savedCases.map((savedCase) => <Link className="saved-case" href={`/${locale}/library/${savedCase.slug}`} key={savedCase.slug}><span className="saved-case-icon"><IconBookmark size={20} /></span><span><b>{savedCase.title}</b><small>{savedCase.topic} · {savedCase.format} · {savedCase.duration}</small><em>{savedCase.summary}</em></span><IconArrowRight size={18} /></Link>)}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>Nothing saved yet</h3><p>When a case or topic is useful for your next study session, save it here for easy return.</p></div></div>}</section>
 
         <section className="profile-panel profile-recommendations"><div className="profile-panel-heading"><div><span className="auth-kicker">Continue exploring</span><h2>Find your next area of focus.</h2></div><Link href={`/${locale}/topics`} className="text-link">All specialties</Link></div><div className="recommendation-grid"><Link href={`/${locale}/topics/thyroid-parathyroid`}><span>01</span><strong>Thyroid &amp; Parathyroid</strong><small>Technique, anatomy and case learning.</small><IconArrowRight size={17} /></Link><Link href={`/${locale}/topics/salivary-glands`}><span>02</span><strong>Salivary Glands</strong><small>Focused approaches and facial nerve dissection.</small><IconArrowRight size={17} /></Link></div></section>
 
         <section className="profile-panel profile-events" id="events"><div className="profile-panel-heading"><div><span className="auth-kicker">Events &amp; webinars</span><h2>Stay close to what is next.</h2></div><Link href={`/${locale}/events`} className="text-link">View events</Link></div><div className="profile-events-empty"><span className="profile-events-date">SST</span><div><h3>Upcoming learning, in one place.</h3><p>Explore the events programme for current registration details, practical sessions and on-demand learning.</p></div><Link href={`/${locale}/events`} aria-label="Explore Smart Surgical Team events"><IconArrowRight size={18} /></Link></div></section>
 
         <section className="profile-panel" id="preferences"><div className="profile-panel-heading"><div><span className="auth-kicker">Preferences</span><h2>Shape your updates.</h2></div></div><label className="preference-toggle"><span><IconBell size={19} /><span><b>Learning updates</b><small>Occasional event and library updates from Smart Surgical Team.</small></span></span><input type="checkbox" checked={emailUpdates} onChange={(event) => setEmailUpdates(event.target.checked)} /><i aria-hidden="true" /></label><div className="profile-save-row"><button className="btn btn-primary" type="button" onClick={savePreferences}>Save preferences</button>{saved && <p role="status"><IconCheck size={17} />Preferences saved in this browser.</p>}</div></section>
+        </>}
+        {activeSection === "saved" && <section className="profile-saved-section" id="saved" aria-labelledby="saved-learning-title"><div className="profile-panel-heading"><div><span className="auth-kicker">Saved learning</span><h2 id="saved-learning-title">Your reference library</h2><p>Keep the cases and lessons you want to return to in one focused place.</p></div><Link href={`/${locale}/topics`} className="text-link">Browse topics</Link></div>{savedCases.length ? <div className="saved-content-grid">{savedCases.map((savedCase) => <article className="saved-content-card" key={savedCase.slug}><Link className="saved-content-open" href={`/${locale}/library/${savedCase.slug}`} aria-label={`Open ${savedCase.title}`}><div className="saved-content-art"><SavedCaseArtwork savedCase={savedCase} /><span className="saved-content-type">{savedCase.format.toLowerCase().includes("video") ? <IconPlay size={12} /> : <IconFile size={12} />}{savedCase.format}</span></div><div className="saved-content-copy"><p>{savedCase.topic}</p><h3>{savedCase.title}</h3><span>{savedCase.summary}</span><div><small>{savedCase.duration ? <><IconClock size={14} />{savedCase.duration}</> : null}</small><IconArrowRight size={18} /></div></div></Link><button className="saved-content-remove" type="button" onClick={() => void removeSavedCase(savedCase.slug)} aria-label={`Remove ${savedCase.title} from saved learning`}>Remove</button></article>)}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>Nothing saved yet</h3><p>When a case or topic is useful for your next study session, save it here for easy return.</p></div></div>}</section>}
       </div>
     </div>
   );
