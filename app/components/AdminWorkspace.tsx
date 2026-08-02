@@ -65,6 +65,14 @@ const emptyContent = (): ContentItem => ({ kind: "case_article", status: "publis
 function RichEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const element = useRef<HTMLDivElement>(null);
   useEffect(() => { if (element.current && element.current.innerHTML !== value) element.current.innerHTML = value; }, [value]);
+  useEffect(() => {
+    const toolbar = element.current?.previousElementSibling;
+    const preserveSelection = (event: Event) => event.preventDefault();
+    // Toolbar buttons must not steal focus: doing so clears the selected text
+    // before execCommand runs, which made bold and italic appear broken.
+    toolbar?.addEventListener("mousedown", preserveSelection);
+    return () => toolbar?.removeEventListener("mousedown", preserveSelection);
+  }, []);
   function format(command: string) { element.current?.focus(); document.execCommand(command); onChange(element.current?.innerHTML ?? ""); }
   return <div className="admin-rich-editor"><div className="admin-rich-actions" aria-label="Text formatting"><button type="button" onClick={() => format("bold")}><b>B</b></button><button type="button" onClick={() => format("italic")}><i>I</i></button><button type="button" onClick={() => format("insertUnorderedList")}>List</button><button type="button" onClick={() => format("formatBlock")}>Heading</button></div><div ref={element} className="admin-rich-input" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" data-placeholder="Write the article introduction and supporting detail…" onInput={() => onChange(element.current?.innerHTML ?? "")} /></div>;
 }

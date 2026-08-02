@@ -32,18 +32,19 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
   // authored body and uploaded files are rendered directly on the page.
   if (!content.videoUrl) return null;
   const youtubeVideoId = getYouTubeVideoId(content.videoUrl);
-  const youtubePreview = content.posterUrl || (youtubeVideoId ? `https://i.ytimg.com/vi/${youtubeVideoId}/hqdefault.jpg` : null);
+  // YouTube's max-resolution image is 1280px wide when the source upload
+  // provides it. Older videos occasionally lack it, so the image falls back
+  // to YouTube's high-quality variant if the first request fails.
+  const youtubePreview = content.posterUrl || (youtubeVideoId ? `https://i.ytimg.com/vi/${youtubeVideoId}/maxresdefault.jpg` : null);
+  const youtubePreviewFallback = youtubeVideoId ? `https://i.ytimg.com/vi/${youtubeVideoId}/hqdefault.jpg` : null;
 
   return (
     <>
       <section className="content-player" aria-label={`${content.title} player`}>
         {youtubeVideoId ? (
           <a className="youtube-video-link" href={content.videoUrl} target="_blank" rel="noreferrer" aria-label={`Watch ${content.title} on YouTube`}>
-            {youtubePreview ? <img className="youtube-video-preview" src={youtubePreview} alt="" /> : null}
-            <span className="youtube-video-overlay">
-              <span className="youtube-video-play" aria-hidden="true"><IconPlay size={22} /></span>
-              <span><b>Watch on YouTube</b><small>Opens in YouTube for age-restricted content</small></span>
-            </span>
+            {youtubePreview ? <img className="youtube-video-preview" src={youtubePreview} alt="" decoding="async" onError={(event) => { if (youtubePreviewFallback && event.currentTarget.src !== youtubePreviewFallback) event.currentTarget.src = youtubePreviewFallback; }} /> : null}
+            <span className="youtube-video-play" aria-hidden="true"><IconPlay size={22} /></span>
           </a>
         ) : (
           <video ref={video} className="content-video" controls preload="metadata" poster={content.posterUrl}>
@@ -52,6 +53,7 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
           </video>
         )}
       </section>
+      {youtubeVideoId ? <a className="youtube-watch-link" href={content.videoUrl} target="_blank" rel="noreferrer"><IconPlay size={17} />Watch on YouTube<span>Opens in YouTube for age-restricted content</span></a> : null}
 
       <div className="content-tabs" role="tablist" aria-label="Lecture information">
         {(["overview", "chapters", "notes"] as const).map((item) => <button key={item} type="button" role="tab" id={`content-tab-${item}`} aria-controls={`content-panel-${item}`} aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{item === "overview" ? "Overview" : item === "chapters" ? "Chapters" : "Learning notes"}</button>)}
