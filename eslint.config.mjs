@@ -11,7 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
-    ".openai/package-stage-*/**",
+    // Wrangler's generated dev proxies, written when a binding is `remote`.
+    ".wrangler/**",
     "next-env.d.ts",
   ]),
 ]);

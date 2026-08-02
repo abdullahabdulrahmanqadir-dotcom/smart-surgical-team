@@ -16,8 +16,8 @@ workflows follow later.
 - Next.js 16 App Router, React 19 and TypeScript
 - Cloudflare Workers-compatible output through `vinext`
 - Tailwind v4 plus the project stylesheet in `app/globals.css`
-- Supabase and Drizzle/D1 are scaffolded only; **no live data, authentication or
-  database integration is wired yet**
+- Supabase for content, members and auth; Cloudflare R2 (`smart-media`) for
+  editorial media, served through `/api/media/…`
 
 ### Key reference documents
 
@@ -44,44 +44,21 @@ workflows follow later.
 
 ## 3. Exact repository and deployment state
 
-### Local branch
+### Branch
 
-- Current branch: `codex/phase-1a-topics`
-- Current `HEAD`: `11205c0` — `Add deployment archives`
-- The branch is **10 commits ahead of `origin/codex/phase-1a-topics`** and has
-  not been pushed to the normal GitHub remote since the recent Topics work.
-- The worktree is clean as of this handoff.
+Work lands on `main`. Keep `main` deployable, since pushing it deploys.
 
-Recent commits, newest first:
-
-| Commit | Summary | Deployment state |
-|---|---|---|
-| `11205c0` | Adds four local Sites deployment archives at the client’s request | Local only; not push/deploy-required |
-| `ef46b79` | Adds case-library search plus clear-all filters | Local only |
-| `85d96dd` | Restyles the language selector as a dropdown menu | Published privately to Sites |
-| `f9a4948` | Removes unneeded Topics hero labels and improves two topic glyphs | Published privately to Sites |
-| `73a81bc` | Adds restrained palette accents to Topics | Published privately to Sites |
-| `7774ef5` / `e789a02` / `989fa88` | Case-grid and Topics-explorer evolution | Included in the current local implementation |
-
-### Current deployment
+### Deployment
 
 The site is the Cloudflare Worker **`smart`**, deployed from `main` through the
 Cloudflare Git integration — pushing to `main` deploys. The Worker's Bindings
 tab in the Cloudflare dashboard is the source of truth for bindings and
-secrets; `.openai/hosting.json` does not describe production.
+secrets.
 
-### Committed deployment archives
-
-The client explicitly asked to commit all files. The following generated
-archives are therefore intentionally tracked at `HEAD`:
-
-- `.openai/site-deploy.tgz`
-- `.openai/site-deploy-73a81bc.tgz`
-- `.openai/site-deploy-f9a4948.tgz`
-- `.openai/site-deploy-85d96dd.tgz`
-
-Normally these are temporary packaging artifacts. Do not delete or rewrite them
-without the client’s approval, since they were deliberately committed.
+Cloudflare is the only deployment target. The OpenAI Sites packaging that this
+repository started from — `.openai/hosting.json`, the `sites` Vite plugin and
+its deployment archives — has been removed, along with the unused D1/Drizzle
+scaffold that came with it. The app's data layer is Supabase.
 
 ## 4. What is implemented now
 

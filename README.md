@@ -1,12 +1,13 @@
-# vinext-starter
+# Smart Surgical Team
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+The trilingual surgical education site, built on
+[vinext](https://github.com/cloudflare/vinext) and running on Cloudflare
+Workers.
 
 ## Prerequisites
 
 - Node.js `>=22.13.0`
+- `wrangler login` — local development binds the real R2 media bucket
 
 ## Quick Start
 
@@ -16,75 +17,59 @@ npm run dev
 npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+This project does not use `wrangler.jsonc`; bindings for local development are
+declared in `vite.config.ts`.
 
-## Included Shape
+## Shape
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+- site code lives under `app/`, with locale-prefixed routes at `app/[locale]/`
+- `vite.config.ts` declares the local binding set and the Vite plugin chain
+- `worker/index.ts` is the Worker entry
 
-## Workspace Auth Headers
+## Deployment
 
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
+The site is the Cloudflare Worker **`smart`**, deployed from `main` through the
+Cloudflare Git integration — pushing to `main` deploys. The Worker's Bindings
+tab in the Cloudflare dashboard is the source of truth for bindings and
+secrets.
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+## Data and media
 
-Treat the full name as optional and fall back to email when it is absent:
+- **Supabase** holds content, members and media metadata. Member sign-in and
+  sign-up run on Supabase Auth (`lib/supabase/browser.ts`,
+  `lib/supabase/server.ts`).
+- **Cloudflare R2** (`smart-media`) holds editorial media. Uploads go through
+  `app/api/admin/upload/route.ts`, which writes keys shaped like
+  `topics/<topic>/<case>/<file>`; `app/api/media/[...path]/route.ts` serves
+  them back. Stored URLs are `/api/media/…` paths, never bucket URLs.
 
-```tsx
-import { headers } from "next/headers";
+`MEDIA_BUCKET` is bound with `remote: true`, so local development reads and
+writes the real bucket. A local Miniflare bucket starts empty, which makes
+every image 404 and sends Admin uploads into a local cache the deployed site
+cannot read — while the Supabase row, always the shared instance, points at a
+key that does not exist.
 
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Member Auth (Supabase)
-
-Member sign-in/sign-up runs on Supabase Auth (`lib/supabase/browser.ts`,
-`lib/supabase/server.ts`), not on any Dispatch-owned identity headers:
+## Member auth notes
 
 - Email + password sign-in, and an email OTP → profile details → password
-  sign-up wizard (`app/components/AuthForm.tsx`, `app/components/SignUpWizard.tsx`).
+  sign-up wizard (`app/components/AuthForm.tsx`,
+  `app/components/SignUpWizard.tsx`).
 - "Continue with Google" on both forms via
   `client.auth.signInWithOAuth({ provider: "google" })`. Enable the Google
   provider in the Supabase Dashboard (Authentication → Providers → Google)
   with a Google Cloud OAuth client, and add this site's origin(s) to the
   Google client's authorized redirect URIs as instructed by Supabase.
 - Sessions are held client-side by the Supabase browser client; the profile
-  page (`app/components/MemberProfile.tsx`) fetches the current user on
-  mount and has no server-rendered identity dependency.
-
-The `/signin-with-chatgpt`, `/signout-with-chatgpt`, and `/callback` paths
-remain reserved by the Dispatch hosting platform; this app does not use them.
+  page (`app/components/MemberProfile.tsx`) fetches the current user on mount
+  and has no server-rendered identity dependency.
 
 ## Useful Commands
 
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+- `npm test`: build and verify the rendered output
+- `npm run lint`: run ESLint
 
 ## Learn More
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)

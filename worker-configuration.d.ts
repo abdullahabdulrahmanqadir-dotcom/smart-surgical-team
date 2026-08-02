@@ -5,7 +5,6 @@
 declare namespace Cloudflare {
   interface Env {
     ASSETS: Fetcher;
-    DB: D1Database;
     MEDIA_BUCKET: R2Bucket;
   }
 }
