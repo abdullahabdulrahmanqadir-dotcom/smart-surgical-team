@@ -6,6 +6,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
+import ImageGallery from "../../../components/ImageGallery";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
 import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
@@ -48,10 +49,9 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />
           {content.bodyHtml ? <section className="member-rich-content" dangerouslySetInnerHTML={{ __html: content.bodyHtml }} /> : null}
-          {content.media?.filter((item) => item.kind === "image").map((item) => <figure className="member-content-image" key={item.id}><img src={item.publicUrl} alt={item.altText ?? ""}/>{item.caption ? <figcaption>{item.caption}</figcaption> : null}</figure>)}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">Resources</span><h2 id="content-downloads-title">Downloads</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || "Download document"}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
-            <div className="section-mini-head"><div><span className="section-kicker">Clinical record</span><h2 id="case-summary-title">Case summary</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
+            <div className="section-mini-head"><div><span className="section-kicker">Overview</span><h2 id="case-summary-title">Case details</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
               <dl className="case-summary-list">
                 {summarySections.map(({ key, label, value }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: value }} /></div>)}
@@ -64,6 +64,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
         <aside className="content-aside">
           <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={localePath(active, "about")} className="text-link">View team <IconArrowRight size={15} /></Link></section>
           <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Duration</dt><dd>{content.duration}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
+          <ImageGallery images={content.media?.filter((item) => item.kind === "image") ?? []} />
         </aside>
       </div>
 

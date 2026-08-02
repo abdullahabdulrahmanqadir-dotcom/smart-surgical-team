@@ -19,12 +19,14 @@ function isPlainClick(event: MouseEvent) {
 }
 
 function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
+  const youtubeId = item.videoUrl ? (() => { try { const url = new URL(item.videoUrl); return url.hostname.includes("youtu") ? (url.hostname === "youtu.be" ? url.pathname.slice(1) : url.searchParams.get("v")) : null; } catch { return null; } })() : null;
+  const cardImage = item.thumbnailSource === "image" ? item.thumbnailUrl : youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : undefined;
   return (
     <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">
-        <span className="content-case-art-glyph" aria-hidden="true">
+        {cardImage ? <img className="content-case-thumbnail" src={cardImage} alt=""/> : <span className="content-case-art-glyph" aria-hidden="true">
           <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
-        </span>
+        </span>}
         <span className="content-case-type">
           {item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}
           {item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}

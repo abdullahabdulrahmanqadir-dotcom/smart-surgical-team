@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { ContentRecord } from "../lib/content";
 import { IconClock, IconFile, IconPlay, IconUsers } from "./icons";
 
@@ -26,7 +26,6 @@ function getYouTubeVideoId(value: string): string | null {
 
 export default function ContentPlayer({ content }: { content: ContentRecord }) {
   const video = useRef<HTMLVideoElement>(null);
-  const [tab, setTab] = useState<"overview" | "chapters" | "notes">("overview");
 
   // Articles and resources do not get a simulated lecture player. Their
   // authored body and uploaded files are rendered directly on the page.
@@ -55,13 +54,7 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
       </section>
       {youtubeVideoId ? <a className="youtube-watch-link" href={content.videoUrl} target="_blank" rel="noreferrer"><IconPlay size={17} />Watch on YouTube<span>Opens in YouTube for age-restricted content</span></a> : null}
 
-      <div className="content-tabs" role="tablist" aria-label="Lecture information">
-        {(["overview", "chapters", "notes"] as const).map((item) => <button key={item} type="button" role="tab" id={`content-tab-${item}`} aria-controls={`content-panel-${item}`} aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{item === "overview" ? "Overview" : item === "chapters" ? "Chapters" : "Learning notes"}</button>)}
-      </div>
-
-      {tab === "overview" && <div className="content-tab-panel" role="tabpanel" id="content-panel-overview" aria-labelledby="content-tab-overview"><p>{content.summary}</p><div className="content-facts"><span><IconClock size={16} /> {content.duration}</span>{content.learnerCount ? <span><IconUsers size={16} /> {content.learnerCount} learners</span> : null}<span><IconFile size={16} /> Course notes</span></div></div>}
-      {tab === "chapters" && <ol className="chapter-list" role="tabpanel" id="content-panel-chapters" aria-labelledby="content-tab-chapters">{content.chapters.length ? content.chapters.map((chapter) => <li key={chapter.title}><button type="button" onClick={() => { if (video.current && content.durationSeconds) video.current.currentTime = (chapter.progress / 100) * content.durationSeconds; }}><span>{chapter.time}</span><b>{chapter.title}</b><IconPlay size={14} /></button></li>) : <li className="content-tab-panel">Chapters will appear here when they are added to this content item.</li>}</ol>}
-      {tab === "notes" && <div className="content-tab-panel note-panel" role="tabpanel" id="content-panel-notes" aria-labelledby="content-tab-notes"><p>Learning notes for this {content.kind === "poster" ? "resource" : "lecture"} will be published alongside the content.</p></div>}
+      <section className="content-overview" aria-labelledby="content-overview-title"><span className="section-kicker">Overview</span><h2 id="content-overview-title">Case overview</h2><p>{content.summary}</p><div className="content-facts"><span><IconClock size={16} /> {content.duration}</span>{content.learnerCount ? <span><IconUsers size={16} /> {content.learnerCount} learners</span> : null}<span><IconFile size={16} /> Course notes</span></div></section>
     </>
   );
 }

@@ -43,13 +43,15 @@ export type ContentRecord = {
   presenter: { name: string; role: string; bio: string; initials: string };
   videoUrl?: string;
   posterUrl?: string;
+  thumbnailSource?: "youtube" | "image";
+  thumbnailUrl?: string;
   chapters: ContentChapter[];
   caseSummary?: CaseSummary;
   learnerCount?: number;
   progress?: number;
   accessLevel?: "public" | "members_only";
   bodyHtml?: string;
-  media?: { id: string; kind: "image" | "document"; publicUrl: string; altText?: string; caption?: string }[];
+  media?: { id: string; storagePath: string; kind: "image" | "document"; publicUrl: string; altText?: string; caption?: string }[];
 };
 
 function formatDuration(seconds: number | null | undefined): string {
@@ -76,6 +78,8 @@ type ContentItemRow = {
   kind: ContentKind;
   video_url: string | null;
   poster_url: string | null;
+  thumbnail_source: "youtube" | "image" | null;
+  thumbnail_media_path: string | null;
   duration_seconds: number | null;
   reading_minutes: number | null;
   level: string | null;
@@ -90,7 +94,7 @@ type ContentItemRow = {
   contributors: OneOrMany<ContributorRow>;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
   content_chapters: ChapterRow[] | null;
-  content_media: { id: string; kind: "image" | "document"; public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
+  content_media: { id: string; storage_path: string; kind: "image" | "document"; public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
 };
 
 function firstOf<T>(value: OneOrMany<T>): T | undefined {
@@ -112,7 +116,7 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
       // then PostgREST rejects the bare embed as ambiguous, this query has
       // been failing outright and getPublishedContent's catch was turning
       // every failure into an empty list — no content showed anywhere.
-      .select("id,title,slug,summary,kind,video_url,poster_url,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (!includeMembersOnly) query = query.eq("access_level", "public");
@@ -154,6 +158,8 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
         presenter: { name, role: contributor?.credentials ?? "Contributor", bio: contributor?.biography ?? "", initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST" },
         videoUrl: row.video_url ?? undefined,
         posterUrl: row.poster_url ?? undefined,
+        thumbnailSource: row.thumbnail_source === "image" ? "image" : "youtube",
+        thumbnailUrl: row.thumbnail_source === "image" ? row.content_media?.find((item) => item.kind === "image" && item.storage_path === row.thumbnail_media_path)?.public_url : undefined,
         chapters,
         caseSummary: {
           presentation: row.case_presentation ?? undefined,
@@ -164,7 +170,7 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
         },
         accessLevel: row.access_level ?? "public",
         bodyHtml: row.body_html ?? undefined,
-        media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
+        media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, storagePath: item.storage_path, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
       } satisfies ContentRecord;
     });
   } catch {
