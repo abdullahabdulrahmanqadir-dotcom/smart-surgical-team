@@ -41,6 +41,7 @@ export type ContentRecord = {
   publishedAt?: string;
   level: string;
   presenter: { name: string; role: string; bio: string; initials: string };
+  contributors: { name: string; role: string; initials: string; photoUrl?: string }[];
   videoUrl?: string;
   posterUrl?: string;
   thumbnailSource?: "youtube" | "image";
@@ -67,7 +68,7 @@ function canUseContentDatabase() {
 }
 
 type OneOrMany<T> = T | T[] | null;
-type ContributorRow = { display_name: string | null; credentials: string | null; biography: string | null };
+type ContributorRow = { display_name: string | null; credentials: string | null; biography: string | null; photo_url: string | null };
 type TopicRow = { name: string | null; slug: string | null };
 type ChapterRow = { title: string; position: number; starts_at_seconds: number };
 type ContentItemRow = {
@@ -92,6 +93,7 @@ type ContentItemRow = {
   access_level: "public" | "members_only" | null;
   body_html: string | null;
   contributors: OneOrMany<ContributorRow>;
+  content_contributors: OneOrMany<{ contributors: OneOrMany<ContributorRow> }>;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
   content_chapters: ChapterRow[] | null;
   content_media: { id: string; storage_path: string; kind: "image" | "document"; public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
@@ -116,7 +118,7 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
       // then PostgREST rejects the bare embed as ambiguous, this query has
       // been failing outright and getPublishedContent's catch was turning
       // every failure into an empty list — no content showed anywhere.
-      .select("id,title,slug,summary,kind,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
+      .select("id,title,slug,summary,kind,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,access_level,body_html,contributors!content_items_contributor_id_fkey(display_name,credentials,biography,photo_url),content_contributors(contributors(display_name,credentials,biography,photo_url)),content_topics(topics(name,slug)),content_chapters(title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
       .eq("status", "published")
       .order("published_at", { ascending: false });
     if (!includeMembersOnly) query = query.eq("access_level", "public");
@@ -131,7 +133,22 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
     if (error || !data) return [];
 
     return (data as unknown as ContentItemRow[]).map((row) => {
-      const contributor = firstOf(row.contributors);
+      const leadContributor = firstOf(row.contributors);
+      const selectedContributors = (Array.isArray(row.content_contributors) ? row.content_contributors : row.content_contributors ? [row.content_contributors] : [])
+        .map((entry) => firstOf(entry.contributors))
+        .filter((contributor): contributor is ContributorRow & { display_name: string } => Boolean(contributor?.display_name));
+      // Content created before multi-contributor support still has only the
+      // legacy lead-author FK, so preserve it as a graceful fallback.
+      const contributorRows = selectedContributors.length ? selectedContributors : leadContributor?.display_name ? [leadContributor] : [];
+      const contributors = contributorRows.map((contributor) => {
+        const name = contributor.display_name;
+        return {
+          name,
+          role: contributor.credentials ?? "Contributor",
+          initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST",
+          photoUrl: contributor.photo_url ?? undefined,
+        };
+      });
       const topics = (Array.isArray(row.content_topics) ? row.content_topics : row.content_topics ? [row.content_topics] : [])
         .map((entry) => firstOf(entry.topics))
         .filter((topic): topic is TopicRow & { name: string; slug: string } => Boolean(topic?.name && topic.slug));
@@ -139,7 +156,7 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
       const chapters = [...(row.content_chapters ?? [])]
         .sort((a, b) => a.position - b.position)
         .map((chapter) => ({ time: formatDuration(chapter.starts_at_seconds), title: chapter.title, progress: row.duration_seconds ? Math.round((chapter.starts_at_seconds / row.duration_seconds) * 100) : 0 }));
-      const name = contributor?.display_name ?? "Smart Surgical Team";
+      const presenter = contributors[0] ?? { name: "Smart Surgical Team", role: "Contributor", initials: "ST" };
       const duration = formatDuration(row.duration_seconds) || (row.reading_minutes ? `${row.reading_minutes} min read` : "");
       return {
         id: row.id,
@@ -155,7 +172,8 @@ async function getPublishedContent(includeMembersOnly = false, identifier?: stri
         readingMinutes: row.reading_minutes ?? undefined,
         publishedAt: row.published_at ?? undefined,
         level: row.level ?? "Clinical education",
-        presenter: { name, role: contributor?.credentials ?? "Contributor", bio: contributor?.biography ?? "", initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST" },
+        presenter: { name: presenter.name, role: presenter.role, bio: leadContributor?.biography ?? "", initials: presenter.initials },
+        contributors,
         videoUrl: row.video_url ?? undefined,
         posterUrl: row.poster_url ?? undefined,
         thumbnailSource: row.thumbnail_source === "image" ? "image" : "youtube",

@@ -13,6 +13,9 @@ import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup } from "../../../lib/topics";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
+import { TEAM_GROUPS } from "../../../lib/team";
+
+const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const content = await getContent((await params).id);
@@ -39,6 +42,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
     .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
+  const contributors = content.contributors.length ? content.contributors : [content.presenter];
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
@@ -63,8 +67,8 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
           </section>
         </section>
         <aside className="content-aside">
-          <section className="presenter-card"><span className="aside-label">Presenter</span><div className="presenter-identity"><span className="presenter-avatar">{content.presenter.initials}</span><div><h2>{content.presenter.name}</h2><p>{content.presenter.role}</p></div></div><p className="presenter-copy">{content.presenter.bio || "Contributor to Smart Surgical Team education."}</p><Link href={localePath(active, "about")} className="text-link">View team <IconArrowRight size={15} /></Link></section>
-          <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Duration</dt><dd>{content.duration}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
+          <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? "Contributor" : "Contributors"}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <img className="presenter-avatar presenter-photo" src={portrait} alt={`Portrait of ${contributor.name}`} /> : <span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">View team <IconArrowRight size={15} /></Link></section>
+          <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
           <ImageGallery images={content.media?.filter((item) => item.kind === "image") ?? []} />
         </aside>
       </div>
