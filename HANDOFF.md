@@ -63,13 +63,12 @@ Recent commits, newest first:
 | `73a81bc` | Adds restrained palette accents to Topics | Published privately to Sites |
 | `7774ef5` / `e789a02` / `989fa88` | Case-grid and Topics-explorer evolution | Included in the current local implementation |
 
-### Current private deployment
+### Current deployment
 
-- URL: `https://smart-surgical-team.kitgiz-0534.chatgpt.site`
-- It contains commits through **`85d96dd`**.
-- It **does not include** the local-only search/clear-filters commit `ef46b79`
-  or the archive-only commit `11205c0`.
-- Do not redeploy simply to synchronize it; wait for an explicit client request.
+The site is the Cloudflare Worker **`smart`**, deployed from `main` through the
+Cloudflare Git integration — pushing to `main` deploys. The Worker's Bindings
+tab in the Cloudflare dashboard is the source of truth for bindings and
+secrets; `.openai/hosting.json` does not describe production.
 
 ### Committed deployment archives
 
