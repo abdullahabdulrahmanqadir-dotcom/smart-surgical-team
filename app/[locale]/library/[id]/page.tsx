@@ -12,6 +12,7 @@ import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup } from "../../../lib/topics";
+import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const content = await getContent((await params).id);
@@ -69,7 +70,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
       </div>
 
       <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">Keep learning</span><h2 id="related-title">Related content</h2></div><Link className="text-link" href={`${home}#library`}>View library <IconArrowRight size={16} /></Link></div><div className="related-grid">
-        {related.map((item, index) => <Link href={localePath(active, `library/${item.slug}`)} className="related-card" key={item.id}><div className={`related-art tone-${(index % 4) + 1}`}><span className="related-play"><IconPlay size={18} /></span><small>{item.duration}</small></div><span className="related-topic">{item.topic}</span><h3>{item.title}</h3><p><IconClock size={14} /> {item.kind === "webinar_recording" ? "Recorded webinar" : "Video lesson"}</p></Link>)}
+        {related.map((item, index) => { const thumbnail = contentThumbnailUrl(item); return <Link href={localePath(active, `library/${item.slug}`)} className="related-card" key={item.id}><div className={`related-art tone-${(index % 4) + 1}`}>{thumbnail ? <img className="related-thumbnail" src={thumbnail} alt=""/> : null}<span className="related-play"><IconPlay size={18} /></span><small>{item.duration}</small></div><span className="related-topic">{item.topic}</span><h3>{item.title}</h3><p><IconClock size={14} /> {item.kind === "webinar_recording" ? "Recorded webinar" : "Video lesson"}</p></Link>; })}
       </div></section>
     </main>
     <SiteFooter locale={active} dict={dict} />

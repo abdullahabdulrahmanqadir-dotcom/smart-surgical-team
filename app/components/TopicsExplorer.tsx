@@ -10,6 +10,7 @@ import type { TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
 import HeadNeckMap from "./HeadNeckMap";
 import { fill } from "../lib/dictionaries";
+import { contentThumbnailUrl } from "../lib/content-thumbnail";
 import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
 type LibraryItem = ContentRecord & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
@@ -19,8 +20,7 @@ function isPlainClick(event: MouseEvent) {
 }
 
 function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
-  const youtubeId = item.videoUrl ? (() => { try { const url = new URL(item.videoUrl); return url.hostname.includes("youtu") ? (url.hostname === "youtu.be" ? url.pathname.slice(1) : url.searchParams.get("v")) : null; } catch { return null; } })() : null;
-  const cardImage = item.thumbnailSource === "image" ? item.thumbnailUrl : youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` : undefined;
+  const cardImage = contentThumbnailUrl(item);
   return (
     <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">

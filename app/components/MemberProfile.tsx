@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
+import { contentThumbnailUrl } from "../lib/content-thumbnail";
 import { IconArrowRight, IconBell, IconBookmark, IconCalendar, IconCheck, IconClock, IconFile, IconLayers, IconLogOut, IconMail, IconPlay, IconSliders, IconUser } from "./icons";
 import TopicGlyph from "./TopicGlyph";
 
 type Member = { name: string; email: string } | null;
-type SavedCase = { slug: string; title: string; summary: string; topic: string; format: string; duration: string; posterUrl?: string };
+type SavedCase = { slug: string; title: string; summary: string; topic: string; kind: string; duration: string; videoUrl?: string; thumbnailSource?: "youtube" | "image"; thumbnailUrl?: string };
 type ProfileSection = "overview" | "saved" | "events" | "preferences";
 
 const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
@@ -18,18 +19,9 @@ const profileSections: { id: ProfileSection; label: string; icon: typeof IconUse
   { id: "preferences", label: "Preferences", icon: IconSliders },
 ];
 
-function savedCasesFrom(value: unknown): SavedCase[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const candidate = item as Record<string, unknown>;
-    if (!["slug", "title", "summary", "topic", "format", "duration"].every((key) => typeof candidate[key] === "string")) return [];
-    return [{ slug: candidate.slug as string, title: candidate.title as string, summary: candidate.summary as string, topic: candidate.topic as string, format: candidate.format as string, duration: candidate.duration as string, ...(typeof candidate.posterUrl === "string" ? { posterUrl: candidate.posterUrl } : {}) }];
-  });
-}
-
 function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {
-  if (savedCase.posterUrl) return <img src={savedCase.posterUrl} alt="" />;
+  const thumbnail = contentThumbnailUrl(savedCase);
+  if (thumbnail) return <img src={thumbnail} alt="" />;
   const topic = PUBLIC_TOPIC_GROUPS.find((group) => group.name === savedCase.topic || group.subTopics.some((subTopic) => subTopic.name === savedCase.topic));
   return topic ? <TopicGlyph icon={topic.icon} imageIcon={topic.imageIcon} size={86} /> : <IconBookmark size={58} aria-hidden="true" />;
 }
@@ -52,18 +44,23 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
 
   useEffect(() => {
     let active = true;
-    const updateSavedCases = (event: Event) => {
-      if (active) setSavedCases(savedCasesFrom((event as CustomEvent<unknown>).detail));
+    const loadSavedCases = async () => {
+      try {
+        const client = getSupabaseBrowserClient();
+        const [{ data: sessionData }, { data: userData }] = await Promise.all([client.auth.getSession(), client.auth.getUser()]);
+        if (!active || !userData.user) return;
+        if (userData.user.email) setMember({ name: String(userData.user.user_metadata.full_name ?? userData.user.email), email: userData.user.email });
+        const token = sessionData.session?.access_token;
+        if (!token) return;
+        const response = await fetch("/api/library/saved", { headers: { Authorization: `Bearer ${token}` } });
+        const result = await response.json() as { data?: unknown };
+        if (!response.ok || !Array.isArray(result.data) || !active) return;
+        setSavedCases(result.data.filter((item): item is SavedCase => Boolean(item && typeof item === "object" && ["slug", "title", "summary", "topic", "kind", "duration"].every((key) => typeof (item as Record<string, unknown>)[key] === "string"))));
+      } catch { /* The profile remains usable if the catalogue is temporarily unavailable. */ }
     };
+    const updateSavedCases = () => { void loadSavedCases(); };
     window.addEventListener("sst-saved-cases-changed", updateSavedCases);
-    try {
-      const client = getSupabaseBrowserClient();
-      client.auth.getUser().then(({ data }) => {
-        if (!active || !data.user) return;
-        if (data.user.email) setMember({ name: String(data.user.user_metadata.full_name ?? data.user.email), email: data.user.email });
-        setSavedCases(savedCasesFrom(data.user.user_metadata.saved_cases));
-      });
-    } catch { /* No active Supabase session. */ }
+    void loadSavedCases();
     return () => { active = false; window.removeEventListener("sst-saved-cases-changed", updateSavedCases); };
   }, [initialMember]);
 
@@ -88,7 +85,10 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
     const nextSavedCases = savedCases.filter((savedCase) => savedCase.slug !== slug);
     setSavedCases(nextSavedCases);
     try {
-      const { error } = await getSupabaseBrowserClient().auth.updateUser({ data: { saved_cases: nextSavedCases } });
+      const client = getSupabaseBrowserClient();
+      const { data } = await client.auth.getUser();
+      const stored = Array.isArray(data.user?.user_metadata.saved_cases) ? data.user.user_metadata.saved_cases : [];
+      const { error } = await client.auth.updateUser({ data: { saved_cases: stored.filter((item: unknown) => !item || typeof item !== "object" || (item as Record<string, unknown>).slug !== slug) } });
       if (error) throw error;
       window.dispatchEvent(new CustomEvent("sst-saved-cases-changed", { detail: nextSavedCases }));
     } catch {
@@ -133,7 +133,7 @@ export default function MemberProfile({ locale, initialMember }: { locale: strin
 
         <section className="profile-panel" id="preferences"><div className="profile-panel-heading"><div><span className="auth-kicker">Preferences</span><h2>Shape your updates.</h2></div></div><label className="preference-toggle"><span><IconBell size={19} /><span><b>Learning updates</b><small>Occasional event and library updates from Smart Surgical Team.</small></span></span><input type="checkbox" checked={emailUpdates} onChange={(event) => setEmailUpdates(event.target.checked)} /><i aria-hidden="true" /></label><div className="profile-save-row"><button className="btn btn-primary" type="button" onClick={savePreferences}>Save preferences</button>{saved && <p role="status"><IconCheck size={17} />Preferences saved in this browser.</p>}</div></section>
         </>}
-        {activeSection === "saved" && <section className="profile-saved-section" id="saved" aria-labelledby="saved-learning-title"><div className="profile-panel-heading"><div><span className="auth-kicker">Saved learning</span><h2 id="saved-learning-title">Your reference library</h2><p>Keep the cases and lessons you want to return to in one focused place.</p></div><Link href={`/${locale}/topics`} className="text-link">Browse topics</Link></div>{savedCases.length ? <div className="saved-content-grid">{savedCases.map((savedCase) => <article className="saved-content-card" key={savedCase.slug}><Link className="saved-content-open" href={`/${locale}/library/${savedCase.slug}`} aria-label={`Open ${savedCase.title}`}><div className="saved-content-art"><SavedCaseArtwork savedCase={savedCase} /><span className="saved-content-type">{savedCase.format.toLowerCase().includes("video") ? <IconPlay size={12} /> : <IconFile size={12} />}{savedCase.format}</span></div><div className="saved-content-copy"><p>{savedCase.topic}</p><h3>{savedCase.title}</h3><span>{savedCase.summary}</span><div><small>{savedCase.duration ? <><IconClock size={14} />{savedCase.duration}</> : null}</small><IconArrowRight size={18} /></div></div></Link><button className="saved-content-remove" type="button" onClick={() => void removeSavedCase(savedCase.slug)} aria-label={`Remove ${savedCase.title} from saved learning`}>Remove</button></article>)}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>Nothing saved yet</h3><p>When a case or topic is useful for your next study session, save it here for easy return.</p></div></div>}</section>}
+        {activeSection === "saved" && <section className="profile-saved-section" id="saved" aria-labelledby="saved-learning-title"><div className="profile-panel-heading"><div><span className="auth-kicker">Saved learning</span><h2 id="saved-learning-title">Your reference library</h2><p>Keep the cases and lessons you want to return to in one focused place.</p></div><Link href={`/${locale}/topics`} className="text-link">Browse topics</Link></div>{savedCases.length ? <div className="saved-content-grid">{savedCases.map((savedCase) => <article className="saved-content-card" key={savedCase.slug}><Link className="saved-content-open" href={`/${locale}/library/${savedCase.slug}`} aria-label={`Open ${savedCase.title}`}><div className="saved-content-art"><SavedCaseArtwork savedCase={savedCase} /><span className="saved-content-type">{savedCase.kind === "video" || savedCase.kind === "webinar_recording" ? <IconPlay size={12} /> : <IconFile size={12} />}{savedCase.kind.replace(/_/g, " ")}</span></div><div className="saved-content-copy"><p>{savedCase.topic}</p><h3>{savedCase.title}</h3><span>{savedCase.summary}</span><div><small>{savedCase.duration ? <><IconClock size={14} />{savedCase.duration}</> : null}</small><IconArrowRight size={18} /></div></div></Link><button className="saved-content-remove" type="button" onClick={() => void removeSavedCase(savedCase.slug)} aria-label={`Remove ${savedCase.title} from saved learning`}>Remove</button></article>)}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>Nothing saved yet</h3><p>When a case or topic is useful for your next study session, save it here for easy return.</p></div></div>}</section>}
       </div>
     </div>
   );
