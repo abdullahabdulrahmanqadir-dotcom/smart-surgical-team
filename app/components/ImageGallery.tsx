@@ -1,31 +1,125 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type Image = { id: string; publicUrl: string; altText?: string; caption?: string };
 
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 6;
+const FIT_ZOOM = 1;
+
+/** Untransformed layout box of the image, measured relative to the canvas. */
+type FitBox = { width: number; height: number; centreX: number; centreY: number };
+
 export default function ImageGallery({ images, label = "Case images" }: { images: Image[]; label?: string }) {
-  const [active, setActive] = useState<Image | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(FIT_ZOOM);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const dragStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [animate, setAnimate] = useState(true);
 
-  function changeZoom(next: number) {
-    const value = Math.max(0.5, Math.min(4, next));
-    setZoom(value);
-    if (value <= 1) setPan({ x: 0, y: 0 });
-  }
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const fitRef = useRef<FitBox>({ width: 0, height: 0, centreX: 0, centreY: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ distance: number; zoom: number; pan: { x: number; y: number }; centre: { x: number; y: number } } | null>(null);
+  const dragStart = useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
+  const swipeStart = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const active = openIndex === null ? null : images[openIndex];
+
+  /** Panning is bounded so the image can never be dragged off into empty space:
+      an edge may reach the canvas edge but never travel past it. Along an axis
+      where the scaled image is smaller than the canvas it stays put. */
+  const clampPan = useCallback((next: { x: number; y: number }, atZoom: number) => {
+    const canvas = canvasRef.current;
+    const fit = fitRef.current;
+    if (!canvas || !fit.width || !fit.height) return { x: 0, y: 0 };
+    const bounds = canvas.getBoundingClientRect();
+    const axis = (value: number, half: number, centre: number, extent: number) => {
+      const upper = half - centre;
+      const lower = extent - centre - half;
+      if (lower > upper) return 0;
+      return Math.max(lower, Math.min(upper, value));
+    };
+    return {
+      x: axis(next.x, (fit.width * atZoom) / 2, fit.centreX, bounds.width),
+      y: axis(next.y, (fit.height * atZoom) / 2, fit.centreY, bounds.height),
+    };
+  }, []);
+
+  const applyZoom = useCallback((nextZoom: number, anchor?: { x: number; y: number }) => {
+    const canvas = canvasRef.current;
+    const target = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
+    setZoom((currentZoom) => {
+      if (target === currentZoom) return currentZoom;
+      setPan((currentPan) => {
+        if (target <= FIT_ZOOM) return { x: 0, y: 0 };
+        if (!canvas || !anchor) return clampPan(currentPan, target);
+        // Keep whatever sits under the pointer pinned in place while scaling.
+        const bounds = canvas.getBoundingClientRect();
+        const fit = fitRef.current;
+        const offsetX = anchor.x - (bounds.left + fit.centreX);
+        const offsetY = anchor.y - (bounds.top + fit.centreY);
+        const ratio = target / currentZoom;
+        return clampPan(
+          { x: offsetX - (offsetX - currentPan.x) * ratio, y: offsetY - (offsetY - currentPan.y) * ratio },
+          target,
+        );
+      });
+      return target;
+    });
+  }, [clampPan]);
+
+  const resetView = useCallback(() => { setAnimate(true); setZoom(FIT_ZOOM); setPan({ x: 0, y: 0 }); }, []);
+  const close = useCallback(() => { setOpenIndex(null); resetView(); setDragging(false); pointers.current.clear(); gesture.current = null; }, [resetView]);
+  const step = useCallback((delta: number) => {
+    setOpenIndex((current) => (current === null ? current : (current + delta + images.length) % images.length));
+    resetView();
+  }, [images.length, resetView]);
+
+  /** Measure the painted size so pan limits track the real pixels on screen.
+      `offsetWidth`/`offsetHeight` are the untransformed layout box, which the
+      max-width/max-height rules keep at the image's own aspect ratio. */
+  const measure = useCallback(() => {
+    const image = imageRef.current;
+    if (!image || !image.offsetWidth) return;
+    fitRef.current = {
+      width: image.offsetWidth,
+      height: image.offsetHeight,
+      centreX: image.offsetLeft + image.offsetWidth / 2,
+      centreY: image.offsetTop + image.offsetHeight / 2,
+    };
+    setPan((current) => clampPan(current, zoom));
+  }, [clampPan, zoom]);
+
+  useLayoutEffect(() => { measure(); }, [measure, openIndex]);
 
   useEffect(() => {
     if (!active) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setActive(null); };
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [active, measure]);
+
+  useEffect(() => {
+    if (!active) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { close(); return; }
+      if (images.length > 1 && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+        event.preventDefault();
+        step(event.key === "ArrowRight" ? 1 : -1);
+        return;
+      }
+      if (event.key === "+" || event.key === "=") { event.preventDefault(); setAnimate(true); applyZoom(zoom + 0.4); }
+      if (event.key === "-" || event.key === "_") { event.preventDefault(); setAnimate(true); applyZoom(zoom - 0.4); }
+      if (event.key === "0") { event.preventDefault(); resetView(); }
+    };
     const pageOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKeyDown);
     return () => { window.removeEventListener("keydown", onKeyDown); document.body.style.overflow = pageOverflow; };
-  }, [active]);
+  }, [active, applyZoom, close, images.length, resetView, step, zoom]);
 
   // React's delegated wheel listener may be passive in some browsers. A native,
   // non-passive handler is required to consume wheel input while viewing an image.
@@ -34,27 +128,143 @@ export default function ImageGallery({ images, label = "Case images" }: { images
     if (!canvas || !active) return;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      setZoom((current) => {
-        const next = Math.max(0.5, Math.min(4, current + (event.deltaY < 0 ? 0.15 : -0.15)));
-        if (next <= 1) setPan({ x: 0, y: 0 });
-        return next;
-      });
+      setAnimate(false);
+      const factor = Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0022));
+      applyZoom(zoom * factor, { x: event.clientX, y: event.clientY });
     };
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
-  }, [active]);
+  }, [active, applyZoom, zoom]);
+
+  // Neighbouring images are fetched up front so stepping through feels instant.
+  useEffect(() => {
+    if (openIndex === null || images.length < 2) return;
+    for (const offset of [1, -1]) {
+      const preload = new window.Image();
+      preload.src = images[(openIndex + offset + images.length) % images.length].publicUrl;
+    }
+  }, [images, openIndex]);
 
   if (!images.length) return null;
-  const close = () => { setActive(null); setZoom(1); setPan({ x: 0, y: 0 }); setDragging(false); };
+
+  const open = (index: number) => { setOpenIndex(index); resetView(); };
+  const zoomed = zoom > FIT_ZOOM + 0.001;
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      gesture.current = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        zoom,
+        pan,
+        centre: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+      };
+      dragStart.current = null;
+      swipeStart.current = null;
+      return;
+    }
+    setAnimate(false);
+    if (zoomed) {
+      dragStart.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y, moved: false };
+      setDragging(true);
+    } else if (images.length > 1) {
+      swipeStart.current = { x: event.clientX, y: event.clientY, time: Date.now() };
+    }
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const pinch = gesture.current;
+    if (pinch && pointers.current.size >= 2) {
+      const [a, b] = [...pointers.current.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      applyZoom(pinch.zoom * (distance / pinch.distance), pinch.centre);
+      return;
+    }
+    if (!dragStart.current) return;
+    dragStart.current.moved = true;
+    setPan(clampPan(
+      { x: dragStart.current.panX + event.clientX - dragStart.current.x, y: dragStart.current.panY + event.clientY - dragStart.current.y },
+      zoom,
+    ));
+  };
+
+  const endPointer = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) gesture.current = null;
+    dragStart.current = null;
+    setDragging(false);
+    const swipe = swipeStart.current;
+    swipeStart.current = null;
+    if (swipe && !zoomed && event.type === "pointerup") {
+      const distanceX = event.clientX - swipe.x;
+      const distanceY = event.clientY - swipe.y;
+      if (Math.abs(distanceX) > 60 && Math.abs(distanceX) > Math.abs(distanceY) * 1.5 && Date.now() - swipe.time < 600) {
+        step(distanceX < 0 ? 1 : -1);
+      }
+    }
+  };
+
   return <section className="case-image-gallery" aria-labelledby="case-images-title">
     <span className="aside-label" id="case-images-title">{label}</span>
-    <div className="case-image-thumbnails">{images.map((image) => <button key={image.id} type="button" onClick={() => { setActive(image); setZoom(1); setPan({ x: 0, y: 0 }); }}><img src={image.publicUrl} alt={image.altText ?? "Case image"}/><span>Open image</span></button>)}</div>
-    {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || "Image viewer"} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <div className="image-lightbox-frame">
-        <div className="image-lightbox-tools"><span>{Math.round(zoom * 100)}%</span><button type="button" onClick={() => changeZoom(zoom - 0.25)} aria-label="Zoom out">−</button><input type="range" min="0.5" max="4" step="0.1" value={zoom} onChange={(event) => changeZoom(Number(event.target.value))} aria-label="Image zoom"/><button type="button" onClick={() => changeZoom(zoom + 0.25)} aria-label="Zoom in">+</button><button type="button" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}>Reset</button><button type="button" onClick={close}>Close</button></div>
-        <div ref={canvasRef} className={`image-lightbox-canvas${zoom > 1 ? " is-zoomed" : ""}`} onPointerDown={(event) => { if (zoom <= 1 || event.button !== 0) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); dragStart.current = { x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y }; setDragging(true); }} onPointerMove={(event) => { if (!dragStart.current) return; event.preventDefault(); setPan({ x: dragStart.current.panX + event.clientX - dragStart.current.x, y: dragStart.current.panY + event.clientY - dragStart.current.y }); }} onPointerUp={(event) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); dragStart.current = null; setDragging(false); }} onPointerCancel={() => { dragStart.current = null; setDragging(false); }} onLostPointerCapture={() => { dragStart.current = null; setDragging(false); }}><img draggable={false} className={dragging ? "is-dragging" : ""} src={active.publicUrl} alt={active.altText ?? "Case image"} style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}/></div>
-        {active.caption ? <p>{active.caption}</p> : null}
+    <div className="case-image-thumbnails">{images.map((image, index) =>
+      <button key={image.id} type="button" onClick={() => open(index)} aria-label={`Open image ${index + 1} of ${images.length}`}>
+        <img src={image.publicUrl} alt={image.altText ?? "Case image"} loading="lazy"/>
+        <span>Open image</span>
+      </button>)}
+    </div>
+    {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || "Image viewer"}>
+      <div className="image-lightbox-bar">
+        <p className="image-lightbox-title">{active.caption || active.altText || "Case image"}{images.length > 1 ? <span> · {(openIndex ?? 0) + 1} / {images.length}</span> : null}</p>
+        <div className="image-lightbox-tools">
+          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom - 0.4); }} disabled={zoom <= MIN_ZOOM} aria-label="Zoom out">−</button>
+          <button type="button" className="image-lightbox-level" onClick={resetView} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom + 0.4); }} disabled={zoom >= MAX_ZOOM} aria-label="Zoom in">+</button>
+          <a href={active.publicUrl} target="_blank" rel="noreferrer" aria-label="Open original image in a new tab">Original</a>
+          <button type="button" className="image-lightbox-close" onClick={close} aria-label="Close image viewer">×</button>
+        </div>
       </div>
+      <div
+        ref={canvasRef}
+        className={`image-lightbox-canvas${zoomed ? " is-zoomed" : ""}${dragging ? " is-dragging" : ""}`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
+        onDoubleClick={(event) => { setAnimate(true); if (zoomed) resetView(); else applyZoom(2.5, { x: event.clientX, y: event.clientY }); }}
+        onClick={(event) => { if (event.target === event.currentTarget && !zoomed) close(); }}
+      >
+        <img
+          ref={imageRef}
+          key={active.id}
+          draggable={false}
+          src={active.publicUrl}
+          alt={active.altText ?? "Case image"}
+          onLoad={measure}
+          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`, transition: animate && !dragging ? "transform .22s cubic-bezier(.2,.7,.3,1)" : "none" }}
+        />
+      </div>
+      {images.length > 1 ? <>
+        <button type="button" className="image-lightbox-step is-prev" onClick={() => step(-1)} aria-label="Previous image">‹</button>
+        <button type="button" className="image-lightbox-step is-next" onClick={() => step(1)} aria-label="Next image">›</button>
+        <div className="image-lightbox-filmstrip" role="tablist" aria-label="Choose image">
+          {images.map((image, index) =>
+            <button
+              key={image.id}
+              type="button"
+              role="tab"
+              aria-selected={index === openIndex}
+              className={index === openIndex ? "is-current" : undefined}
+              onClick={() => { setOpenIndex(index); resetView(); }}
+              aria-label={`Image ${index + 1}`}
+            ><img src={image.publicUrl} alt="" loading="lazy"/></button>)}
+        </div>
+      </> : null}
     </div> : null}
   </section>;
 }

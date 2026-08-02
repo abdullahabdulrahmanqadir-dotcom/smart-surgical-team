@@ -25,7 +25,13 @@ const localBindingConfig = {
     : [],
   r2_buckets: [
     ...(r2 ? [{ binding: r2, bucket_name: "site-creator-r2" }] : []),
-    { binding: "MEDIA_BUCKET", bucket_name: "smart-media" },
+    // Editorial media is bound to the real bucket even in dev. A local
+    // Miniflare bucket starts empty, so every existing image 404s while
+    // developing, and anything uploaded from the Admin lands in a local cache
+    // that the deployed site can never read — while its row in Supabase, which
+    // is always the shared instance, points at a key that does not exist.
+    // Requires `wrangler login`.
+    { binding: "MEDIA_BUCKET", bucket_name: "smart-media", remote: true },
   ],
 };
 
