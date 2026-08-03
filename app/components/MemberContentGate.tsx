@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import type { ContentRecord } from "../lib/content";
+// From `content-types`, not `content`: this is a client component, and
+// `content` pulls in `next/cache`, which has no browser equivalent.
+import { CASE_SUMMARY_FIELDS, type ContentRecord } from "../lib/content-types";
 import ContentPlayer from "./ContentPlayer";
-import { CASE_SUMMARY_FIELDS } from "../lib/content";
 
 function responseRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};

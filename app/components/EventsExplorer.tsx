@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { IconArrowRight, IconCalendar, IconPin } from "./icons";
-import { eventDateRange, type TeamEvent } from "../lib/events";
+// From `event-data`, not `events`: this is a client component, and `events`
+// pulls in `next/cache`, which has no browser equivalent.
+import { eventDateRange, type TeamEvent } from "../lib/event-data";
 import { localePath, type Locale } from "../lib/i18n";
 
 export default function EventsExplorer({ locale, events }: { locale: Locale; events: TeamEvent[] }) {

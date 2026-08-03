@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { ContentRecord } from "../lib/content";
+import type { ContentRecord } from "../lib/content-types";
 import { IconClock, IconFile, IconPlay, IconUsers } from "./icons";
 
 function getYouTubeVideoId(value: string): string | null {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { ContentRecord } from "../lib/content";
+import type { ContentRecord } from "../lib/content-types";
 import { localePath, type Locale } from "../lib/i18n";
 import { IconArrowRight, IconChevronDown, IconPlay, IconSearch } from "./icons";
 

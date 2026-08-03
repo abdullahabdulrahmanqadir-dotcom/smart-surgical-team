@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
-import type { ContentCard } from "../lib/content";
+import type { ContentCard } from "../lib/content-types";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
