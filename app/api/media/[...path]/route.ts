@@ -10,7 +10,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   // bytes never change. The edge cache answers repeat requests without an R2
   // read. `caches` is absent in some local runtimes, so it stays optional.
   const cache = typeof caches !== "undefined" ? await caches.open("sst-media").catch(() => undefined) : undefined;
-  const cached = await cache?.match(request);
+  // Vinext's route handler passes a Request wrapper from a different runtime
+  // realm. Cloudflare's Cache API then treats it as the literal URL
+  // "[object Request]" and throws before R2 is reached. A URL string is a
+  // portable cache key in both the local runner and the deployed Worker.
+  const cacheKey = request.url;
+  const cached = await cache?.match(cacheKey);
   if (cached) return cached;
 
   const key = (await params).path.join("/");
@@ -36,7 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   // Without an execution context the write is skipped rather than risking a
   // cancelled stream mid-write.
   const executionContext = getRequestExecutionContext();
-  if (cache && executionContext) executionContext.waitUntil(cache.put(request, response.clone()).catch(() => undefined));
+  if (cache && executionContext) executionContext.waitUntil(cache.put(cacheKey, response.clone()).catch(() => undefined));
 
   return response;
 }
