@@ -14,10 +14,11 @@ const en = {
   nav: {
     home: "Home",
     about: "About us",
-    topics: "Topics",
+    topics: "Content",
     library: "Library",
     webinars: "Webinars",
     events: "Events",
+    research: "Research",
     team: "Our Team",
     contact: "Contact",
     signIn: "Sign in",

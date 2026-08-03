@@ -20,6 +20,7 @@ import { getDictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { getPublicEvents, eventDateRange } from "../lib/events";
 import { TEAM_GROUPS } from "../lib/team";
+import { getResearches } from "../lib/research";
 
 const credentials = [
   "Smart Health Tower",
@@ -101,6 +102,8 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
+  const research = await getResearches();
+  const latestResearch = research[0];
 
   return (
     <>
@@ -227,6 +230,11 @@ export default async function Home({
             })}
           </div>
         </section>
+
+        {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
+          <div className="research-preview-head"><div><span className="section-kicker">From our research desk</span><h2 id="research-preview-heading">Evidence, shared.</h2><p>Published clinical research from the Smart Health Tower community.</p></div><Link className="text-link" href={localePath(active, "research")}>Explore all research <IconArrowRight size={16}/></Link></div>
+          <article className="research-preview-card"><div><span>{latestResearch.category} · {latestResearch.year}</span><h3>{latestResearch.title}</h3><p>{latestResearch.authors}</p></div><Link className="btn btn-ghost" href={localePath(active, "research")}>Read abstract <IconArrowRight size={16}/></Link></article>
+        </section>}
 
         {/* ---------------- Upcoming events + about ---------------- */}
         <section className="section section-muted section-library" id="library">

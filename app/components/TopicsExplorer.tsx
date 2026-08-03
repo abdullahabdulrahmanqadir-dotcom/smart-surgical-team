@@ -62,12 +62,21 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIco
   );
 }
 
+function LatestCaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
+  const cardImage = contentThumbnailUrl(item);
+  return <a className="latest-case-card" href={localePath(locale, `library/${item.slug}`)}>
+    <div className="latest-case-art">{cardImage ? <img src={cardImage} alt="" loading="eager" decoding="async" /> : <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={104} />}</div>
+    <div className="latest-case-copy"><span className="content-case-type">{item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}{item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}</span><p className="content-case-topic">{item.subTopic}</p><h2>{item.title}</h2><p>{item.summary}</p><div className="content-case-meta"><span>{item.date}</span>{item.duration ? <span><IconClock size={14} /> {item.duration}</span> : null}</div></div>
+  </a>;
+}
+
 export default function TopicsExplorer({
   groups,
   locale,
   t,
   initialSlug,
   initialItems = [],
+  initialLatestCase,
 }: {
   groups: TopicGroup[];
   locale: Locale;
@@ -75,6 +84,7 @@ export default function TopicsExplorer({
   initialSlug?: string;
   /** Cases for `initialSlug` only. Every other topic is fetched when opened. */
   initialItems?: ContentCard[];
+  initialLatestCase?: ContentCard;
 }) {
   // No slug means the whole head and neck, with nothing chosen yet. The map
   // waits for a click rather than opening a topic on the reader's behalf.
@@ -209,6 +219,14 @@ export default function TopicsExplorer({
   }
 
   const regionLabels = Object.fromEntries(groups.map((group) => [group.slug, group.name]));
+  const latestCase = useMemo<LibraryItem | null>(() => {
+    if (!initialLatestCase) return null;
+    const group = groups.find((candidate) => initialLatestCase.topics.some(({ slug }) => slug === candidate.slug || candidate.subTopics.some((topic) => topic.slug === slug)));
+    if (!group) return null;
+    const subTopic = group.subTopics.find((topic) => initialLatestCase.topics.some(({ slug }) => slug === topic.slug));
+    return { ...initialLatestCase, subTopic: subTopic?.name ?? group.name, subTopicNames: [subTopic?.name ?? group.name], imageIcon: subTopic?.imageIcon ?? group.imageIcon, date: initialLatestCase.publishedAt ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(initialLatestCase.publishedAt)) : "Recently added", hasVideo: initialLatestCase.kind === "video" || initialLatestCase.kind === "webinar_recording" };
+  }, [groups, initialLatestCase]);
+  const latestGroup = latestCase ? groups.find((group) => latestCase.topics.some(({ slug }) => slug === group.slug || group.subTopics.some((topic) => topic.slug === slug))) : null;
 
   return (
     <section className="content-browser" aria-labelledby="content-browser-heading">
@@ -249,11 +267,14 @@ export default function TopicsExplorer({
       </nav>
 
       {!activeGroup ? (
+        <>
         <div className="content-prompt">
           <p className="section-kicker">{t.guideKicker}</p>
           <h2>{t.guideTitle}</h2>
           <p>{t.chooseRegion}</p>
         </div>
+        {latestCase && latestGroup ? <section className="latest-case-section" aria-labelledby="latest-case-heading"><div className="latest-case-heading"><h2 id="latest-case-heading">Latest case</h2></div><LatestCaseCard item={latestCase} icon={latestGroup.icon} t={t} locale={locale}/></section> : null}
+        </>
       ) : (
       <>
       <div className="content-library-heading">

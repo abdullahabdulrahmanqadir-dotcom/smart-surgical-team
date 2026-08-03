@@ -38,10 +38,11 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
 
         <nav className="footer-col" aria-label={dict.footer.quickLinks}>
           <h3>{dict.footer.quickLinks}</h3>
-          <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
           <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
+          <Link href={localePath(locale, "research")}>{dict.nav.research}</Link>
           <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
           <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
+          <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
         </nav>
 
         <div className="footer-col">
