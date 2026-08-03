@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import ResearchContributors from "../../../components/ResearchContributors";
+import ImageGallery from "../../../components/ImageGallery";
 import { IconArrowRight, IconCalendar } from "../../../components/icons";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
@@ -41,16 +42,20 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
   if (!paper) notFound();
   const dict = getDictionary(active);
   const contributors = contributorsFor(paper);
+  const researchImages = [
+    ...(paper.imageUrl ? [{ id: "cover", publicUrl: paper.imageUrl, altText: paper.title }] : []),
+    ...(paper.media ?? []).map((item, index) => ({ id: `figure-${index}`, publicUrl: item.publicUrl, altText: item.altText, caption: item.caption })),
+  ];
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
     <main id="main-content" className="research-detail-page">
       <nav className="research-breadcrumb" aria-label="Breadcrumb"><Link href={localePath(active, "research")}>Research</Link><span>/</span><b>{paper.title}</b></nav>
-      <header className="research-detail-hero"><div className="research-detail-heading"><span className="section-kicker">{paper.category} · {paper.year}</span><h1>{paper.title}</h1></div>{paper.imageUrl && <div className="research-detail-cover"><img src={paper.imageUrl} alt="" loading="lazy"/></div>}</header>
+      <header className="research-detail-hero"><div className="research-detail-heading"><span className="section-kicker">{paper.category} · {paper.year}</span><h1>{paper.title}</h1></div></header>
       <div className="research-detail-grid">
-        <article className="research-detail-main"><ResearchContributors contributors={contributors}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">Research summary</span><h2 id="abstract-title">Abstract</h2><div className="research-detail-abstract">{abstractParagraphs(paper.abstract || "The abstract is available on the publisher’s website.").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></section>{paper.media && paper.media.length > 0 && <section className="research-gallery-section" aria-labelledby="gallery-title"><span className="section-kicker">Figures</span><h2 id="gallery-title">Images</h2><div className="research-gallery-grid">{paper.media.map((item) => <figure key={item.publicUrl} className="research-gallery-item"><img src={item.publicUrl} alt={item.altText || ""} loading="lazy"/>{item.caption && <figcaption>{item.caption}</figcaption>}</figure>)}</div></section>}</article>
-        <aside className="research-detail-aside"><section className="research-metadata"><span className="aside-label">Publication details</span><dl><div><dt>Type</dt><dd>{paper.category}</dd></div><div><dt>Published</dt><dd><IconCalendar size={16}/>{readableDate(paper.date, active)}</dd></div></dl><a className="btn btn-primary research-paper-link" href={paper.link} target="_blank" rel="noreferrer">Open paper <IconArrowRight size={17}/></a></section><Link className="research-back-link" href={localePath(active, "research")}><IconArrowRight size={16}/>Back to all research</Link></aside>
+        <article className="research-detail-main"><ResearchContributors contributors={contributors}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">Research summary</span><h2 id="abstract-title">Abstract</h2><div className="research-detail-abstract">{abstractParagraphs(paper.abstract || "The abstract is available on the publisher’s website.").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></section></article>
+        <aside className="research-detail-aside"><section className="research-metadata"><span className="aside-label">Publication details</span><dl><div><dt>Type</dt><dd>{paper.category}</dd></div><div><dt>Published</dt><dd><IconCalendar size={16}/>{readableDate(paper.date, active)}</dd></div></dl><a className="btn btn-primary research-paper-link" href={paper.link} target="_blank" rel="noreferrer">Open paper <IconArrowRight size={17}/></a></section>{researchImages.length > 0 && <ImageGallery images={researchImages} label="Research images"/>}<Link className="research-back-link" href={localePath(active, "research")}><IconArrowRight size={16}/>Back to all research</Link></aside>
       </div>
     </main>
     <SiteFooter locale={active} dict={dict}/>

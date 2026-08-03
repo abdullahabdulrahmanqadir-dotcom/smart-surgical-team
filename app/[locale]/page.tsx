@@ -11,6 +11,7 @@ import {
   IconArrowRight,
   IconCheck,
   IconClock,
+  IconFile,
   IconGlobe,
   IconPlus,
   IconSparkle,
@@ -233,7 +234,10 @@ export default async function Home({
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
           <div className="research-preview-head"><div><span className="section-kicker">From our research desk</span><h2 id="research-preview-heading">Evidence, shared.</h2><p>Published clinical research from the Smart Health Tower community.</p></div><Link className="text-link" href={localePath(active, "research")}>Explore all research <IconArrowRight size={16}/></Link></div>
-          <article className="research-preview-card"><div><span>{latestResearch.category} · {latestResearch.year}</span><h3>{latestResearch.title}</h3><p>{latestResearch.authors}</p></div><Link className="btn btn-ghost" href={localePath(active, `research/${latestResearch.id}`)}>Read research <IconArrowRight size={16}/></Link></article>
+          <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
+            <div className="research-preview-media">{latestResearch.imageUrl ? <img src={latestResearch.imageUrl} alt="" loading="lazy"/> : <span className="research-preview-placeholder"><IconFile size={40}/></span>}<span className="research-preview-badge">{latestResearch.category}</span></div>
+            <div className="research-preview-body"><span className="research-preview-kicker">Latest publication · {latestResearch.year}</span><h3>{latestResearch.title}</h3>{latestResearch.abstract && <p className="research-preview-excerpt">{latestResearch.abstract}</p>}<span className="research-preview-cta">Read research <IconArrowRight size={16}/></span></div>
+          </Link>
         </section>}
 
         {/* ---------------- Upcoming events + about ---------------- */}
