@@ -1,3 +1,16 @@
+import { unstable_cache } from "next/cache";
+import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { TEAM_GROUPS } from "./team";
+
+/**
+ * Server-side research reads.
+ *
+ * Research is DB-backed: the admin manages `public.researches` and the site
+ * reads published rows through a short shared cache, exactly like `content.ts`.
+ * The external smarthealth.group feed is no longer used — its papers were
+ * imported once by migration 0009.
+ */
+
 export type Publication = {
   id: number;
   title: string;
@@ -10,36 +23,8 @@ export type Publication = {
   category: string;
   journal: string;
   contributors?: { name: string; portraitUrl?: string }[];
+  media?: { publicUrl: string; altText?: string; caption?: string }[];
 };
-
-type ApiPublication = {
-  id: number; title: string; link?: string; imageUrl?: string; authorsFreeText?: string;
-  abstract?: string; publishYearString?: string; publishYear?: string; englishCategory?: string; isActive?: boolean;
-  authors?: { userProfileName?: string; imageUrl?: string }[];
-};
-
-const FALLBACK_PUBLICATIONS: Publication[] = [
-  { id: 1360, title: "Pomegranate peel extract and Helicobacter pylori eradication: an in vitro investigation", link: "https://www.pagepressjournals.org/jbr/article/view/14853/", imageUrl: "https://smarthealth.group/api/Images/Researches/a8020467-f1de-44b4-8e80-f9a34102723d.webp", authors: "Dr. Hoshmand Rahman Asaad, Dr. Sivan Hussein Salih, Dr. Dana Taib Gharib, Dr. Karokh Fazil Hama Hussien, Ayman Majid Mustafa", abstract: "This pilot study investigates the antibacterial effect of pomegranate peel extracts against Helicobacter pylori isolates collected from gastric biopsies.", date: "2026-07-07", year: "2026", category: "Paper", journal: "Journal of Biological Research" },
-  { id: 1358, title: "Warthin-like variant of Papillary Thyroid Carcinoma", link: "https://academic.oup.com/rescon/advance-article/doi/10.1093/rescon/vmag089/8702819?login=false", imageUrl: "https://smarthealth.group/api/Images/Researches/97fe701a-a490-4694-b12e-b34cc520d3e4.webp", authors: "Dr. Aras Jamal Qadir, Ari Mohammed Abdullah, Dr. Hiwa Omer Ahmed, Dr. Abdulwahid M. Salih, and colleagues", abstract: "A retrospective case series examining the clinical, surgical and histopathological features of the rare Warthin-like variant of papillary thyroid carcinoma.", date: "2026-06-29", year: "2026", category: "Case Report", journal: "Research Connections" },
-  { id: 1357, title: "Physical activity and functional rehabilitation in lower limb soft tissue sarcoma survivors", link: "https://www.sciencedirect.com/science/article/pii/S2949916X26000113", imageUrl: "https://smarthealth.group/api/Images/Researches/aa7177a4-7d9a-4750-9085-327ef9d22655.webp", authors: "Dr. Abdullah Kamal Ghafour, Fahmi H. Kakamad, Hawkar A. Nasralla, and colleagues", abstract: "A study of physical activity and functional rehabilitation in people recovering from lower-limb soft-tissue sarcoma.", date: "2026-06-20", year: "2026", category: "Paper", journal: "Journal of Medicine, Surgery, and Public Health" },
-  { id: 1257, title: "Small bowel leiomyosarcoma: a case report and review of the literature", link: "https://academic.oup.com/jscr/article/2025/5/rjaf269/8124673?login=false", imageUrl: "https://smarthealth.group/api/Images/Researches/d5230acb-84eb-476a-b275-9fe2de6cf1ab-541x1080.png", authors: "Rebaz O Mohammed, Rawa M Ali, Deari A Ismaeil, Fahmi H Kakamad, and colleagues", abstract: "A clinical case report and review of the literature exploring the diagnosis and management of a rare small-bowel malignancy.", date: "2025-05-03", year: "2025", category: "Paper", journal: "Journal of Surgical Case Reports" },
-];
-
-const EXCLUDED_TITLES = new Set([
-  "giant malignant phyllodes tumor with ulceration: a case report and brief review of the literature",
-]);
-
-function plainText(html = "") { return html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim(); }
-function journalFromLink(link: string) {
-  if (/pagepressjournals\.org\/jbr/i.test(link)) return "Journal of Biological Research";
-  if (/academic\.oup\.com\/rescon/i.test(link)) return "Research Connections";
-  if (/academic\.oup\.com\/jscr/i.test(link)) return "Journal of Surgical Case Reports";
-  if (/sciencedirect\.com\/science\/article\/pii\/S2949916X/i.test(link)) return "Journal of Medicine, Surgery, and Public Health";
-  return "Journal website";
-}
-function readableAuthors(authors: string) {
-  return authors && authors === authors.toUpperCase() ? authors.toLocaleLowerCase().replace(/\b[a-z]/g, (letter) => letter.toLocaleUpperCase()) : authors;
-}
 
 const STAFF = TEAM_GROUPS.flatMap((group) => group.members);
 const STAFF_NAME_ALIASES: Record<string, string> = {
@@ -68,48 +53,74 @@ function staffPortraitFor(name: string) {
   })?.portrait;
 }
 
-function sameAuthor(firstName: string, secondName: string) {
-  const first = nameKey(firstName).split(" ");
-  const second = nameKey(secondName).split(" ");
-  const firstLast = first.at(-1);
-  const secondLast = second.at(-1);
-  return nameKey(firstName) === nameKey(secondName) || (first[0] === second[0] && firstLast === secondLast) || (first[0] === second[0] && firstLast && secondLast && (firstLast.startsWith(secondLast.slice(0, 4)) || secondLast.startsWith(firstLast.slice(0, 4))));
-}
-
-function contributorsFromNames(authors: string, authorRecords: ApiPublication["authors"] = []) {
-  return authors.split(/,|\band\b/i).map((name) => name.trim()).filter((name) => name && !/^colleagues$/i.test(name)).map((name) => {
-    const matchingRecord = authorRecords.find((author) => author.userProfileName && sameAuthor(name, author.userProfileName));
-    return { name, portraitUrl: matchingRecord?.imageUrl || staffPortraitFor(name) };
-  });
+function contributorsFromNames(authors: string) {
+  return authors.split(/,|\band\b/i).map((name) => name.trim()).filter((name) => name && !/^colleagues$/i.test(name)).map((name) => ({ name, portraitUrl: staffPortraitFor(name) }));
 }
 
 function withStaffPortraits(paper: Publication): Publication {
-  return { ...paper, contributors: paper.contributors?.length ? paper.contributors.map((contributor) => ({ ...contributor, portraitUrl: contributor.portraitUrl || staffPortraitFor(contributor.name) })) : contributorsFromNames(paper.authors) };
+  return { ...paper, contributors: contributorsFromNames(paper.authors) };
 }
 
-export async function getResearches(): Promise<Publication[]> {
+function canUseDatabase() {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+const REVALIDATE_SECONDS = 60;
+const RESEARCH_CACHE_TAG = "published-research";
+
+type ResearchRow = {
+  id: number; title: string; authors: string | null; abstract: string | null;
+  journal: string | null; category: string | null; link: string | null;
+  published_date: string | null; cover_image_url: string | null;
+  research_media: { public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
+};
+
+const RESEARCH_SELECT =
+  "id,title,authors,abstract,journal,category,link,published_date,cover_image_url," +
+  "research_media(public_url,alt_text,caption,sort_order)";
+
+function mapRow(row: ResearchRow): Publication {
+  const date = row.published_date ?? "";
+  const media = [...(row.research_media ?? [])]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item) => ({ publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined }));
+  return withStaffPortraits({
+    id: row.id,
+    title: row.title,
+    link: row.link ?? "",
+    imageUrl: row.cover_image_url ?? "",
+    authors: row.authors ?? "Smart Health research team",
+    abstract: row.abstract ?? "",
+    date,
+    year: date.slice(0, 4) || "Research",
+    category: row.category ?? "Publication",
+    journal: row.journal ?? "Journal website",
+    media,
+  });
+}
+
+async function fetchResearches(): Promise<Publication[]> {
+  if (!canUseDatabase()) return [];
   try {
-    const response = await fetch("https://smarthealth.group/api/api/Researches/GetResearchsGrouped?skip=0&take=100", { next: { revalidate: 3600 } });
-    if (!response.ok) throw new Error("Research archive unavailable");
-    const data = await response.json() as { groups?: { items?: ApiPublication[] }[] };
-    const items = (data.groups ?? []).flatMap((group) => group.items ?? []).filter((item) => item.isActive && item.link && item.title);
-    // This archive is dedicated to Dr. Abdulwahid's published work. Check both
-    // the free-text byline and structured author records because older imports
-    // do not always populate both fields consistently.
-    const abdulwahidPapers = items.filter((item) => /abdulwahid/i.test(`${item.authorsFreeText ?? ""} ${(item.authors ?? []).map((author) => author.userProfileName ?? "").join(" ")}`) && !EXCLUDED_TITLES.has(item.title.trim().toLocaleLowerCase()));
-    if (!abdulwahidPapers.length) return FALLBACK_PUBLICATIONS.filter((paper) => /abdulwahid/i.test(paper.authors)).map(withStaffPortraits);
-    return abdulwahidPapers.map((item) => {
-      const date = item.publishYearString ?? item.publishYear?.slice(0, 10) ?? "";
-      const paperAuthors = readableAuthors(item.authorsFreeText ?? "Smart Health research team");
-      return withStaffPortraits({ id: item.id, title: item.title, link: item.link!, imageUrl: item.imageUrl ?? "", authors: paperAuthors, abstract: plainText(item.abstract), date, year: date.slice(0, 4) || "Research", category: item.englishCategory ?? "Publication", journal: journalFromLink(item.link!), contributors: contributorsFromNames(paperAuthors, item.authors) });
-    }).sort((a, b) => b.date.localeCompare(a.date));
-  } catch { return FALLBACK_PUBLICATIONS.map(withStaffPortraits); }
+    const { data, error } = await getSupabaseServerClient()
+      .from("researches")
+      .select(RESEARCH_SELECT)
+      .eq("status", "published")
+      .order("published_date", { ascending: false });
+    if (error) { console.error("published researches query failed:", error.message); return []; }
+    return (data as unknown as ResearchRow[]).map(mapRow);
+  } catch { return []; }
+}
+
+const cachedResearches = unstable_cache(fetchResearches, ["published-researches"], { revalidate: REVALIDATE_SECONDS, tags: [RESEARCH_CACHE_TAG] });
+
+export async function getResearches(): Promise<Publication[]> {
+  return cachedResearches();
 }
 
 /** Finds one publication for its public, stable detail URL. */
 export async function getResearchById(id: string): Promise<Publication | undefined> {
   const numericId = Number(id);
   if (!Number.isSafeInteger(numericId) || numericId < 1) return undefined;
-  return (await getResearches()).find((paper) => paper.id === numericId);
+  return (await cachedResearches()).find((paper) => paper.id === numericId);
 }
-import { TEAM_GROUPS } from "./team";
