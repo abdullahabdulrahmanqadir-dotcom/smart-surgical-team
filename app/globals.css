@@ -3179,9 +3179,3 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .related-card.is-skeleton { pointer-events: none; }
 .related-card.is-skeleton:hover { transform: none; border-color: var(--line); box-shadow: var(--shadow-sm); }
 .related-card.is-skeleton .related-art { background: none; }
-
-/* The video poster fades in rather than popping, and the dark player frame
-   underneath stands in for it while it loads. */
-.youtube-video-preview { opacity: 0; transition: opacity 260ms ease; }
-.youtube-video-preview.is-loaded { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .youtube-video-preview { transition: none; } }

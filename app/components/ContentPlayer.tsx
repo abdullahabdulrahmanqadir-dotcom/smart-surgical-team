@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { ContentRecord } from "../lib/content-types";
 import { IconClock, IconFile, IconPlay, IconUsers } from "./icons";
 
@@ -26,7 +26,6 @@ function getYouTubeVideoId(value: string): string | null {
 
 export default function ContentPlayer({ content }: { content: ContentRecord }) {
   const video = useRef<HTMLVideoElement>(null);
-  const [previewLoaded, setPreviewLoaded] = useState(false);
 
   // Articles and resources do not get a simulated lecture player. Their
   // authored body and uploaded files are rendered directly on the page.
@@ -43,10 +42,7 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
       <section className="content-player" aria-label={`${content.title} player`}>
         {youtubeVideoId ? (
           <a className="youtube-video-link" href={content.videoUrl} target="_blank" rel="noreferrer" aria-label={`Watch ${content.title} on YouTube`}>
-            {/* The play frame is styled and sized by CSS, so the poster is free
-                to arrive late: it fades in over the frame instead of holding
-                the surrounding case text back. */}
-            {youtubePreview ? <img className={`youtube-video-preview${previewLoaded ? " is-loaded" : ""}`} src={youtubePreview} alt="" decoding="async" onLoad={() => setPreviewLoaded(true)} onError={(event) => { if (youtubePreviewFallback && event.currentTarget.src !== youtubePreviewFallback) event.currentTarget.src = youtubePreviewFallback; else setPreviewLoaded(true); }} /> : null}
+            {youtubePreview ? <img className="youtube-video-preview" src={youtubePreview} alt="" decoding="async" onError={(event) => { if (youtubePreviewFallback && event.currentTarget.src !== youtubePreviewFallback) event.currentTarget.src = youtubePreviewFallback; }} /> : null}
             <span className="youtube-video-play" aria-hidden="true"><IconPlay size={22} /></span>
           </a>
         ) : (
