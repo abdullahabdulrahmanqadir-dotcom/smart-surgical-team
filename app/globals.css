@@ -2767,7 +2767,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 .youtube-video-preview {
   position: absolute;
-  z-index: -2;
+  /* The link creates its own stacking context. A negative layer sits behind
+     the link's opaque background, so even a successfully loaded YouTube
+     thumbnail is invisible. Keep the artwork above the background and below
+     the overlay and play control. */
+  z-index: 0;
   inset: 0;
   width: 100%;
   height: 100%;
