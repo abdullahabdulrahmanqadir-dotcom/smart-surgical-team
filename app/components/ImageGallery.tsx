@@ -227,7 +227,7 @@ export default function ImageGallery({ images, label = "Case images" }: { images
     <div className="case-image-thumbnails">{images.map((image, index) =>
       <button key={image.id} type="button" onClick={() => open(index)} aria-label={`Open image ${index + 1} of ${images.length}`}>
         <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? "Case image"} />
-        <span>Open image</span>
+        <span className="case-image-thumb-badge">Open image</span>
       </button>)}
     </div>
     {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || "Image viewer"}>
