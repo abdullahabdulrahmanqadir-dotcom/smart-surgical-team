@@ -50,6 +50,22 @@ test("server-renders the English home page", async () => {
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
 
+test("renders the complete staff directory with its local portraits", async () => {
+  const response = await fetchPath("/en/about");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  for (const [name, portrait] of [
+    ["Imad S. Sedeeq", "/staff/Imad S. Sedeeq.avif"],
+    ["Shko H. Hassan", "/staff/Shko H. Hassan.avif"],
+    ["Kaihan A. Najar", "/staff/Kaihan A. Najar.avif"],
+    ["Ahmad L. Ali", "/staff/Ahmad L. Ali.avif"],
+  ]) {
+    assert.ok(html.includes(name), `${name} should appear in the staff directory`);
+    assert.ok(html.includes(portrait), `${name} should use their local portrait`);
+  }
+});
+
 test("serves both RTL locales with the correct direction and language", async () => {
   const arabic = await fetchPath("/ar");
   assert.equal(arabic.status, 200);
