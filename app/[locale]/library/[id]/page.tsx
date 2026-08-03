@@ -9,11 +9,11 @@ import SiteHeader from "../../../components/SiteHeader";
 import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
+import BackToPrevious from "../../../components/BackToPrevious";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
 import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary, type ContentKind } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
-import { getPublicTopicGroup } from "../../../lib/topics";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 import { TEAM_GROUPS } from "../../../lib/team";
 
@@ -49,7 +49,6 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
             <div className={`related-art tone-${(index % 4) + 1}`}>
               {thumbnail ? <LazyImage className="related-thumbnail" src={thumbnail} /> : null}
               <span className="related-play"><IconPlay size={18} /></span>
-              <small>{item.duration}</small>
             </div>
             <span className="related-topic">{item.topic}</span>
             <h3>{item.title}</h3>
@@ -84,9 +83,6 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   }
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
-  // Some content sits under a taxonomy group that is not published yet
-  // (visible: false), and linking there would 404. Show the label instead.
-  const topicIsPublished = Boolean(getPublicTopicGroup(content.topicSlug));
   const summarySections = CASE_SUMMARY_FIELDS
     .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
     .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
@@ -97,7 +93,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
-      <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={`${home}#library`}>Library</Link><span>/</span>{topicIsPublished ? <Link href={localePath(active, `topics/${content.topicSlug}`)}>{content.topic}</Link> : <span>{content.topic}</span>}<span>/</span><b>{content.title}</b></nav>
+      <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={localePath(active, "topics")}>Content</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b>{content.title}</b></nav>
       <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} /></div>
 
       <div className="content-grid">

@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import type { ContentRecord } from "../lib/content-types";
-import { IconClock, IconFile, IconPlay, IconUsers } from "./icons";
+import { IconFile, IconPlay, IconUsers } from "./icons";
 
 function getYouTubeVideoId(value: string): string | null {
   try {
@@ -54,7 +54,7 @@ export default function ContentPlayer({ content }: { content: ContentRecord }) {
       </section>
       {youtubeVideoId ? <a className="youtube-watch-link" href={content.videoUrl} target="_blank" rel="noreferrer"><IconPlay size={17} />Watch on YouTube<span>Opens in YouTube for age-restricted content</span></a> : null}
 
-      <section className="content-overview" aria-labelledby="content-overview-title"><span className="section-kicker">Overview</span><h2 id="content-overview-title">Case overview</h2><p>{content.summary}</p><div className="content-facts"><span><IconClock size={16} /> {content.duration}</span>{content.learnerCount ? <span><IconUsers size={16} /> {content.learnerCount} learners</span> : null}<span><IconFile size={16} /> Course notes</span></div></section>
+      <section className="content-overview" aria-labelledby="content-overview-title"><span className="section-kicker">Overview</span><h2 id="content-overview-title">Case overview</h2><p>{content.summary}</p><div className="content-facts">{content.learnerCount ? <span><IconUsers size={16} /> {content.learnerCount} learners</span> : null}<span><IconFile size={16} /> Course notes</span></div></section>
     </>
   );
 }

@@ -23,6 +23,10 @@ const FALLBACK_PUBLICATIONS: Publication[] = [
   { id: 1257, title: "Small bowel leiomyosarcoma: a case report and review of the literature", link: "https://academic.oup.com/jscr/article/2025/5/rjaf269/8124673?login=false", imageUrl: "https://smarthealth.group/api/Images/Researches/d5230acb-84eb-476a-b275-9fe2de6cf1ab-541x1080.png", authors: "Rebaz O Mohammed, Rawa M Ali, Deari A Ismaeil, Fahmi H Kakamad, and colleagues", abstract: "A clinical case report and review of the literature exploring the diagnosis and management of a rare small-bowel malignancy.", date: "2025-05-03", year: "2025", category: "Paper" },
 ];
 
+const EXCLUDED_TITLES = new Set([
+  "giant malignant phyllodes tumor with ulceration: a case report and brief review of the literature",
+]);
+
 function plainText(html = "") { return html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim(); }
 
 export async function getResearches(): Promise<Publication[]> {
@@ -34,7 +38,7 @@ export async function getResearches(): Promise<Publication[]> {
     // This archive is dedicated to Dr. Abdulwahid's published work. Check both
     // the free-text byline and structured author records because older imports
     // do not always populate both fields consistently.
-    const abdulwahidPapers = items.filter((item) => /abdulwahid/i.test(`${item.authorsFreeText ?? ""} ${(item.authors ?? []).map((author) => author.userProfileName ?? "").join(" ")}`));
+    const abdulwahidPapers = items.filter((item) => /abdulwahid/i.test(`${item.authorsFreeText ?? ""} ${(item.authors ?? []).map((author) => author.userProfileName ?? "").join(" ")}`) && !EXCLUDED_TITLES.has(item.title.trim().toLocaleLowerCase()));
     if (!abdulwahidPapers.length) return FALLBACK_PUBLICATIONS.filter((paper) => /abdulwahid/i.test(paper.authors));
     return abdulwahidPapers.map((item) => {
       const date = item.publishYearString ?? item.publishYear?.slice(0, 10) ?? "";

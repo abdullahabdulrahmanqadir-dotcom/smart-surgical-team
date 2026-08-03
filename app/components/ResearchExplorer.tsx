@@ -25,6 +25,11 @@ export default function ResearchExplorer({ publications }: { publications: Publi
   const displayed = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const resetFilters = () => { setQuery(""); setYear("all"); setCategory("all"); setPage(1); };
   const updateQuery = (value: string) => { setQuery(value); setPage(1); };
+  const goToPage = (nextPage: number) => {
+    setPage(nextPage);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("publications")?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+  };
   useEffect(() => {
     if (!activePaper) return;
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setActivePaper(null); };
@@ -40,7 +45,7 @@ export default function ResearchExplorer({ publications }: { publications: Publi
       <div className="research-card-image">{paper.imageUrl ? <img src={paper.imageUrl} alt="" loading="lazy"/> : <IconFile size={34}/>}<span>{paper.category}</span></div>
       <div className="research-card-copy"><p className="research-card-year">{paper.year}</p><h3>{paper.title}</h3><p className="research-authors">{paper.authors}</p><button type="button" className="research-read" onClick={() => setActivePaper(paper)}>Read research <IconArrowRight size={16}/></button></div>
     </article>)}</div>
-    {totalPages > 1 && <nav className="research-pagination" aria-label="Publication pages"><button type="button" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>Previous</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => setPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => setPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>Next</button></nav>}
+    {totalPages > 1 && <nav className="research-pagination" aria-label="Publication pages"><button type="button" onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>Previous</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => goToPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>Next</button></nav>}
     {!results.length && <div className="research-empty"><h3>No publications match those filters.</h3><button type="button" onClick={resetFilters}>Clear filters</button></div>}
     {activePaper && <div className="research-dialog-backdrop" role="presentation" onMouseDown={() => setActivePaper(null)}><section className="research-dialog" role="dialog" aria-modal="true" aria-labelledby="research-dialog-title" onMouseDown={(event) => event.stopPropagation()}>
       <button className="research-dialog-close" type="button" onClick={() => setActivePaper(null)} aria-label="Close research preview"><IconClose size={19}/></button>

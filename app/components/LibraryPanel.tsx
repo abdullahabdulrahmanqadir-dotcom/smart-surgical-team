@@ -60,7 +60,6 @@ export default function LibraryPanel({ items, locale }: { items: ContentRecord[]
           <Link href={localePath(locale, `library/${item.slug}`)} className="library-row" key={item.id}>
             <span className={`media-thumb tone-${(index % 4) + 1}`}>
               <span className="thumb-play"><IconPlay size={14} /></span>
-              <small>{item.duration}</small>
             </span>
             <span className="library-details">
               <span className="library-topic">{item.topic}</span>
