@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import LazyImage from "../../../components/LazyImage";
 import ContentPlayer from "../../../components/ContentPlayer";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
@@ -8,7 +10,7 @@ import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
-import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary } from "../../../lib/content";
+import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary, type ContentKind } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup } from "../../../lib/topics";
@@ -16,6 +18,48 @@ import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 import { TEAM_GROUPS } from "../../../lib/team";
 
 const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
+
+function RelatedSkeleton() {
+  return (
+    <div className="related-grid" role="status" aria-label="Loading related content">
+      {[0, 1, 2].map((index) => (
+        <div className="related-card is-skeleton" key={index} aria-hidden="true">
+          <div className="related-art"><span className="skeleton-block" /></div>
+          <span className="related-topic"><span className="skeleton-line skeleton-line-xs" /></span>
+          <h3><span className="skeleton-line skeleton-line-lg" /></h3>
+          <p><span className="skeleton-line skeleton-line-sm" /></p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Streamed separately from the case itself so the article never waits on it. */
+async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: Locale; contentId: string; topicSlug: string; kind: ContentKind }) {
+  const allContent = await getLibraryContent();
+  const related = allContent.filter((item) => item.id !== contentId && (item.topicSlug === topicSlug || item.kind === kind)).slice(0, 3);
+  if (!related.length) return <div className="related-grid" />;
+
+  return (
+    <div className="related-grid">
+      {related.map((item, index) => {
+        const thumbnail = contentThumbnailUrl(item);
+        return (
+          <Link href={localePath(locale, `library/${item.slug}`)} className="related-card" key={item.id}>
+            <div className={`related-art tone-${(index % 4) + 1}`}>
+              {thumbnail ? <LazyImage className="related-thumbnail" src={thumbnail} /> : null}
+              <span className="related-play"><IconPlay size={18} /></span>
+              <small>{item.duration}</small>
+            </div>
+            <span className="related-topic">{item.topic}</span>
+            <h3>{item.title}</h3>
+            <p><IconClock size={14} /> {item.kind === "webinar_recording" ? "Recorded webinar" : "Video lesson"}</p>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const content = await getContent((await params).id);
@@ -26,13 +70,18 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const { locale, id } = await params;
   if (!isLocale(locale)) notFound();
   const active: Locale = locale;
-  const [dict, content, allContent] = [getDictionary(active), await getContent(id), await getLibraryContent()];
+  const dict = getDictionary(active);
+  // The catalogue read used to be awaited after this one inside an array
+  // literal, so it did not even start until the case had resolved — two serial
+  // round trips before a byte of HTML could be sent. The related rail now
+  // streams in separately instead (see RelatedContent below), so the case
+  // itself is the only thing this render waits for.
+  const content = await getContent(id);
   if (!content) {
     const memberContent = await getContentForMember(id);
     if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} /></main><SiteFooter locale={active} dict={dict} /></>;
     notFound();
   }
-  const related = allContent.filter((item) => item.id !== content.id && (item.topicSlug === content.topicSlug || item.kind === content.kind)).slice(0, 3);
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
   // Some content sits under a taxonomy group that is not published yet
@@ -42,7 +91,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
     .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
-  const contributors = content.contributors.length ? content.contributors : [content.presenter];
+  const contributors = content.contributors.length ? content.contributors : [{ ...content.presenter, photoUrl: undefined as string | undefined }];
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
@@ -66,15 +115,20 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
           </section>
         </section>
         <aside className="content-aside">
-          <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? "Contributor" : "Contributors"}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <img className="presenter-avatar presenter-photo" src={portrait} alt={`Portrait of ${contributor.name}`} /> : <span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">View team <IconArrowRight size={15} /></Link></section>
+          <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? "Contributor" : "Contributors"}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <LazyImage className="presenter-avatar presenter-photo" src={portrait} alt={`Portrait of ${contributor.name}`} /> :<span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">View team <IconArrowRight size={15} /></Link></section>
           <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
           <ImageGallery images={content.media?.filter((item) => item.kind === "image") ?? []} />
         </aside>
       </div>
 
-      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">Keep learning</span><h2 id="related-title">Related content</h2></div><Link className="text-link" href={`${home}#library`}>View library <IconArrowRight size={16} /></Link></div><div className="related-grid">
-        {related.map((item, index) => { const thumbnail = contentThumbnailUrl(item); return <Link href={localePath(active, `library/${item.slug}`)} className="related-card" key={item.id}><div className={`related-art tone-${(index % 4) + 1}`}>{thumbnail ? <img className="related-thumbnail" src={thumbnail} alt=""/> : null}<span className="related-play"><IconPlay size={18} /></span><small>{item.duration}</small></div><span className="related-topic">{item.topic}</span><h3>{item.title}</h3><p><IconClock size={14} /> {item.kind === "webinar_recording" ? "Recorded webinar" : "Video lesson"}</p></Link>; })}
-      </div></section>
+      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">Keep learning</span><h2 id="related-title">Related content</h2></div><Link className="text-link" href={`${home}#library`}>View library <IconArrowRight size={16} /></Link></div>
+        {/* Suggestions are worth showing but not worth delaying the case for.
+            The reader gets the article as soon as it is ready; the rail fills
+            in behind placeholder cards a moment later. */}
+        <Suspense fallback={<RelatedSkeleton />}>
+          <RelatedContent locale={active} contentId={content.id} topicSlug={content.topicSlug} kind={content.kind} />
+        </Suspense>
+      </section>
     </main>
     <SiteFooter locale={active} dict={dict} />
   </>;

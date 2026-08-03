@@ -118,6 +118,11 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <head>
+        {/* Case and topic thumbnails for video content come from YouTube's
+            image host. Opening that connection alongside the document saves a
+            DNS lookup and TLS handshake from the critical path. */}
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <script
           // Applies the stored colour mode before paint so the page never flashes.
           dangerouslySetInnerHTML={{

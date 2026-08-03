@@ -1,14 +1,42 @@
 import { env } from "cloudflare:workers";
+import { getRequestExecutionContext } from "vinext/shims/request-context";
+
+/** Uploaded media is immutable: the Admin writes a new timestamped key rather
+    than overwriting one, so a stored copy never goes stale. */
+const CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 export async function GET(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  // Every image on the site used to reach R2 on every request, even though the
+  // bytes never change. The edge cache answers repeat requests without an R2
+  // read. `caches` is absent in some local runtimes, so it stays optional.
+  const cache = typeof caches !== "undefined" ? await caches.open("sst-media").catch(() => undefined) : undefined;
+  const cached = await cache?.match(request);
+  if (cached) return cached;
+
   const key = (await params).path.join("/");
-  const object = await env.MEDIA_BUCKET.get(key);
+
+  // A conditional request is answered without streaming the body at all: R2
+  // compares the caller's etag and only sends bytes when it no longer matches.
+  const ifNoneMatch = request.headers.get("if-none-match");
+  const object = await env.MEDIA_BUCKET.get(key, ifNoneMatch ? { onlyIf: { etagDoesNotMatch: ifNoneMatch } } : undefined);
   if (!object) return new Response("Not found", { status: 404 });
 
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
-  headers.set("cache-control", "public, max-age=31536000, immutable");
+  headers.set("cache-control", CACHE_CONTROL);
 
-  return new Response(object.body, { headers });
+  // R2 omits the body when an `onlyIf` precondition fails — exactly the
+  // "you already have this" case that 304 exists for.
+  if (!("body" in object) || !object.body) return new Response(null, { status: 304, headers });
+
+  const response = new Response(object.body, { headers });
+  // Written in the background: the reader gets the image straight away, and
+  // the runtime is told to keep the isolate alive until the copy is stored.
+  // Without an execution context the write is skipped rather than risking a
+  // cancelled stream mid-write.
+  const executionContext = getRequestExecutionContext();
+  if (cache && executionContext) executionContext.waitUntil(cache.put(request, response.clone()).catch(() => undefined));
+
+  return response;
 }

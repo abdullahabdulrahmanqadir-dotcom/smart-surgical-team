@@ -151,12 +151,22 @@ them with team-approved records, media, imagery, ownership and consent status.
 - Production build, using the Windows-safe command below: passing
 - `git diff --check`: passing before the latest commits
 
-### Rendered-route tests: 13 of 13 passing
+### Rendered-route tests: 15 of 15 passing
 
-The two stale Topics assertions were updated on 2026-07-28. The test suite now
-checks the current interaction contract: four `.content-topic-option` selectors,
-the default case library, search, three filters, case grid/cards and a
-representative example case for every published topic route.
+The test suite checks the current interaction contract: four
+`.content-topic-option` selectors, the default case library, search, three
+filters, case grid/cards and a representative example case for every published
+topic route.
+
+**The suite needs its loader hook.** The tests import the built Worker bundle
+into plain Node, which cannot resolve `cloudflare:workers`. Once the R2 media
+and upload routes started importing it, all 15 tests failed to load — a failure
+that predates the performance work and was fixed on 2026-08-03 by stubbing that
+module. Run the tests through the hook, as `npm test` now does:
+
+```powershell
+node --import ./tests/register-hooks.mjs --test tests/rendered-html.test.mjs
+```
 
 ### Verification commands on Windows
 
@@ -166,8 +176,44 @@ Windows `cmd.exe`. Use:
 ```powershell
 $env:WRANGLER_LOG_PATH='.wrangler/wrangler.log'; npx vinext build
 npm run lint
-node --test tests/rendered-html.test.mjs
+node --import ./tests/register-hooks.mjs --test tests/rendered-html.test.mjs
 ```
+
+### Performance architecture (2026-08-03)
+
+Public pages no longer query Supabase on every request.
+
+- `app/lib/content.ts` exposes two projections. `getLibraryContent` and
+  `getTopicContent` return `ContentCard`, which carries only what a card
+  paints; `getContent` returns the full `ContentRecord` and is used solely by a
+  case page. Both go through `unstable_cache` with a 60-second revalidate and
+  the `published-content` tag. `app/lib/events.ts` does the same under
+  `published-events`.
+- **Cache durability depends on a KV binding.** `worker/index.ts` installs
+  vinext's `KVCacheHandler` when a KV namespace is bound as `VINEXT_CACHE`, and
+  otherwise falls back to a per-isolate memory cache that goes cold with the
+  isolate. Bind it in the Worker's dashboard Bindings tab — there is no
+  `wrangler.jsonc`, and adding one would take precedence over the
+  dashboard-managed bindings.
+- Topics load one at a time. `/topics` reads nothing; `/topics/:slug` renders
+  only that group; the explorer fetches any other group from
+  `/api/topics/:slug/cases` and keeps it for the session.
+- Data-dependent sections sit behind `Suspense` with skeleton fallbacks, so
+  headers, heroes and footers paint before any query resolves.
+- `LazyImage` gives every thumbnail its own placeholder and fade-in so images
+  never hold up text. `/api/media/:path+` answers from the edge cache and
+  handles conditional requests, so repeat image loads do not touch R2.
+
+Measured on the local dev server against the same routes, before and after:
+
+| Route | Before (TTFB) | After, cache warm | After, cache cold |
+|---|---|---|---|
+| `/en/topics` | 0.56–0.70 s | 0.04–0.05 s | — (no query) |
+| `/en/topics/thyroid-parathyroid` | 0.58 s | 0.04–0.05 s | 0.19 s |
+| A case page | 1.36–1.38 s | 0.06–0.08 s | 0.07 s |
+
+`/en/topics` also dropped from 168.6 KB to 147.4 KB because it no longer
+serialises every topic's cases in order to display none of them.
 
 `npx tsc --noEmit` historically reports pre-existing scaffold errors in
 `db/index.ts` and `worker/index.ts` around Cloudflare Worker types. These were

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import LazyImage from "./LazyImage";
 
 type Image = { id: string; publicUrl: string; altText?: string; caption?: string };
 
@@ -17,6 +18,10 @@ export default function ImageGallery({ images, label = "Case images" }: { images
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [animate, setAnimate] = useState(true);
+  // Full-size case images are large. The viewer frame, its controls and the
+  // filmstrip appear at once; this tracks the photograph itself so the frame
+  // can show that it is still arriving rather than sitting empty.
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -94,6 +99,13 @@ export default function ImageGallery({ images, label = "Case images" }: { images
   }, [clampPan, zoom]);
 
   useLayoutEffect(() => { measure(); }, [measure, openIndex]);
+
+  // A revisited image is often already decoded, in which case `onLoad` never
+  // fires again and the indicator would otherwise never clear.
+  useLayoutEffect(() => {
+    const image = imageRef.current;
+    setImageLoaded(Boolean(image?.complete && image.naturalWidth > 0));
+  }, [active?.id]);
 
   useEffect(() => {
     if (!active) return;
@@ -214,7 +226,7 @@ export default function ImageGallery({ images, label = "Case images" }: { images
     <span className="aside-label" id="case-images-title">{label}</span>
     <div className="case-image-thumbnails">{images.map((image, index) =>
       <button key={image.id} type="button" onClick={() => open(index)} aria-label={`Open image ${index + 1} of ${images.length}`}>
-        <img src={image.publicUrl} alt={image.altText ?? "Case image"} loading="lazy"/>
+        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? "Case image"} />
         <span>Open image</span>
       </button>)}
     </div>
@@ -239,14 +251,20 @@ export default function ImageGallery({ images, label = "Case images" }: { images
         onDoubleClick={(event) => { setAnimate(true); if (zoomed) resetView(); else applyZoom(2.5, { x: event.clientX, y: event.clientY }); }}
         onClick={(event) => { if (event.target === event.currentTarget && !zoomed) close(); }}
       >
+        {imageLoaded ? null : <span className="image-lightbox-loading" role="status" aria-label="Loading image"><span className="image-lightbox-spinner" aria-hidden="true" /></span>}
         <img
           ref={imageRef}
           key={active.id}
           draggable={false}
           src={active.publicUrl}
           alt={active.altText ?? "Case image"}
-          onLoad={measure}
-          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`, transition: animate && !dragging ? "transform .22s cubic-bezier(.2,.7,.3,1)" : "none" }}
+          onLoad={() => { setImageLoaded(true); measure(); }}
+          onError={() => setImageLoaded(true)}
+          style={{
+            opacity: imageLoaded ? 1 : 0,
+            transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+            transition: animate && !dragging ? "transform .22s cubic-bezier(.2,.7,.3,1)" : "none",
+          }}
         />
       </div>
       {images.length > 1 ? <>

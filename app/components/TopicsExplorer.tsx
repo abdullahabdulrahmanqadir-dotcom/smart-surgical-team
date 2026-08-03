@@ -1,22 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
-import type { ContentRecord } from "../lib/content";
+import type { ContentCard } from "../lib/content";
 import type { Locale } from "../lib/i18n";
 import { localePath } from "../lib/i18n";
 import type { TopicIconName } from "./icons";
 import type { TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
 import HeadNeckMap from "./HeadNeckMap";
+import LazyImage from "./LazyImage";
 import { fill } from "../lib/dictionaries";
 import { contentThumbnailUrl } from "../lib/content-thumbnail";
 import { IconChevronDown, IconClock, IconFile, IconPlay, IconSearch } from "./icons";
 
-type LibraryItem = ContentRecord & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
+type LibraryItem = ContentCard & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
 
 function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
+/** Placeholder cards shown while a topic's cases are being fetched, so the
+    grid keeps its shape instead of collapsing to nothing. */
+function CaseCardSkeleton() {
+  return (
+    <div className="content-case-card is-skeleton" aria-hidden="true">
+      <div className="content-case-art"><span className="skeleton-block" /></div>
+      <div className="content-case-copy">
+        <span className="skeleton-line skeleton-line-xs" />
+        <span className="skeleton-line skeleton-line-lg" />
+        <span className="skeleton-line" />
+        <span className="skeleton-line skeleton-line-sm" />
+      </div>
+    </div>
+  );
 }
 
 function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
@@ -24,7 +41,7 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIco
   return (
     <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">
-        {cardImage ? <img className="content-case-thumbnail" src={cardImage} alt=""/> : <span className="content-case-art-glyph" aria-hidden="true">
+        {cardImage ? <LazyImage className="content-case-thumbnail" src={cardImage} /> : <span className="content-case-art-glyph" aria-hidden="true">
           <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
         </span>}
         <span className="content-case-type">
@@ -50,13 +67,14 @@ export default function TopicsExplorer({
   locale,
   t,
   initialSlug,
-  items,
+  initialItems = [],
 }: {
   groups: TopicGroup[];
   locale: Locale;
   t: Dictionary["topics"];
   initialSlug?: string;
-  items: ContentRecord[];
+  /** Cases for `initialSlug` only. Every other topic is fetched when opened. */
+  initialItems?: ContentCard[];
 }) {
   // No slug means the whole head and neck, with nothing chosen yet. The map
   // waits for a click rather than opening a topic on the reader's behalf.
@@ -70,22 +88,61 @@ export default function TopicsExplorer({
   const [searchQuery, setSearchQuery] = useState("");
   const activeGroup = groups.find((group) => group.slug === selected) ?? null;
 
+  // Cases arrive one topic at a time and are kept, so re-opening a topic the
+  // reader has already visited is instant and costs no further requests.
+  const [casesByTopic, setCasesByTopic] = useState<Record<string, ContentCard[]>>(
+    startingSlug ? { [startingSlug]: initialItems } : {},
+  );
+  const [loadFailed, setLoadFailed] = useState(false);
+  const inFlight = useRef(new Set<string>());
+  // Mirrors the keys of `casesByTopic` so the loader can decide whether it has
+  // work to do without reading state it is not rendering from.
+  const held = useRef(new Set(startingSlug ? [startingSlug] : []));
+  const loaded = Object.prototype.hasOwnProperty.call(casesByTopic, selected ?? "");
+  const isLoading = Boolean(selected) && !loaded;
+
+  /** Called from wherever a topic becomes the selected one, rather than from an
+      effect watching the selection: opening a topic is the event, and driving
+      the request from it avoids a render pass that exists only to notice. */
+  const loadTopic = useCallback(async (slug: string) => {
+    if (inFlight.current.has(slug) || held.current.has(slug)) return;
+    inFlight.current.add(slug);
+    setLoadFailed(false);
+    try {
+      const response = await fetch(`/api/topics/${encodeURIComponent(slug)}/cases`);
+      if (!response.ok) throw new Error(`Request failed with ${response.status}`);
+      const payload = (await response.json()) as { items?: ContentCard[] };
+      held.current.add(slug);
+      setCasesByTopic((current) => ({ ...current, [slug]: payload.items ?? [] }));
+    } catch {
+      // Leaving the topic unrecorded keeps the retry path open: selecting it
+      // again re-runs this fetch rather than caching an empty library.
+      setLoadFailed(true);
+    } finally {
+      inFlight.current.delete(slug);
+    }
+  }, []);
+
   useEffect(() => {
     function onPopState() {
       const match = window.location.pathname.match(/\/topics\/([^/?#]+)/);
-      setSelected(match && groups.some((group) => group.slug === match[1]) ? match[1] : null);
+      const slug = match && groups.some((group) => group.slug === match[1]) ? match[1] : null;
+      setSelected(slug);
       setSubTopic("all");
       setYear("all");
       setFormat("all");
       setSearchQuery("");
+      // Back and forward can land on a topic this session has not fetched yet.
+      // `loadTopic` is a no-op for one that is already held.
+      if (slug) void loadTopic(slug);
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [groups]);
+  }, [groups, loadTopic]);
 
   const libraryCases = useMemo<LibraryItem[]>(() => {
     if (!activeGroup) return [];
-    return items
+    return (casesByTopic[activeGroup.slug] ?? [])
       .filter((item) => item.topics.some(({ slug }) => slug === activeGroup.slug || activeGroup.subTopics.some((topic) => topic.slug === slug)))
       .map((item) => {
         // An item can carry several subtopics. Only the first was kept, so
@@ -102,7 +159,7 @@ export default function TopicsExplorer({
           hasVideo: item.kind === "video" || item.kind === "webinar_recording",
         };
       });
-  }, [activeGroup, items]);
+  }, [activeGroup, casesByTopic]);
   const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))].sort((a, b) => b.localeCompare(a)), [libraryCases]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
@@ -127,6 +184,9 @@ export default function TopicsExplorer({
   }
 
   function openTopic(slug: string) {
+    // Fired here rather than from an effect watching `selected`: choosing a
+    // topic is the event that needs its cases.
+    void loadTopic(slug);
     setSelected(slug);
     setSubTopic("all");
     setYear("all");
@@ -202,7 +262,9 @@ export default function TopicsExplorer({
           <h2>Content library</h2>
           <p>{activeGroup.intro}</p>
         </div>
-        <span className="content-results" aria-live="polite">{filteredCases.length} {filteredCases.length === 1 ? "item" : "items"}</span>
+        <span className="content-results" aria-live="polite">
+          {isLoading ? "Loading…" : `${filteredCases.length} ${filteredCases.length === 1 ? "item" : "items"}`}
+        </span>
       </div>
 
       <div className="content-filters" aria-label="Filter case library">
@@ -245,7 +307,19 @@ export default function TopicsExplorer({
         {filtersAreActive ? <button className="content-clear-filters" type="button" onClick={clearFilters}>Clear all</button> : null}
       </div>
 
-      {filteredCases.length > 0 ? (
+      {isLoading ? (
+        <div className="content-case-grid" role="status" aria-label={`Loading ${activeGroup.name} content`}>
+          {[0, 1, 2].map((index) => <CaseCardSkeleton key={index} />)}
+        </div>
+      ) : loadFailed ? (
+        <div className="content-empty">
+          <IconFile size={22} />
+          <div>
+            <h3>This topic could not be loaded.</h3>
+            <p>Check your connection, then <button type="button" className="text-link" onClick={() => void loadTopic(activeGroup.slug)}>try again</button>.</p>
+          </div>
+        </div>
+      ) : filteredCases.length > 0 ? (
         <div className="content-case-grid">
           {filteredCases.map((item) => <CaseCard item={item} icon={activeGroup.icon} t={t} locale={locale} key={item.slug} />)}
         </div>

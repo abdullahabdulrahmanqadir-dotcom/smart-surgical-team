@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
@@ -33,6 +34,65 @@ const benefits = [
   "Save cases for your next study session",
 ];
 
+/** Shared shell so the placeholder and the resolved panel are the same shape
+    and nothing shifts when the events arrive. */
+function UpcomingEventsPanel({ locale, badge, children }: { locale: Locale; badge?: string; children?: React.ReactNode }) {
+  return (
+    <article className="panel" id="events">
+      <div className="panel-heading">
+        <div>
+          <h2>Upcoming Events</h2>
+          <p className="panel-sub">Live sessions, discussions and learning opportunities.</p>
+        </div>
+        {badge ? <span className="badge">{badge}</span> : <span className="badge is-skeleton"><span className="skeleton-line skeleton-line-xs" /></span>}
+      </div>
+      <div className="webinar-list">
+        {children ?? [0, 1, 2].map((index) => (
+          <div className="webinar-row is-skeleton" key={index} aria-hidden="true">
+            <span className="date-chip"><span className="skeleton-block" /></span>
+            <span className="webinar-body">
+              <span className="skeleton-line skeleton-line-lg" />
+              <span className="skeleton-line skeleton-line-sm" />
+            </span>
+          </div>
+        ))}
+      </div>
+      <Link className="panel-link" href={localePath(locale, "events")}>
+        View all events
+        <IconArrowRight size={16} />
+      </Link>
+    </article>
+  );
+}
+
+async function UpcomingEvents({ locale }: { locale: Locale }) {
+  const events = await getPublicEvents();
+  const upcoming = events.filter((event) => event.status === "upcoming").slice(0, 3);
+
+  return (
+    <UpcomingEventsPanel locale={locale} badge={`${upcoming.length} upcoming`}>
+      {upcoming.map((event) => (
+        <Link href={localePath(locale, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
+          <span className="date-chip">
+            <b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
+            <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
+          </span>
+          <span className="webinar-body">
+            <h3>{event.title}</h3>
+            <p>{event.location}</p>
+            <small>
+              <IconClock size={13} /> {eventDateRange(event)}
+            </small>
+          </span>
+          <span className="row-action" aria-hidden="true">
+            <IconPlus size={16} />
+          </span>
+        </Link>
+      ))}
+    </UpcomingEventsPanel>
+  );
+}
+
 export default async function Home({
   params,
 }: {
@@ -41,8 +101,6 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
-  const events = await getPublicEvents();
-  const upcomingEvents = events.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
     <>
@@ -184,39 +242,12 @@ export default async function Home({
           </div>
 
           <div className="dashboard">
-            <article className="panel" id="events">
-              <div className="panel-heading">
-                <div>
-                  <h2>Upcoming Events</h2>
-                  <p className="panel-sub">Live sessions, discussions and learning opportunities.</p>
-                </div>
-                <span className="badge">{upcomingEvents.length} upcoming</span>
-              </div>
-              <div className="webinar-list">
-                {upcomingEvents.map((event) => (
-                  <Link href={localePath(active, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
-                    <span className="date-chip">
-                      <b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
-                      <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
-                    </span>
-                    <span className="webinar-body">
-                      <h3>{event.title}</h3>
-                      <p>{event.location}</p>
-                      <small>
-                        <IconClock size={13} /> {eventDateRange(event)}
-                      </small>
-                    </span>
-                    <span className="row-action" aria-hidden="true">
-                      <IconPlus size={16} />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <Link className="panel-link" href={localePath(active, "events")}>
-                View all events
-                <IconArrowRight size={16} />
-              </Link>
-            </article>
+            {/* The rest of the homepage is static and no longer waits behind
+                this database read: the panel arrives with placeholder rows and
+                fills in when the events resolve. */}
+            <Suspense fallback={<UpcomingEventsPanel locale={active} />}>
+              <UpcomingEvents locale={active} />
+            </Suspense>
 
             <article className="panel featured-panel" id="introduction">
               <div className="panel-heading introduction-heading">
@@ -249,7 +280,7 @@ export default async function Home({
             <div className="team-feature-list">
               {featuredTeam.map((member) => (
                 <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
-                  <span className="team-feature-portrait"><img src={member.portrait} alt={`Portrait of ${member.name}`} width={96} height={96}/></span>
+                  <span className="team-feature-portrait"><img src={member.portrait} alt={`Portrait of ${member.name}`} width={96} height={96} loading="lazy" decoding="async"/></span>
                   <span className="team-feature-body">
                     <h3>{member.name}</h3>
                     <p>{member.role}</p>

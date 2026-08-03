@@ -1,10 +1,18 @@
 /** Cloudflare Worker entry point. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
+import { KVCacheHandler } from "vinext/cloudflare";
+import { setCacheHandler } from "vinext/shims/cache";
 import handler from "vinext/server/app-router-entry";
 
 interface Env {
   ASSETS: Fetcher;
   MEDIA_BUCKET: R2Bucket;
+  /** Optional. Backs the cached Supabase reads in app/lib/content.ts and
+      app/lib/events.ts. Bind a KV namespace named VINEXT_CACHE in the Worker's
+      dashboard Bindings tab to make that cache shared and durable; without it
+      vinext falls back to a per-isolate memory cache, which still works but
+      goes cold whenever Cloudflare starts a fresh isolate. */
+  VINEXT_CACHE?: KVNamespace;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -25,9 +33,20 @@ interface ExecutionContext {
 // dangerouslyAllowSVG: true in next.config.js and uncomment below:
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
+let cacheHandlerInstalled = false;
+
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // Installed per request but stored on globalThis, so this is a cheap
+    // no-op once an isolate is warm. Skipped entirely when the binding is
+    // absent, which keeps local dev and any unbound deployment working on
+    // vinext's default in-memory handler instead of throwing.
+    if (env.VINEXT_CACHE && !cacheHandlerInstalled) {
+      setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
+      cacheHandlerInstalled = true;
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

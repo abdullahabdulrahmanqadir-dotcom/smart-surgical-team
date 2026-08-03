@@ -1,3 +1,6 @@
+import { unstable_cache } from "next/cache";
+import { getSupabaseServerClient } from "../../lib/supabase/server";
+
 export type EventStatus = "upcoming" | "past";
 export type EventFormat = "in-person" | "hybrid" | "online";
 
@@ -79,7 +82,9 @@ export function getEvent(slug: string) {
 
 function canUseEventsDatabase() { return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY); }
 
-export async function getPublicEvents(): Promise<TeamEvent[]> {
+export const EVENTS_CACHE_TAG = "published-events";
+
+async function fetchPublicEvents(): Promise<TeamEvent[]> {
   if (!canUseEventsDatabase()) return EVENTS;
   try {
     const { data, error } = await getSupabaseServerClient().from("events").select("*").eq("status", "published").order("starts_at", { ascending: false });
@@ -92,6 +97,10 @@ export async function getPublicEvents(): Promise<TeamEvent[]> {
     });
   } catch { return EVENTS; }
 }
+
+/** Events change rarely, so a short shared cache keeps the homepage and the
+    events pages off the database for almost every visitor. */
+export const getPublicEvents = unstable_cache(fetchPublicEvents, ["public-events"], { revalidate: 60, tags: [EVENTS_CACHE_TAG] });
 
 export async function getPublicEvent(slug: string) { return (await getPublicEvents()).find((event) => event.slug === slug); }
 
@@ -121,4 +130,3 @@ export function eventDateRange(event: TeamEvent) {
     ? `${format(start, { day: "numeric" })}–${format(end, { day: "numeric", month: "long", year: "numeric" })}`
     : `${format(start, { day: "numeric", month: "short" })} – ${format(end, { day: "numeric", month: "short", year: "numeric" })}`;
 }
-import { getSupabaseServerClient } from "../../lib/supabase/server";
