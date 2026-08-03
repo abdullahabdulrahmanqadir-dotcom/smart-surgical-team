@@ -2,7 +2,7 @@ import { apiError, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLa
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
-const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "messages"] as const;
+const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research"] as const;
 type Resource = (typeof allowedResources)[number];
 
 function asResource(value: string): Resource | null {
@@ -24,15 +24,15 @@ export async function GET(request: Request, context: RouteContext) {
   const client = getSupabaseServerClient();
 
   if (resource === "overview") {
-    const [content, drafts, events, contributors, members, messages] = await Promise.all([
+    const [content, drafts, events, contributors, members, research] = await Promise.all([
       client.from("content_items").select("id", { count: "exact", head: true }).eq("status", "published"),
       client.from("content_items").select("id", { count: "exact", head: true }).neq("status", "published"),
       client.from("events").select("id", { count: "exact", head: true }).eq("status", "published"),
       client.from("contributors").select("id", { count: "exact", head: true }),
       client.from("profiles").select("id", { count: "exact", head: true }).eq("role", "member"),
-      client.from("contact_messages").select("id", { count: "exact", head: true }),
+      client.from("researches").select("id", { count: "exact", head: true }).eq("status", "published"),
     ]);
-    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, messages: messages.count ?? 0 } });
+    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, research: research.count ?? 0 } });
   }
 
   if (resource === "content") {
@@ -57,8 +57,10 @@ export async function GET(request: Request, context: RouteContext) {
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
   }
-  if (resource === "messages") {
-    const { data, error } = await client.from("contact_messages").select("*").order("created_at", { ascending: false }).limit(100);
+  if (resource === "research") {
+    const { data, error } = await client.from("researches")
+      .select("id,title,authors,abstract,journal,category,link,published_date,status,cover_image_url,created_at,updated_at,research_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
+      .order("updated_at", { ascending: false });
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
   }
@@ -80,7 +82,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
-  if (!resource || resource === "overview" || resource === "messages") return apiError("This resource cannot be created here.", 404);
+  if (!resource || resource === "overview") return apiError("This resource cannot be created here.", 404);
   const access = await resolveAdminIdentity(request, resource === "people");
   if (!access.identity) return apiError(access.message, access.status);
   const identity = access.identity;
@@ -155,6 +157,45 @@ export async function POST(request: Request, context: RouteContext) {
     return Response.json({ data: saved });
   }
 
+  if (resource === "research") {
+    const title = text(body.title);
+    if (!title) return apiError("A research title is required.");
+    const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
+    const payload = {
+      title,
+      authors: optionalText(body.authors),
+      abstract: optionalText(body.abstract),
+      journal: optionalText(body.journal),
+      category: optionalText(body.category) ?? "Publication",
+      link: optionalText(body.link),
+      published_date: date(body.published_date),
+      status,
+      cover_image_url: optionalText(body.cover_image_url),
+      updated_by: identity.id,
+      updated_at: new Date().toISOString(),
+    };
+    const existingId = text(body.id);
+    const { data: saved, error } = existingId
+      ? await client.from("researches").update(payload).eq("id", existingId).select("id").single()
+      : await client.from("researches").insert(payload).select("id").single();
+    if (error || !saved) return apiError(error?.message ?? "Could not save this research.", 500);
+
+    const media = Array.isArray(body.media) ? body.media : [];
+    const validMedia = media.flatMap((entry, sort_order) => {
+      const item = jsonObject(entry); const public_url = text(item?.public_url); const storage_path = text(item?.storage_path);
+      return public_url && storage_path ? [{ research_id: saved.id, storage_path, public_url, kind: text(item?.kind) === "document" ? "document" : "image", alt_text: optionalText(item?.alt_text), caption: optionalText(item?.caption), sort_order }] : [];
+    });
+    // Rewritten as delete-then-insert, surfacing insert failures so a wiped
+    // gallery is never reported as a clean save.
+    const removed = await client.from("research_media").delete().eq("research_id", saved.id);
+    if (removed.error) return apiError(`Saved the research, but could not update its images: ${removed.error.message}`, 500);
+    if (validMedia.length) {
+      const inserted = await client.from("research_media").insert(validMedia);
+      if (inserted.error) return apiError(`Saved the research, but could not update its images: ${inserted.error.message}`, 500);
+    }
+    return Response.json({ data: saved });
+  }
+
   if (resource === "topics") {
     const name = text(body.name);
     if (!name) return apiError("A topic name is required.");
@@ -196,13 +237,13 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
-  if (!resource || !["content", "topics", "events", "contributors"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
+  if (!resource || !["content", "topics", "events", "contributors", "research"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
   const access = await resolveAdminIdentity(request);
   if (!access.identity) return apiError(access.message, access.status);
   if (!canDelete(access.identity.role, resource)) return apiError(`${roleLabel(access.identity.role)} accounts cannot delete ${resource}. Ask the Owner or a Content manager.`, 403);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return apiError("Choose an item to delete.");
-  const table = resource === "content" ? "content_items" : resource;
+  const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource;
   const { error } = await getSupabaseServerClient().from(table).delete().eq("id", id);
   return error ? apiError(error.message, 500) : Response.json({ ok: true });
 }
