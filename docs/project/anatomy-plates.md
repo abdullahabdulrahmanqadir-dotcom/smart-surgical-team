@@ -7,8 +7,8 @@ scale, which gives the pull-back-and-push-in motion for free.
 
 ## One plate, on purpose
 
-There is exactly one image: `public/anatomy-topics-model-v2.webp`
-(1122x1402, converted from the PNG original in the same folder).
+There is exactly one image: `public/anatomy-topics-model-v2.png`
+(1122x1402, the lossless master used because the camera magnifies it).
 
 An earlier version swapped in a separately drawn detail illustration for each
 region. That was abandoned. Detail views have to be registered against the
@@ -51,8 +51,9 @@ or 14% vertically. This has already bitten once.
 The plate is the coordinate space, so swapping it invalidates every number
 above.
 
-1. Convert to WebP. The PNG masters are around 2MB; the same content lands near
-   80KB at identical dimensions.
+1. Keep a lossless master for the interactive map. A WebP derivative may still
+   be used for non-zoomed previews, but compression artifacts become visible
+   when the map camera magnifies the plate.
 2. Update `ANATOMY_PLATE` with the new filename and intrinsic size — the stage
    is held at the plate's aspect ratio so that a focus point in plate percent
    lands on the right pixel.

@@ -17,7 +17,9 @@
 
 /** The master plate: the whole head and neck, and the camera's home position. */
 export const ANATOMY_PLATE = {
-  src: "/anatomy-topics-model-v2.webp",
+  // This plate is magnified by the map camera, so use its lossless source.
+  // The compressed WebP created visible artifacts in the focused views.
+  src: "/anatomy-topics-model-v2.png",
   /** Intrinsic size, used to hold the stage at the plate's aspect ratio so that
    *  a focus point in plate percent lands on the same pixel on screen. */
   width: 1122,
@@ -81,22 +83,22 @@ export type AnatomyRegion = {
 export const ANATOMY_REGIONS: AnatomyRegion[] = [
   {
     slug: "thyroid-parathyroid",
-    x: 55, y: 75.5, zoom: 3, radius: 12,
+    x: 55, y: 75.5, zoom: 2.2, radius: 14,
     tiltX: 5, tiltY: -3, label: "Thyroid", side: "right", leader: 19,
   },
   {
     slug: "salivary-glands",
-    x: 41, y: 47, zoom: 3, radius: 12,
+    x: 41, y: 47, zoom: 2.2, radius: 14,
     tiltX: 0, tiltY: 6, label: "Salivary", side: "left", leader: 14,
   },
   {
     slug: "neck-lymphatic",
-    x: 38, y: 68, zoom: 2.8, radius: 13,
+    x: 38, y: 68, zoom: 2.1, radius: 15,
     tiltX: 3, tiltY: 8, label: "Lymph", side: "left", leader: 7,
   },
   {
     slug: "skin-soft-tissue",
-    x: 50.6, y: 44, zoom: 3.6, radius: 10,
+    x: 50.6, y: 44, zoom: 2.2, radius: 13,
     tiltX: -4, tiltY: -2, label: "Skin", side: "right", leader: 31,
   },
 ];
