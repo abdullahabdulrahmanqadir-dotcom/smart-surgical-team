@@ -233,7 +233,7 @@ export default async function Home({
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
           <div className="research-preview-head"><div><span className="section-kicker">From our research desk</span><h2 id="research-preview-heading">Evidence, shared.</h2><p>Published clinical research from the Smart Health Tower community.</p></div><Link className="text-link" href={localePath(active, "research")}>Explore all research <IconArrowRight size={16}/></Link></div>
-          <article className="research-preview-card"><div><span>{latestResearch.category} · {latestResearch.year}</span><h3>{latestResearch.title}</h3><p>{latestResearch.authors}</p></div><Link className="btn btn-ghost" href={localePath(active, "research")}>Read abstract <IconArrowRight size={16}/></Link></article>
+          <article className="research-preview-card"><div><span>{latestResearch.category} · {latestResearch.year}</span><h3>{latestResearch.title}</h3><p>{latestResearch.authors}</p></div><Link className="btn btn-ghost" href={localePath(active, `research/${latestResearch.id}`)}>Read research <IconArrowRight size={16}/></Link></article>
         </section>}
 
         {/* ---------------- Upcoming events + about ---------------- */}
