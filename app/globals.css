@@ -3121,21 +3121,29 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    rather than showing a broken-image glyph.
 --------------------------------------------------------------------------- */
 .lazy-image { position: relative; display: block; overflow: hidden; }
+/* The photograph is opaque by default and the placeholder covers it until it
+   has arrived. Fading the image up from `opacity: 0` instead made it depend on
+   both a JavaScript state flip and a painted transition to ever be seen: a
+   missed load event, or a compositor that never repainted the layer, left a
+   permanently blank card that only appeared once the card's hover transform
+   forced a repaint. Defaulting to visible means the worst case is a placeholder
+   that lingers, never a photograph that is present but invisible. */
 .lazy-image > img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transition: opacity 260ms ease;
 }
-.lazy-image.is-loaded > img { opacity: 1; }
+/* An animation rather than a transition, so the resting state stays opaque: if
+   it is never run the image is simply there, with no fade. */
+.lazy-image.is-loaded > img { animation: lazy-image-fade 260ms ease; }
 .lazy-image.is-failed > img { opacity: 0; }
+@keyframes lazy-image-fade { from { opacity: 0; } to { opacity: 1; } }
 .lazy-image-placeholder { position: absolute; inset: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton-block, .skeleton-line { background-image: none; animation: none; }
-  .lazy-image > img { transition: none; }
+  .lazy-image.is-loaded > img { animation: none; }
 }
 
 /* The gallery thumbnail slot already has a fixed aspect ratio, so the wrapper

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * An image that never holds up the text around it.
@@ -32,12 +32,32 @@ export default function LazyImage({
   const state = settled?.src !== src ? "loading" : settled.ok ? "loaded" : "failed";
 
   // An image that is already in the browser cache can finish decoding before
-  // React attaches `onLoad`, which would leave the placeholder shimmering over
-  // a picture that is already on screen. The ref callback runs at mount, which
-  // is the only point where that race can happen.
-  const attach = useCallback((node: HTMLImageElement | null) => {
-    if (node?.complete) setSettled({ src: node.getAttribute("src") ?? "", ok: node.naturalWidth > 0 });
+  // React attaches `onLoad`, leaving the placeholder shimmering over a picture
+  // that has in fact arrived. `complete` is the authority here: unlike the
+  // event, the browser leaves the flag set no matter who was listening when it
+  // happened, so reading it back settles an image whose event went unheard.
+  const node = useRef<HTMLImageElement | null>(null);
+  const settle = useCallback((image: HTMLImageElement | null) => {
+    if (!image?.complete) return;
+    const loaded = image.getAttribute("src") ?? "";
+    const ok = image.naturalWidth > 0;
+    // Returning the previous value leaves the state untouched, so re-checking
+    // after every commit cannot drive a render loop.
+    setSettled((previous) => (previous?.src === loaded && previous.ok === ok ? previous : { src: loaded, ok }));
   }, []);
+
+  const attach = useCallback(
+    (image: HTMLImageElement | null) => {
+      node.current = image;
+      settle(image);
+    },
+    [settle],
+  );
+
+  // Deliberately runs after every commit rather than on mount alone: the ref
+  // fires once, and an image that was still in flight at that moment would
+  // otherwise depend entirely on an event that may already have been missed.
+  useEffect(() => settle(node.current));
 
   return (
     <span className={`lazy-image is-${state}${className ? ` ${className}` : ""}`}>
