@@ -16,7 +16,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   // portable cache key in both the local runner and the deployed Worker.
   const cacheKey = request.url;
   const cached = await cache?.match(cacheKey);
-  if (cached) return cached;
+  // A Response handed back by the Cache API carries an immutable headers guard.
+  // Vinext adds its own headers downstream, which throws ("Can't modify
+  // immutable headers") and turns every cache hit into a 500. Rebuilding the
+  // response copies the bytes and metadata into a mutable one.
+  if (cached) return new Response(cached.body, { status: cached.status, headers: new Headers(cached.headers) });
 
   const key = (await params).path.join("/");
 
