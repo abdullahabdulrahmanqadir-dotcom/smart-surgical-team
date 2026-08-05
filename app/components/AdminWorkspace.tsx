@@ -132,6 +132,18 @@ function hasBlockChild(element: HTMLElement) {
   return Array.from(element.children).some((child) => RICH_BLOCKS.has(RICH_TAGS[child.tagName] ?? ""));
 }
 
+// Google Docs and Word wrap whole passages in `<b style="font-weight:normal">`
+// (and similar), which would otherwise turn every pasted paragraph bold. When a
+// tag's own inline style cancels the emphasis it stands for, keep the text but
+// drop the emphasis. Real bold/italic/underline carry no such reset and survive.
+function emphasisSuppressed(element: HTMLElement, mapped: string) {
+  const style = element.getAttribute("style") ?? "";
+  if (mapped === "strong") return /font-weight:\s*(normal|lighter|[1-5]0?0)\b/i.test(style);
+  if (mapped === "em") return /font-style:\s*normal\b/i.test(style);
+  if (mapped === "u") return /text-decoration[^;]*:\s*none\b/i.test(style);
+  return false;
+}
+
 function convertRichNode(node: Node, into: HTMLElement) {
   if (node.nodeType === Node.TEXT_NODE) { into.appendChild(document.createTextNode(node.nodeValue ?? "")); return; }
   if (node.nodeType !== Node.ELEMENT_NODE) return;
@@ -143,7 +155,7 @@ function convertRichNode(node: Node, into: HTMLElement) {
   if (mapped === "br") { target.appendChild(document.createElement("br")); return; }
   // A wrapper that already holds blocks (the `<div>` browsers put around a whole
   // list, for instance) is unwrapped rather than turned into an invalid `<p>`.
-  if (mapped && !(mapped === "p" && hasBlockChild(source))) {
+  if (mapped && !(mapped === "p" && hasBlockChild(source)) && !emphasisSuppressed(source, mapped)) {
     const href = source.getAttribute("href") ?? "";
     const size = source.getAttribute("size") ?? "";
     const usable = mapped === "a" ? /^(https?:\/\/|mailto:|\/)/i.test(href) : mapped === "font" ? RICH_SIZES.some(([option]) => option === size) : true;
@@ -173,7 +185,14 @@ function normalizeRichText(html: string) {
   output.querySelectorAll("p, h2, h3, blockquote").forEach((block) => {
     if (!block.textContent?.trim() && !block.querySelector("br, img, a")) block.remove();
   });
-  return output.innerHTML;
+  // Word and Google Docs carry their source indentation and leading &nbsp; into
+  // the fragment as real characters, which show up as stray spaces in front of a
+  // paste. Collapse non-breaking spaces to ordinary ones and trim the very start
+  // of the content so a paste begins flush like typed text.
+  const firstText = document.createTreeWalker(output, NodeFilter.SHOW_TEXT).nextNode();
+  output.querySelectorAll("*").forEach((el) => { if (el.childNodes.length === 0 && !/^(br|img|hr)$/i.test(el.tagName)) el.remove(); });
+  if (firstText) firstText.nodeValue = (firstText.nodeValue ?? "").replace(/ /g, " ").replace(/^\s+/, "");
+  return output.innerHTML.replace(/&nbsp;/g, " ");
 }
 
 function commandState(command: string) {

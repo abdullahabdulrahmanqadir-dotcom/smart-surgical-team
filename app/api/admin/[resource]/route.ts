@@ -130,7 +130,11 @@ export async function POST(request: Request, context: RouteContext) {
     }
     const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
-      title, slug, summary: optionalText(body.summary), kind: ["video", "webinar_recording", "poster", "case_article"].includes(text(body.kind)) ? text(body.kind) : "case_article",
+      // The editor has no kind selector, so a case's kind follows its video: a
+      // YouTube/video link makes it a "case video", its absence a "case study".
+      // Webinar and poster kinds are honoured when explicitly set (e.g. editing
+      // an existing record of that kind).
+      title, slug, summary: optionalText(body.summary), kind: ["webinar_recording", "poster"].includes(text(body.kind)) ? text(body.kind) : optionalText(body.video_url) ? "video" : "case_article",
       status, access_level: text(body.access_level) === "members_only" ? "members_only" : "public", video_url: optionalText(body.video_url),
       poster_url: optionalText(body.poster_url), thumbnail_source: text(body.thumbnail_source) === "image" ? "image" : "youtube",
       thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
