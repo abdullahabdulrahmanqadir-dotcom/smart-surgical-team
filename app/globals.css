@@ -2765,6 +2765,34 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   color: #fff;
 }
 
+/* When a case has no video, its chosen image stands in as the lead visual.
+   Unlike the fixed 16:9 player, the hero keeps the image's own aspect ratio
+   (bounded in height) so portrait and landscape photographs both show whole. */
+.content-hero-image {
+  margin: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #092c2b;
+  box-shadow: var(--shadow-lg);
+}
+.content-hero-image .lazy-image {
+  display: block;
+  width: 100%;
+}
+.content-hero-image img {
+  display: block;
+  width: 100%;
+  max-height: 30rem;
+  object-fit: contain;
+  background: #092c2b;
+}
+.content-hero-image figcaption {
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-muted);
+}
+
 /* Native video elements default to a 300 × 150px rendering area. Make the
    actual media fill the responsive player frame instead of sitting in its
    top-left corner. */

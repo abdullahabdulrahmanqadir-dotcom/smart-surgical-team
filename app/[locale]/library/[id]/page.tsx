@@ -87,6 +87,17 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
     .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
+  const images = content.media?.filter((item) => item.kind === "image") ?? [];
+  // With no video, the case still deserves a lead visual. The image chosen as
+  // the card thumbnail becomes the hero shown where the player would be; if none
+  // was chosen, the first uploaded image stands in. The hero is then dropped
+  // from the sidebar gallery so it is never shown twice.
+  const mainImage = content.videoUrl
+    ? undefined
+    : (content.thumbnailSource === "image" && content.thumbnailUrl
+        ? images.find((item) => item.publicUrl === content.thumbnailUrl)
+        : undefined) ?? images[0];
+  const galleryImages = mainImage ? images.filter((item) => item.id !== mainImage.id) : images;
   const contributors = content.contributors.length ? content.contributors : [{ ...content.presenter, photoUrl: undefined as string | undefined }];
 
   return <>
@@ -98,6 +109,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} />
+          {mainImage ? <figure className="content-hero-image"><LazyImage src={mainImage.publicUrl} alt={mainImage.altText ?? content.title} />{mainImage.caption ? <figcaption>{mainImage.caption}</figcaption> : null}</figure> : null}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">Resources</span><h2 id="content-downloads-title">Downloads</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || "Download document"}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">Overview</span><h2 id="case-summary-title">Case details</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
@@ -113,7 +125,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
         <aside className="content-aside">
           <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? "Contributor" : "Contributors"}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <LazyImage className="presenter-avatar presenter-photo" src={portrait} alt={`Portrait of ${contributor.name}`} /> :<span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">View team <IconArrowRight size={15} /></Link></section>
           <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
-          <ImageGallery images={content.media?.filter((item) => item.kind === "image") ?? []} />
+          <ImageGallery images={galleryImages} />
         </aside>
       </div>
 
