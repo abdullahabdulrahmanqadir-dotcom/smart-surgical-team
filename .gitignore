@@ -45,6 +45,9 @@ next-env.d.ts
 archive/
 site-package*.tgz
 
+# archived case source material (photos + case.json), used for admin import only
+cases/
+
 # local tooling output
 tsconfig.tsbuildinfo
 .playwright-mcp/
