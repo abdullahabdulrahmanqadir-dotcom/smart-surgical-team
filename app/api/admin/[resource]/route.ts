@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { apiError, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
@@ -12,8 +13,28 @@ function asResource(value: string): Resource | null {
 const PROTECTED_OWNER_EMAIL = "sarkrda.mohammed04@gmail.com";
 
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+// Research rows key on a numeric id, so `text()` would drop it and every save
+// would insert a new row instead of updating the edited one. Coerce numbers.
+function idValue(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? String(value) : text(value); }
 function optionalText(value: unknown) { const result = text(value); return result || null; }
 function date(value: unknown) { const result = text(value); return result || null; }
+
+// Uploaded media lives in R2 under the same key we store as `storage_path`; a
+// cover is kept as its `/api/media/<key>` URL. Map a URL back to its key so a
+// pasted external link (http...) is never treated as a bucket object.
+const MEDIA_URL_PREFIX = "/api/media/";
+function storageKeyFromUrl(value: unknown) {
+  const url = text(value);
+  return url.startsWith(MEDIA_URL_PREFIX) ? url.slice(MEDIA_URL_PREFIX.length) : "";
+}
+// Best-effort R2 cleanup. It runs after the database is already the source of
+// truth, so a storage hiccup must not fail an otherwise-successful save; the
+// orphaned object is logged rather than surfaced as a broken operation.
+async function deleteFromStorage(keys: unknown[]) {
+  const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
+  if (!unique.length) return;
+  try { await env.MEDIA_BUCKET.delete(unique); } catch (error) { console.error("R2 cleanup failed:", error); }
+}
 
 export async function GET(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
@@ -101,7 +122,7 @@ export async function POST(request: Request, context: RouteContext) {
     const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
     // Re-editing a published item must not reshuffle it to the top of the
     // public library, so an existing publication date is preserved.
-    const existingId = text(body.id);
+    const existingId = idValue(body.id);
     let publishedAt: string | null = null;
     if (status === "published") {
       const previous = existingId ? await client.from("content_items").select("published_at").eq("id", existingId).maybeSingle() : null;
@@ -138,6 +159,13 @@ export async function POST(request: Request, context: RouteContext) {
       return public_url && storage_path ? [{ content_id: saved.id, storage_path, public_url, kind: text(item?.kind) === "document" ? "document" : "image", alt_text: optionalText(item?.alt_text), caption: optionalText(item?.caption), sort_order }] : [];
     });
 
+    // Images dropped from the media list must leave R2, not just the database.
+    // Work out which stored keys the save no longer keeps before the rows are
+    // rewritten below, then remove those objects once the write succeeds.
+    const keptMediaPaths = new Set(validMedia.map((entry) => entry.storage_path));
+    const { data: priorMedia } = await client.from("content_media").select("storage_path").eq("content_id", saved.id);
+    const removedMediaKeys = (priorMedia ?? []).map((row) => text(row.storage_path)).filter((path) => path && !keptMediaPaths.has(path));
+
     // These relations are rewritten as delete-then-insert. Their errors used to
     // be discarded, so a failed insert after a successful delete reported
     // "Saved." while the item silently lost every topic, credit or chapter.
@@ -154,6 +182,7 @@ export async function POST(request: Request, context: RouteContext) {
       const inserted = await client.from(table).insert(rows);
       if (inserted.error) return apiError(`Saved the item, but could not update ${table.replace("content_", "")}: ${inserted.error.message}`, 500);
     }
+    await deleteFromStorage(removedMediaKeys);
     return Response.json({ data: saved });
   }
 
@@ -164,7 +193,7 @@ export async function POST(request: Request, context: RouteContext) {
     const payload = {
       title,
       authors: optionalText(body.authors),
-      abstract: optionalText(body.abstract),
+      abstract: safeRichText(body.abstract) || null,
       journal: optionalText(body.journal),
       category: optionalText(body.category) ?? "Publication",
       link: optionalText(body.link),
@@ -174,7 +203,12 @@ export async function POST(request: Request, context: RouteContext) {
       updated_by: identity.id,
       updated_at: new Date().toISOString(),
     };
-    const existingId = text(body.id);
+    const existingId = idValue(body.id);
+    // Snapshot the cover before the update overwrites it, so a replaced or
+    // removed cover can be cleaned out of R2 further down.
+    const priorCoverKey = existingId
+      ? storageKeyFromUrl((await client.from("researches").select("cover_image_url").eq("id", existingId).maybeSingle()).data?.cover_image_url)
+      : "";
     const { data: saved, error } = existingId
       ? await client.from("researches").update(payload).eq("id", existingId).select("id").single()
       : await client.from("researches").insert(payload).select("id").single();
@@ -185,6 +219,11 @@ export async function POST(request: Request, context: RouteContext) {
       const item = jsonObject(entry); const public_url = text(item?.public_url); const storage_path = text(item?.storage_path);
       return public_url && storage_path ? [{ research_id: saved.id, storage_path, public_url, kind: text(item?.kind) === "document" ? "document" : "image", alt_text: optionalText(item?.alt_text), caption: optionalText(item?.caption), sort_order }] : [];
     });
+    // Gallery images dropped from the save are removed from R2 too, worked out
+    // before the rows are rewritten.
+    const keptMediaPaths = new Set(validMedia.map((entry) => entry.storage_path));
+    const { data: priorMedia } = await client.from("research_media").select("storage_path").eq("research_id", saved.id);
+    const removedMediaKeys = (priorMedia ?? []).map((row) => text(row.storage_path)).filter((path) => path && !keptMediaPaths.has(path));
     // Rewritten as delete-then-insert, surfacing insert failures so a wiped
     // gallery is never reported as a clean save.
     const removed = await client.from("research_media").delete().eq("research_id", saved.id);
@@ -193,6 +232,10 @@ export async function POST(request: Request, context: RouteContext) {
       const inserted = await client.from("research_media").insert(validMedia);
       if (inserted.error) return apiError(`Saved the research, but could not update its images: ${inserted.error.message}`, 500);
     }
+    // A cover that changed (replaced or cleared) leaves its old object behind.
+    const newCoverKey = storageKeyFromUrl(payload.cover_image_url);
+    const removedCoverKeys = priorCoverKey && priorCoverKey !== newCoverKey ? [priorCoverKey] : [];
+    await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
     return Response.json({ data: saved });
   }
 
@@ -200,7 +243,7 @@ export async function POST(request: Request, context: RouteContext) {
     const name = text(body.name);
     if (!name) return apiError("A topic name is required.");
     const payload = { name, slug: slugify(text(body.slug) || name), parent_id: optionalText(body.parent_id), description: optionalText(body.description), sort_order: Number(body.sort_order) || 0 };
-    const { data, error } = body.id ? await client.from("topics").update(payload).eq("id", text(body.id)).select("id").single() : await client.from("topics").insert(payload).select("id").single();
+    const { data, error } = idValue(body.id) ? await client.from("topics").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("topics").insert(payload).select("id").single();
     return error ? apiError(error.message, 500) : Response.json({ data });
   }
 
@@ -209,7 +252,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (!title) return apiError("An event title is required.");
     const highlights = typeof body.highlights === "string" ? body.highlights.split("\n").map((line) => line.trim()).filter(Boolean) : Array.isArray(body.highlights) ? body.highlights : [];
     const payload = { title, slug: slugify(text(body.slug) || title), summary: optionalText(body.summary), event_type: optionalText(body.event_type) ?? "Event", topic: optionalText(body.topic), format: optionalText(body.format) ?? "in-person", status: ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "published", starts_at: date(body.starts_at), ends_at: date(body.ends_at), location: optionalText(body.location), image_url: optionalText(body.image_url), official_url: optionalText(body.official_url), registration_url: optionalText(body.registration_url), programme_url: optionalText(body.programme_url), faculty_url: optionalText(body.faculty_url), highlights, updated_at: new Date().toISOString() };
-    const { data, error } = body.id ? await client.from("events").update(payload).eq("id", text(body.id)).select("id").single() : await client.from("events").insert(payload).select("id").single();
+    const { data, error } = idValue(body.id) ? await client.from("events").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("events").insert(payload).select("id").single();
     return error ? apiError(error.message, 500) : Response.json({ data });
   }
 
@@ -217,7 +260,7 @@ export async function POST(request: Request, context: RouteContext) {
     const display_name = text(body.display_name);
     if (!display_name) return apiError("A contributor name is required.");
     const payload = { display_name, credentials: optionalText(body.credentials), biography: safeRichText(body.biography), photo_url: optionalText(body.photo_url), role_title: optionalText(body.role_title), group_name: optionalText(body.group_name), sort_order: Number(body.sort_order) || 0, published: body.published !== false, updated_at: new Date().toISOString() };
-    const { data, error } = body.id ? await client.from("contributors").update(payload).eq("id", text(body.id)).select("id").single() : await client.from("contributors").insert(payload).select("id").single();
+    const { data, error } = idValue(body.id) ? await client.from("contributors").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("contributors").insert(payload).select("id").single();
     return error ? apiError(error.message, 500) : Response.json({ data });
   }
 
@@ -243,7 +286,32 @@ export async function DELETE(request: Request, context: RouteContext) {
   if (!canDelete(access.identity.role, resource)) return apiError(`${roleLabel(access.identity.role)} accounts cannot delete ${resource}. Ask the Owner or a Content manager.`, 403);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return apiError("Choose an item to delete.");
+  const client = getSupabaseServerClient();
   const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource;
-  const { error } = await getSupabaseServerClient().from(table).delete().eq("id", id);
-  return error ? apiError(error.message, 500) : Response.json({ ok: true });
+
+  // Gather every R2 object this item owns before the row (and its cascading
+  // media rows) is gone, so nothing is left orphaned in the bucket. Uploaded
+  // events/contributor portraits are cleaned too; pasted external URLs are not.
+  let storageKeys: string[] = [];
+  if (resource === "content") {
+    const { data } = await client.from("content_media").select("storage_path").eq("content_id", id);
+    storageKeys = (data ?? []).map((row) => text(row.storage_path));
+  } else if (resource === "research") {
+    const [gallery, row] = await Promise.all([
+      client.from("research_media").select("storage_path").eq("research_id", id),
+      client.from("researches").select("cover_image_url").eq("id", id).maybeSingle(),
+    ]);
+    storageKeys = [...(gallery.data ?? []).map((entry) => text(entry.storage_path)), storageKeyFromUrl(row.data?.cover_image_url)];
+  } else if (resource === "events") {
+    const { data } = await client.from("events").select("image_url").eq("id", id).maybeSingle();
+    storageKeys = [storageKeyFromUrl(data?.image_url)];
+  } else if (resource === "contributors") {
+    const { data } = await client.from("contributors").select("photo_url").eq("id", id).maybeSingle();
+    storageKeys = [storageKeyFromUrl(data?.photo_url)];
+  }
+
+  const { error } = await client.from(table).delete().eq("id", id);
+  if (error) return apiError(error.message, 500);
+  await deleteFromStorage(storageKeys);
+  return Response.json({ ok: true });
 }
