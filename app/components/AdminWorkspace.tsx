@@ -480,14 +480,18 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
 
   // Picking a file no longer uploads anything: it stores the File and shows a
   // local preview. The real R2 upload happens once, on Save, in `commitList`.
-  function pickMedia(file: File, key: "content_media" | "research_media") {
-    if (file.size > MAX_UPLOAD_BYTES) { setUploadError("Choose a file no larger than 10 MB."); return; }
+  function pickMedia(files: File | File[], key: "content_media" | "research_media") {
+    const list = Array.isArray(files) ? files : [files];
+    if (list.some((file) => file.size > MAX_UPLOAD_BYTES)) { setUploadError("Choose files no larger than 10 MB each."); return; }
     setUploadError("");
-    const kind: Media["kind"] = file.type === "application/pdf" ? "document" : "image";
-    const preview = URL.createObjectURL(file);
-    previewUrls.current.push(preview);
-    const local_id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setForm((current) => ({ ...current, [key]: [...(Array.isArray(current[key]) ? current[key] as Media[] : []), { storage_path: "", public_url: preview, kind, alt_text: "", caption: "", file, local_id }] }));
+    const additions: Media[] = list.map((file, offset) => {
+      const kind: Media["kind"] = file.type === "application/pdf" ? "document" : "image";
+      const preview = URL.createObjectURL(file);
+      previewUrls.current.push(preview);
+      const local_id = `local-${Date.now()}-${offset}-${Math.random().toString(36).slice(2)}`;
+      return { storage_path: "", public_url: preview, kind, alt_text: "", caption: "", file, local_id };
+    });
+    setForm((current) => ({ ...current, [key]: [...(Array.isArray(current[key]) ? current[key] as Media[] : []), ...additions] }));
   }
   // The cover fills its URL field with the local preview so the admin sees the
   // image immediately; `cover_file` marks it as not-yet-uploaded until Save.
@@ -611,7 +615,7 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
   </section>;
 }
 function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <div className="admin-label" key={key}><span className="admin-label-text">{label}</span><RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}...`}/></div>)}</section>; }
-function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add in-article images or a downloadable PDF. Maximum 10 MB each. Files upload when you save.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { if (event.target.files?.[0]) upload(event.target.files[0]); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.local_id ?? item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
+function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (files: File[]) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add in-article images or a downloadable PDF. Maximum 10 MB each. Select several at once. Files upload when you save.</p><label className="admin-upload"><input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) upload(files); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose files"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.local_id ?? item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
 function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
   return <section className="admin-media admin-cover-picker"><h2>Cover image</h2><p>Shown on the research card and at the top of its page. Choose one, or paste an image URL. It uploads when you save.</p>
     {value && <div className="admin-cover-preview"><img src={value} alt="Cover preview"/></div>}
