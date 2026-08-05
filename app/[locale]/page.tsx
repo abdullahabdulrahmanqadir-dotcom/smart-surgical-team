@@ -105,6 +105,8 @@ export default async function Home({
   const dict = getDictionary(active);
   const research = await getResearches();
   const latestResearch = research[0];
+  // Abstracts can be rich HTML; the card excerpt wants clean text.
+  const latestResearchExcerpt = latestResearch?.abstract ? latestResearch.abstract.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
 
   return (
     <>
@@ -236,7 +238,7 @@ export default async function Home({
           <div className="research-preview-head"><div><span className="section-kicker">From our research desk</span><h2 id="research-preview-heading">Evidence, shared.</h2><p>Published clinical research from the Smart Health Tower community.</p></div><Link className="text-link" href={localePath(active, "research")}>Explore all research <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media">{latestResearch.imageUrl ? <img src={latestResearch.imageUrl} alt="" loading="lazy"/> : <span className="research-preview-placeholder"><IconFile size={40}/></span>}<span className="research-preview-badge">{latestResearch.category}</span></div>
-            <div className="research-preview-body"><span className="research-preview-kicker">Latest publication · {latestResearch.year}</span><h3>{latestResearch.title}</h3>{latestResearch.abstract && <p className="research-preview-excerpt">{latestResearch.abstract}</p>}<span className="research-preview-cta">Read research <IconArrowRight size={16}/></span></div>
+            <div className="research-preview-body"><span className="research-preview-kicker">Latest publication · {latestResearch.year}</span><h3>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">Read research <IconArrowRight size={16}/></span></div>
           </Link>
         </section>}
 

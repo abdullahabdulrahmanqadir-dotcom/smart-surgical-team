@@ -14,7 +14,11 @@ class RequestError extends Error {
 }
 type RecordItem = Record<string, unknown>;
 type ContentItem = RecordItem & { id?: string; title?: string; status?: string; kind?: string; access_level?: string; topic_ids?: string[]; chapters?: { title: string; starts_at_seconds: number }[]; content_media?: Media[] };
-type Media = { storage_path: string; public_url: string; kind: "image" | "document"; alt_text?: string; caption?: string };
+// `file` and `local_id` are client-only: a picked-but-not-yet-uploaded image
+// carries its File and a temporary id, and its `public_url` is an object URL
+// used only for the in-editor preview. Nothing reaches R2 until Save commits it.
+type Media = { storage_path: string; public_url: string; kind: "image" | "document"; alt_text?: string; caption?: string; file?: File; local_id?: string };
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 type ContentFilters = { major: string; subtopic: string; status: string; access: string; from: string; to: string; sort: "published_desc" | "published_asc" | "updated_desc" };
 const EMPTY_CONTENT_FILTERS: ContentFilters = { major: "", subtopic: "", status: "", access: "", from: "", to: "", sort: "published_desc" };
 type ResearchFilters = { year: string; category: string; status: string };
@@ -30,6 +34,12 @@ function asRecords(value: unknown): RecordItem[] {
 
 function errorMessage(value: unknown, fallback: string) {
   return typeof value === "string" && value ? value : fallback;
+}
+
+// Rich-text fields (the research abstract, case sections) hold HTML; list
+// previews want a clean one-line excerpt without the tags.
+function plainText(value: unknown) {
+  return String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // Not every response is JSON. A request the platform rejects before it reaches
@@ -398,7 +408,13 @@ export default function AdminWorkspace() {
         return (!researchFilters.year || year === researchFilters.year)
           && (!researchFilters.category || item.category === researchFilters.category)
           && (!researchFilters.status || item.status === researchFilters.status);
-      }).sort((a, b) => String(b.published_date ?? "").localeCompare(String(a.published_date ?? "")));
+      }).sort((a, b) => {
+        // Newly added research (no publication date yet) sits on top, then by
+        // publication date, newest first, then by most recently touched.
+        const da = String(a.published_date ?? ""), db = String(b.published_date ?? "");
+        if (da !== db) { if (!da) return -1; if (!db) return 1; return db.localeCompare(da); }
+        return String(b.updated_at ?? b.created_at ?? "").localeCompare(String(a.updated_at ?? a.created_at ?? ""));
+      });
     }
     if (active !== "content") return searched;
     const childIds = new Set(topics.filter((topic) => String(topic.parent_id ?? "") === contentFilters.major).map((topic) => String(topic.id)));
@@ -449,7 +465,7 @@ function List({ section, items, search, setSearch, topics, filters, setFilters, 
   const researchYears = section === "research" ? [...new Set(items.map((item) => String(item.published_date ?? "").slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a)) : [];
   const researchCategories = section === "research" ? [...new Set(items.map((item) => String(item.category ?? "")).filter(Boolean))].sort() : [];
   const change = (key: keyof ContentFilters, value: string) => setFilters({ ...filters, [key]: value, ...(key === "major" ? { subtopic: "" } : {}) });
-  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}...`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}{section === "research" ? <div className="admin-content-filters"><label>Year<select value={researchFilters.year} onChange={(event) => setResearchFilters({ ...researchFilters, year: event.target.value })}><option value="">All years</option>{researchYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label>Type<select value={researchFilters.category} onChange={(event) => setResearchFilters({ ...researchFilters, category: event.target.value })}><option value="">All types</option>{researchCategories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label>Status<select value={researchFilters.status} onChange={(event) => setResearchFilters({ ...researchFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><button type="button" onClick={() => setResearchFilters(EMPTY_RESEARCH_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{String(item.summary ?? item.authors ?? item.abstract ?? item.description ?? "No additional detail.")}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className="admin-delete" type="button" onClick={() => onDelete(item)}>Delete</button>}</div></div></article>)}</div></div>;
+  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}...`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}{section === "research" ? <div className="admin-content-filters"><label>Year<select value={researchFilters.year} onChange={(event) => setResearchFilters({ ...researchFilters, year: event.target.value })}><option value="">All years</option>{researchYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label>Type<select value={researchFilters.category} onChange={(event) => setResearchFilters({ ...researchFilters, category: event.target.value })}><option value="">All types</option>{researchCategories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label>Status<select value={researchFilters.status} onChange={(event) => setResearchFilters({ ...researchFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><button type="button" onClick={() => setResearchFilters(EMPTY_RESEARCH_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className="admin-delete" type="button" onClick={() => onDelete(item)}>Delete</button>}</div></div></article>)}</div></div>;
 }
 function Editor({ section, value, topics, contributors, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; contributors: RecordItem[]; onCancel: () => void; onSave: (value: RecordItem) => void }) {
   const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [], research_media: Array.isArray(value.research_media) ? value.research_media : [] }));
@@ -458,44 +474,93 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   // spinner stopped and the editor said nothing at all.
   const [uploadError, setUploadError] = useState("");
   const set = (key: string, next: unknown) => setForm((current) => ({ ...current, [key]: next }));
-  // One upload path for content media, research galleries and the research
-  // cover. When `key` is set the new file is appended to that list; the cover
-  // passes no key and uses the returned record directly.
-  async function uploadTo(file: File, key?: "content_media" | "research_media") {
-    if (file.size > 10 * 1024 * 1024) { setUploadError("Choose a file no larger than 10 MB."); return null; }
-    setUploading(true);
-    try {
-      const token = await accessToken();
-      const body = new FormData();
-      body.append("file", file);
-      if (section === "research") { body.append("topicSlug", "research"); } else { const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); }
-      if (typeof form.title === "string") body.append("caseSlug", form.title);
-      const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body });
-      const result = await readResponse(response);
-      if (!response.ok) throw new Error(errorMessage(result.error, "Could not upload this file."));
-      const path = typeof result.path === "string" ? result.path : "";
-      const publicUrl = typeof result.publicUrl === "string" ? result.publicUrl : "";
-      const kind = result.kind === "document" ? "document" : result.kind === "image" ? "image" : null;
-      if (!path || !publicUrl || !kind) throw new Error("The upload service returned an incomplete file record.");
-      setUploadError("");
-      if (key) setForm((current) => ({ ...current, [key]: [...(Array.isArray(current[key]) ? current[key] as Media[] : []), { storage_path: path, public_url: publicUrl, kind, alt_text: "", caption: "" }] }));
-      return { path, publicUrl, kind } as { path: string; publicUrl: string; kind: "image" | "document" };
-    } catch (error) { setUploadError(error instanceof Error ? error.message : "Could not upload this file."); return null; }
-    finally { setUploading(false); }
+  // Object URLs minted for pending previews are revoked when the editor closes.
+  const previewUrls = useRef<string[]>([]);
+  useEffect(() => () => { previewUrls.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
+
+  // Picking a file no longer uploads anything: it stores the File and shows a
+  // local preview. The real R2 upload happens once, on Save, in `commitList`.
+  function pickMedia(file: File, key: "content_media" | "research_media") {
+    if (file.size > MAX_UPLOAD_BYTES) { setUploadError("Choose a file no larger than 10 MB."); return; }
+    setUploadError("");
+    const kind: Media["kind"] = file.type === "application/pdf" ? "document" : "image";
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.push(preview);
+    const local_id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setForm((current) => ({ ...current, [key]: [...(Array.isArray(current[key]) ? current[key] as Media[] : []), { storage_path: "", public_url: preview, kind, alt_text: "", caption: "", file, local_id }] }));
   }
-  async function upload(file: File) { await uploadTo(file, "content_media"); }
-  function submit(event: FormEvent) { event.preventDefault(); onSave({ ...form, media: section === "research" ? form.research_media : form.content_media }); }
-  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={upload} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
+  // The cover fills its URL field with the local preview so the admin sees the
+  // image immediately; `cover_file` marks it as not-yet-uploaded until Save.
+  function pickCover(file: File) {
+    if (file.size > MAX_UPLOAD_BYTES) { setUploadError("Choose a file no larger than 10 MB."); return; }
+    setUploadError("");
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.push(preview);
+    setForm((current) => ({ ...current, cover_image_url: preview, cover_file: file }));
+  }
+  // Typing a URL by hand (or clearing the cover) discards any pending file so
+  // the typed value wins.
+  const setCoverUrl = (url: string) => setForm((current) => ({ ...current, cover_image_url: url, cover_file: undefined }));
+
+  // The single point that actually writes to R2. Returns the stored record.
+  async function sendToStorage(file: File): Promise<{ path: string; publicUrl: string; kind: "image" | "document" }> {
+    const token = await accessToken();
+    const body = new FormData();
+    body.append("file", file);
+    if (section === "research") { body.append("topicSlug", "research"); } else { const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); }
+    if (typeof form.title === "string") body.append("caseSlug", form.title);
+    const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body });
+    const result = await readResponse(response);
+    if (!response.ok) throw new Error(errorMessage(result.error, "Could not upload this file."));
+    const path = typeof result.path === "string" ? result.path : "";
+    const publicUrl = typeof result.publicUrl === "string" ? result.publicUrl : "";
+    const kind = result.kind === "document" ? "document" : result.kind === "image" ? "image" : null;
+    if (!path || !publicUrl || !kind) throw new Error("The upload service returned an incomplete file record.");
+    return { path, publicUrl, kind };
+  }
+  // Uploads every pending file in a media list, leaving already-stored items
+  // (those with a storage_path) untouched.
+  async function commitList(list: Media[]): Promise<Media[]> {
+    const committed: Media[] = [];
+    for (const item of list) {
+      if (item.file && !item.storage_path) {
+        const stored = await sendToStorage(item.file);
+        committed.push({ storage_path: stored.path, public_url: stored.publicUrl, kind: stored.kind, alt_text: item.alt_text ?? "", caption: item.caption ?? "", local_id: item.local_id });
+      } else committed.push(item);
+    }
+    return committed;
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setUploading(true); setUploadError("");
+    try {
+      const contentMedia = await commitList((form.content_media as Media[]) ?? []);
+      const researchMedia = await commitList((form.research_media as Media[]) ?? []);
+      let coverImageUrl = String(form.cover_image_url ?? "");
+      if (form.cover_file instanceof File) coverImageUrl = (await sendToStorage(form.cover_file)).publicUrl;
+      // A thumbnail chosen from a pending image referenced its temporary id;
+      // repoint it at the real storage path now that the image is uploaded.
+      let thumbnailPath = form.thumbnail_media_path;
+      if (typeof thumbnailPath === "string" && thumbnailPath.startsWith("local-")) {
+        thumbnailPath = contentMedia.find((item) => item.local_id === thumbnailPath)?.storage_path ?? "";
+      }
+      onSave({ ...form, cover_image_url: coverImageUrl, cover_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Could not upload the attached files.");
+    } finally { setUploading(false); }
+  }
+  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
     <Field label="Authors" hint="Free-text byline, e.g. Dr. A, Dr. B, and colleagues." value={form.authors} onChange={(value) => set("authors", value)}/>
-    <Field label="Abstract" type="textarea" value={form.abstract} onChange={(value) => set("abstract", value)}/>
+    <div className="admin-label"><span className="admin-label-text">Abstract</span><RichEditor value={String(form.abstract ?? "")} onChange={(value) => set("abstract", value)} placeholder="Write the abstract..."/></div>
     <div className="admin-field-grid"><Field label="Journal" value={form.journal} onChange={(value) => set("journal", value)}/><Field label="Type" hint="e.g. Paper, Case Report, Review." value={form.category} onChange={(value) => set("category", value)}/></div>
     <div className="admin-field-grid"><Field label="Publication date" type="date" value={form.published_date} onChange={(value) => set("published_date", value)}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive']]}/></div>
     <Field label="External paper link" hint="Full https:// link to the published paper." type="url" value={form.link} onChange={(value) => set("link", value)}/>
   </section><aside>
-    <CoverImagePicker value={String(form.cover_image_url ?? "")} onChange={(url) => set("cover_image_url", url)} upload={(file) => uploadTo(file)} uploading={uploading} error={uploadError}/>
-    <MediaManager media={(form.research_media as Media[]) ?? []} setMedia={(media) => set("research_media", media)} upload={(file) => { void uploadTo(file, "research_media"); }} uploading={uploading} error={uploadError}/>
+    <CoverImagePicker value={String(form.cover_image_url ?? "")} onChange={setCoverUrl} onPick={pickCover} uploading={uploading} error={uploadError}/>
+    <MediaManager media={(form.research_media as Media[]) ?? []} setMedia={(media) => set("research_media", media)} upload={(file) => pickMedia(file, "research_media")} uploading={uploading} error={uploadError}/>
   </aside></div></form>;
   if (section === "topics") return <SimpleEditor title={form.id ? "Edit topic" : "New topic"} fields={[['name','Topic name'],['description','Description'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit} topics={topics}/>;
   if (section === "events") return <SimpleEditor title={form.id ? "Edit event" : "New event or webinar"} fields={[['title','Title'],['summary','Summary'],['event_type','Type'],['topic','Topic'],['format','Attendance format'],['status','Status'],['starts_at','Starts at'],['ends_at','Ends at'],['location','Location'],['image_url','Image URL'],['official_url','Official URL'],['registration_url','Registration URL'],['programme_url','Programme URL'],['faculty_url','Faculty page URL'],['highlights','Programme highlights']]} form={{ ...form, highlights: Array.isArray(form.highlights) ? form.highlights.join("\n") : form.highlights }} set={set} onCancel={onCancel} onSave={submit}/>;
@@ -546,17 +611,17 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
   </section>;
 }
 function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <div className="admin-label" key={key}><span className="admin-label-text">{label}</span><RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}...`}/></div>)}</section>; }
-function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add a cover image, in-article images, or a downloadable PDF. Maximum file size: 10 MB.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => event.target.files?.[0] && upload(event.target.files[0])}/><IconPlus size={18}/>{uploading ? "Uploading..." : "Upload file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
-function CoverImagePicker({ value, onChange, upload, uploading, error }: { value: string; onChange: (url: string) => void; upload: (file: File) => Promise<{ publicUrl: string } | null>; uploading: boolean; error?: string }) {
-  return <section className="admin-media admin-cover-picker"><h2>Cover image</h2><p>Shown on the research card and at the top of its page. Upload one, or paste an image URL.</p>
+function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (file: File) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add in-article images or a downloadable PDF. Maximum 10 MB each. Files upload when you save.</p><label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { if (event.target.files?.[0]) upload(event.target.files[0]); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose file"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.local_id ?? item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
+function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
+  return <section className="admin-media admin-cover-picker"><h2>Cover image</h2><p>Shown on the research card and at the top of its page. Choose one, or paste an image URL. It uploads when you save.</p>
     {value && <div className="admin-cover-preview"><img src={value} alt="Cover preview"/></div>}
-    <label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; const result = await upload(file); if (result) onChange(result.publicUrl); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Uploading..." : "Upload cover"}</label>
+    <label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onPick(file); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose cover"}</label>
     {error && <p className="admin-upload-error" role="alert">{error}</p>}
     <Field label="Or image URL" type="url" value={value} onChange={onChange}/>
     {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove cover</button>}
   </section>;
 }
-function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itema~s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => <label key={item.storage_path}><input type="radio" name="thumbnail-image" checked={selectedPath === item.storage_path} onChange={() => onSelect(item.storage_path)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>)}</div> : <p className="admin-upload-error">Upload an image first, then select it here.</p>)}</section>; }
+function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itema~s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <label key={key}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}</section>; }
 function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}></button></div>) : <p>No chapters added.</p>}</section>; }
 // Saving lives in the header, and the header sticks: long case records used to
 // hide the only save button several screens below the fold.
