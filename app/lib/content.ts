@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
-import type { ContentCard, ContentKind, ContentRecord } from "./content-types";
+import type { CaseSection, ContentCard, ContentKind, ContentRecord } from "./content-types";
 
 /**
  * Server-side content reads.
@@ -62,6 +62,7 @@ type FullRow = ContentBaseRow & {
   case_procedure: string | null;
   case_histopathology: string | null;
   case_outcome: string | null;
+  case_sections: unknown;
   contributors: OneOrMany<ContributorRow>;
   content_contributors: OneOrMany<{ contributors: OneOrMany<ContributorRow> }>;
   content_chapters: ChapterRow[] | null;
@@ -78,12 +79,37 @@ const CARD_SELECT = `${BASE_COLUMNS},content_media(storage_path,public_url)`;
 // contributors (the lead-author FK and the many-to-many join). Without the
 // explicit constraint name PostgREST rejects the embed as ambiguous and the
 // whole query fails.
-const FULL_SELECT =
+// `case_sections` arrives with migration 0010. Selecting a column the database
+// does not have fails the whole query, which would take every case page down in
+// the window between a deploy and the migration being applied. The first such
+// failure drops the column for the life of the process and the read is retried
+// without it, so cases keep rendering from their legacy columns.
+let caseSectionsColumn = true;
+function missingCaseSections(message: string) { return /case_sections/.test(message) && /does not exist/i.test(message); }
+
+const FULL_SELECT_BASE =
   `${BASE_COLUMNS},poster_url,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome` +
   ",contributors!content_items_contributor_id_fkey(display_name,credentials,biography,photo_url)" +
   ",content_contributors(contributors(display_name,credentials,biography,photo_url))" +
   ",content_chapters(title,position,starts_at_seconds)" +
   ",content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
+const FULL_SELECT = () => caseSectionsColumn ? FULL_SELECT_BASE.replace(",case_outcome", ",case_outcome,case_sections") : FULL_SELECT_BASE;
+
+// `case_sections` is free-form JSON as far as the database is concerned, so
+// nothing about its shape can be assumed here. Anything malformed is dropped
+// and the row falls back to its five legacy columns.
+function readCaseSections(value: unknown): CaseSection[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const sections = value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const row = entry as Record<string, unknown>;
+    const label = typeof row.label === "string" ? row.label.trim() : "";
+    const body = typeof row.body === "string" ? row.body.trim() : "";
+    const key = typeof row.key === "string" && row.key ? row.key : label.toLowerCase();
+    return label && body ? [{ key, label, body }] : [];
+  });
+  return sections.length ? sections : undefined;
+}
 
 function firstOf<T>(value: OneOrMany<T>): T | undefined {
   return (Array.isArray(value) ? value[0] : value) ?? undefined;
@@ -155,16 +181,23 @@ async function fetchCards(): Promise<ContentCard[]> {
 async function fetchRecord(identifier: string, includeMembersOnly: boolean): Promise<ContentRecord | null> {
   if (!canUseContentDatabase()) return null;
   try {
-    let query = getSupabaseServerClient()
-      .from("content_items")
-      .select(FULL_SELECT)
-      .eq("status", "published");
-    if (!includeMembersOnly) query = query.eq("access_level", "public");
-    // Single-item lookups used to pull the whole catalogue and `.find()` in JS.
-    // `id` is a uuid column, so only compare it when the input actually is one.
-    query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
-
-    const { data, error } = await query.limit(1);
+    const run = async () => {
+      let query = getSupabaseServerClient()
+        .from("content_items")
+        .select(FULL_SELECT())
+        .eq("status", "published");
+      if (!includeMembersOnly) query = query.eq("access_level", "public");
+      // Single-item lookups used to pull the whole catalogue and `.find()` in JS.
+      // `id` is a uuid column, so only compare it when the input actually is one.
+      query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
+      return query.limit(1);
+    };
+    let { data, error } = await run();
+    if (error && caseSectionsColumn && missingCaseSections(error.message)) {
+      console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
+      caseSectionsColumn = false;
+      ({ data, error } = await run());
+    }
     if (error) console.error("published content record query failed:", error.message);
     const row = (data as unknown as FullRow[] | null)?.[0];
     if (error || !row) return null;
@@ -204,6 +237,7 @@ async function fetchRecord(identifier: string, includeMembersOnly: boolean): Pro
         histopathology: row.case_histopathology ?? undefined,
         outcome: row.case_outcome ?? undefined,
       },
+      caseSections: readCaseSections(row.case_sections),
       media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, storagePath: item.storage_path, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
     } satisfies ContentRecord;
   } catch {

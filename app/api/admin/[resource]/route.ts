@@ -30,6 +30,14 @@ function storageKeyFromUrl(value: unknown) {
 // Best-effort R2 cleanup. It runs after the database is already the source of
 // truth, so a storage hiccup must not fail an otherwise-successful save; the
 // orphaned object is logged rather than surfaced as a broken operation.
+// Migration 0010 adds `content_items.case_sections`. Until it is applied, both
+// reading and writing that column fails the whole statement — which would take
+// the content section of the workspace down rather than just the new feature.
+// The first such failure is remembered and the operation is retried without it,
+// so editors keep working against the five legacy columns in the meantime.
+let caseSectionsColumn = true;
+function missingCaseSections(message: string | undefined) { return Boolean(message) && /case_sections/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
+
 async function deleteFromStorage(keys: unknown[]) {
   const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
   if (!unique.length) return;
@@ -57,11 +65,17 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   if (resource === "content") {
-    const { data, error } = await client.from("content_items")
-      .select("id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)")
-      .order("updated_at", { ascending: false });
+    const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+      + (caseSectionsColumn ? "case_sections," : "")
+      + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
+    const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
+    let { data, error } = await read();
+    if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data, error } = await read()); }
     if (error) return apiError(error.message, 500);
-    return Response.json({ data });
+    // The workspace needs to know whether custom case sections can be stored at
+    // all, so it can say so up front rather than after a save silently drops
+    // them. See migration 0010.
+    return Response.json({ data, capabilities: { caseSections: caseSectionsColumn } });
   }
   if (resource === "topics") {
     const { data, error } = await client.from("topics").select("id,name,slug,parent_id,description,sort_order,created_at").order("sort_order");
@@ -128,6 +142,18 @@ export async function POST(request: Request, context: RouteContext) {
       const previous = existingId ? await client.from("content_items").select("published_at").eq("id", existingId).maybeSingle() : null;
       publishedAt = text(previous?.data?.published_at) || new Date().toISOString();
     }
+    // The case record arrives as an ordered list of named sections. Labels are
+    // the editor's own words; bodies go through the same sanitiser as before.
+    // The five built-in keys are mirrored into their legacy columns so readers
+    // that have not been updated — and the import script — still see them.
+    const caseSections = (Array.isArray(body.case_sections) ? body.case_sections : []).flatMap((entry, index) => {
+      const section = jsonObject(entry);
+      const label = text(section?.label);
+      const sectionBody = safeRichText(section?.body);
+      const key = text(section?.key) || slugify(label) || `section-${index + 1}`;
+      return label && sectionBody ? [{ key, label, body: sectionBody }] : [];
+    });
+    const legacySection = (key: string) => caseSections.find((section) => section.key === key)?.body ?? null;
     const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
       // The editor has no kind selector, so a case's kind follows its video: a
@@ -140,16 +166,31 @@ export async function POST(request: Request, context: RouteContext) {
       thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
-      case_presentation: safeRichText(body.case_presentation) || null, case_imaging: safeRichText(body.case_imaging) || null, case_procedure: safeRichText(body.case_procedure) || null,
-      case_histopathology: safeRichText(body.case_histopathology) || null, case_outcome: safeRichText(body.case_outcome) || null,
+      case_sections: caseSections.length ? caseSections : null,
+      // A save that carries sections defines the legacy columns entirely: a
+      // built-in section the editor removed or renamed away must clear its
+      // column rather than keep a stale copy on the row.
+      case_presentation: caseSections.length ? legacySection("presentation") : safeRichText(body.case_presentation) || null,
+      case_imaging: caseSections.length ? legacySection("imaging") : safeRichText(body.case_imaging) || null,
+      case_procedure: caseSections.length ? legacySection("procedure") : safeRichText(body.case_procedure) || null,
+      case_histopathology: caseSections.length ? legacySection("histopathology") : safeRichText(body.case_histopathology) || null,
+      case_outcome: caseSections.length ? legacySection("outcome") : safeRichText(body.case_outcome) || null,
       scheduled_for: status === "scheduled" ? date(body.scheduled_for) : null, published_at: publishedAt, updated_by: identity.id,
       // Without this the admin list, which orders by `updated_at desc`, never
       // reorders: there is no database trigger maintaining the column.
       updated_at: new Date().toISOString(),
     };
-    const { data: saved, error } = existingId
-      ? await client.from("content_items").update(item).eq("id", existingId).select("id").single()
-      : await client.from("content_items").insert(item).select("id").single();
+    const write = () => {
+      // Custom headings and extra sections need the column; without it the five
+      // built-ins still save to their own columns and nothing else is lost.
+      const row: Record<string, unknown> = { ...item };
+      if (!caseSectionsColumn) delete row.case_sections;
+      return existingId
+        ? client.from("content_items").update(row).eq("id", existingId).select("id").single()
+        : client.from("content_items").insert(row).select("id").single();
+    };
+    let { data: saved, error } = await write();
+    if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data: saved, error } = await write()); }
     if (error || !saved) return apiError(error?.message ?? "Could not save this content item.", 500);
     const topicIds = Array.isArray(body.topic_ids) ? body.topic_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const chapters = Array.isArray(body.chapters) ? body.chapters : [];
@@ -187,7 +228,11 @@ export async function POST(request: Request, context: RouteContext) {
       if (inserted.error) return apiError(`Saved the item, but could not update ${table.replace("content_", "")}: ${inserted.error.message}`, 500);
     }
     await deleteFromStorage(removedMediaKeys);
-    return Response.json({ data: saved });
+    // Saving against a database without migration 0010 keeps the five built-in
+    // sections (they have their own columns) but silently drops renamed
+    // headings and added sections. Say so rather than report a clean save.
+    const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
+    return Response.json({ data: saved, warning: sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
   }
 
   if (resource === "research") {

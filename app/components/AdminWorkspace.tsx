@@ -88,6 +88,179 @@ function accessToken() {
   });
 }
 
+// The case record an editor sees. `key` decides which legacy column a built-in
+// section still writes to and never changes when the label is renamed, so a
+// section called "MDT outcome" keeps landing in `case_outcome`.
+type CaseSection = { key: string; label: string; body: string };
+const DEFAULT_CASE_SECTIONS: { key: string; label: string; column: string }[] = [
+  { key: "presentation", label: "Presentation", column: "case_presentation" },
+  { key: "imaging", label: "Imaging & workup", column: "case_imaging" },
+  { key: "procedure", label: "Procedure", column: "case_procedure" },
+  { key: "histopathology", label: "Histopathology", column: "case_histopathology" },
+  { key: "outcome", label: "Outcome & follow-up", column: "case_outcome" },
+];
+
+// An item saved before custom sections existed has no `case_sections`; it is
+// opened as the five defaults carrying whatever its legacy columns hold, so the
+// first save migrates it without the editor noticing.
+function initialCaseSections(value: RecordItem): CaseSection[] {
+  const stored = Array.isArray(value.case_sections) ? value.case_sections : [];
+  const restored = stored.flatMap((entry) => {
+    const row = asRecord(entry);
+    const label = typeof row.label === "string" ? row.label : "";
+    return label ? [{ key: String(row.key || label.toLowerCase()), label, body: typeof row.body === "string" ? row.body : "" }] : [];
+  });
+  if (restored.length) return restored;
+  return DEFAULT_CASE_SECTIONS.map(({ key, label, column }) => ({ key, label, body: String(value[column] ?? "") }));
+}
+
+// The record still carries the five legacy `case_*` fields it was loaded with.
+// Restating them from the section list keeps them honest — otherwise deleting
+// every section would leave the old column values behind on the row, and the
+// case would come back from the dead on the public page.
+function legacyCaseColumns(section: Section, form: RecordItem): RecordItem {
+  if (section !== "content") return {};
+  const sections = Array.isArray(form.case_sections) ? form.case_sections as CaseSection[] : [];
+  return Object.fromEntries(DEFAULT_CASE_SECTIONS.map(({ key, column }) => [column, sections.find((entry) => entry.key === key)?.body ?? ""]));
+}
+
+// ---------------------------------------------------------------------------
+// Importing an archived case from its `case.json`
+//
+// The team's existing archive stores one folder per case: a `case.json`
+// describing the write-up, and the case's images beside it. The importer reads
+// that file into the editor's fields and reports everything it could not use,
+// so nothing is dropped silently. It never uploads anything: the images are
+// listed by name for the editor to pick with the normal file chooser.
+// ---------------------------------------------------------------------------
+type CaseImport = { patch: RecordItem; applied: string[]; issues: string[] };
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>]/g, (character) => character === "&" ? "&amp;" : character === "<" ? "&lt;" : "&gt;");
+}
+
+// The archive stores each section's text as plain text with a tag hint. Blank
+// lines become separate paragraphs and single newlines become breaks, so the
+// imported body reads the way it did in the source.
+function richTextFromPlain(value: string, tag: string): string {
+  const block = ["h2", "h3", "blockquote"].includes(tag) ? tag : "p";
+  const paragraphs = value.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  if (!paragraphs.length) return "";
+  if (tag === "li" || tag === "ul" || tag === "ol") {
+    const list = tag === "ol" ? "ol" : "ul";
+    return `<${list}>${paragraphs.map((part) => `<li>${escapeHtml(part).replace(/\n/g, "<br>")}</li>`).join("")}</${list}>`;
+  }
+  return paragraphs.map((part) => `<${block}>${escapeHtml(part).replace(/\n/g, "<br>")}</${block}>`).join("");
+}
+
+function readCaseJson(text: string, topics: RecordItem[]): CaseImport | { error: string } {
+  let parsed: unknown;
+  try { parsed = JSON.parse(text); } catch { return { error: "That file is not valid JSON. Export it again, or open it in a text editor to check it." }; }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { error: "That JSON file does not describe a case (the top level must be an object)." };
+  const source = parsed as RecordItem;
+  const patch: RecordItem = {};
+  const applied: string[] = [];
+  const issues: string[] = [];
+  const stringAt = (key: string) => typeof source[key] === "string" ? (source[key] as string).trim() : "";
+
+  const title = stringAt("title");
+  if (title) { patch.title = title; applied.push("Title"); } else issues.push("No “title” in the file — type one yourself; the case cannot be saved without it.");
+  const summary = stringAt("summary");
+  if (summary) { patch.summary = summary; applied.push("Card summary"); } else issues.push("No “summary” in the file — write the card summary yourself.");
+
+  // Sections. `order` decides the sequence; entries with no text (the archive
+  // uses an empty "Gallery" marker where the image strip went) are dropped.
+  const rawSections = Array.isArray(source.sections_and_text) ? source.sections_and_text : [];
+  if (!rawSections.length) issues.push("No “sections_and_text” list in the file — the case record was left as it is.");
+  const ordered = rawSections
+    .map((entry, index) => ({ entry: asRecord(entry), index }))
+    .sort((a, b) => (Number(a.entry.order ?? a.index) - Number(b.entry.order ?? b.index)) || (a.index - b.index));
+  const usedKeys = new Set<string>();
+  const sections: CaseSection[] = [];
+  // The archive writes a heading as its own entry with no text, and puts the
+  // paragraphs and bullets that belong under it in the following entries, which
+  // carry no heading of their own. Those are collected into the heading above
+  // them rather than orphaned as "Section 12".
+  let collecting: { section: CaseSection; heading: string; index: number } | null = null;
+  const newKey = (name: string, index: number) => {
+    // Two sections sharing a heading would share a key, and the second would
+    // overwrite the first on save.
+    let key = slugKey(name || `section-${index + 1}`);
+    while (usedKeys.has(key)) key = `${key}-${usedKeys.size + 1}`;
+    usedKeys.add(key);
+    return key;
+  };
+  for (const { entry, index } of ordered) {
+    const name = typeof entry.section_name === "string" ? entry.section_name.trim() : "";
+    const content = typeof entry.content === "string" ? entry.content.trim() : "";
+    const tag = typeof entry.tag === "string" ? entry.tag.toLowerCase() : "p";
+    // A heading followed straight away by another heading is a grouping title
+    // the flat section list cannot hold. Its text is not lost — everything
+    // under it keeps its own heading — but say so, so it can be put back.
+    if (name && collecting && !collecting.section.body) {
+      issues.push(`“${collecting.heading}” is a heading with no text of its own; the sections that followed it were imported under their own headings. Add it back if you want it.`);
+      sections.pop(); usedKeys.delete(collecting.section.key);
+    }
+    if (name) {
+      const section = { key: newKey(name, index), label: name, body: content ? richTextFromPlain(content, tag) : "" };
+      sections.push(section);
+      // A heading that arrived with its own text is complete; only an empty one
+      // keeps collecting what follows.
+      collecting = content ? null : { section, heading: name, index };
+      continue;
+    }
+    if (!content) continue;
+    if (collecting) { collecting.section.body += richTextFromPlain(content, tag); continue; }
+    issues.push(`Section ${index + 1} has no “section_name” — it was imported as “Section ${index + 1}”; give it a heading before saving.`);
+    sections.push({ key: newKey("", index), label: `Section ${index + 1}`, body: richTextFromPlain(content, tag) });
+    if (!["p", "h2", "h3", "blockquote", "li", "ul", "ol"].includes(tag)) issues.push(`Section ${index + 1} uses an unrecognised tag “${tag}” — its text was imported as paragraphs.`);
+  }
+  // A trailing heading with nothing under it (the archive's empty "Gallery"
+  // marker, where the image strip used to sit).
+  if (collecting && !collecting.section.body) {
+    issues.push(`“${collecting.heading}” is a heading with nothing under it and was skipped.`);
+    sections.pop();
+  }
+  if (sections.length) { patch.case_sections = sections; applied.push(`${sections.length} case section${sections.length === 1 ? "" : "s"}`); }
+
+  const videoUrl = stringAt("youtube_url") || (stringAt("youtube_id") ? `https://www.youtube.com/watch?v=${stringAt("youtube_id")}` : "");
+  if (videoUrl) { patch.video_url = videoUrl; applied.push("Video link"); }
+  else if (source.has_video === true) issues.push("The file says this case has a video but gives no link — paste the video URL yourself.");
+
+  const minutes = Number(String(source.reading_time ?? "").match(/\d+/)?.[0] ?? "");
+  if (Number.isFinite(minutes) && minutes > 0) { patch.reading_minutes = minutes; applied.push("Reading time"); }
+
+  // Everything below is reported rather than applied: it needs a decision the
+  // file cannot make.
+  const categories = Array.isArray(source.categories) ? source.categories.map((value) => String(value)) : [];
+  if (categories.length) {
+    const known = categories.filter((name) => topics.some((topic) => String(topic.name).toLowerCase() === name.toLowerCase()));
+    issues.push(`Categories in the file (${categories.join(", ")}) were not applied${known.length ? ` — “${known.join("”, “")}” matches a topic you can select above` : ""}. Choose the topic and subtopics yourself.`);
+  }
+  const images = Array.isArray(source.images) ? source.images : [];
+  if (images.length) issues.push(`${images.length} image${images.length === 1 ? " is" : "s are"} listed in the file. Images are not uploaded by the import — choose them with “Choose files”, from the same folder as this case.json, then drag them into the order the file lists.`);
+  if (stringAt("published_date")) issues.push(`The file's publication date (${stringAt("published_date")}) was not applied — publishing sets the date.`);
+  if (stringAt("source_url")) issues.push(`Source page: ${stringAt("source_url")}`);
+  return { patch, applied, issues };
+}
+
+// Section keys are matched against the five built-in ones, so a file whose
+// heading is "Histopathology" keeps writing to the legacy column.
+function slugKey(value: string) {
+  const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  return slug || "section";
+}
+
+// Moving an item within a list, used by both the section list and the image
+// order. Out-of-range targets are a no-op rather than a silent duplication.
+function moveItem<T>(list: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list;
+  const next = [...list];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 const emptyContent = (): ContentItem => ({ kind: "case_article", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical education", topic_ids: [], contributor_ids: [], chapters: [], content_media: [] });
 
 // A fixed vocabulary keeps the level badge on the public card consistent; it
@@ -326,11 +499,17 @@ export default function AdminWorkspace() {
   const [metrics, setMetrics] = useState<RecordItem>({});
   const [editing, setEditing] = useState<RecordItem | null>(null);
   const [notice, setNotice] = useState<string>("");
+  // A warning must not arrive wearing the green tick that means "all done".
+  const [noticeTone, setNoticeTone] = useState<"ok" | "warn">("ok");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [contentFilters, setContentFilters] = useState<ContentFilters>(EMPTY_CONTENT_FILTERS);
   const [researchFilters, setResearchFilters] = useState<ResearchFilters>(EMPTY_RESEARCH_FILTERS);
 
+  // False once the server reports that `content_items.case_sections` is missing
+  // (migration 0010 not applied): renamed headings and added sections cannot be
+  // stored, and the editor says so rather than letting a save quietly lose them.
+  const [caseSectionsStorable, setCaseSectionsStorable] = useState(true);
   const [access, setAccess] = useState<Access>("checking");
   const [accessMessage, setAccessMessage] = useState("");
 
@@ -366,7 +545,7 @@ export default function AdminWorkspace() {
   async function load(resource = active) {
     const token = ++loadToken.current;
     const current = () => loadToken.current === token;
-    setLoading(true); setNotice("");
+    setLoading(true); setNotice(""); setNoticeTone("ok");
     try {
       if (resource === "overview" && !(await accessToken())) { if (current()) { setAccess("signed_out"); setAccessMessage("Sign in with your staff account to open the workspace."); } return; }
       const result = await request(resource);
@@ -375,6 +554,7 @@ export default function AdminWorkspace() {
       else {
         setItems(asRecords(result.data));
         if (resource === "content") {
+          setCaseSectionsStorable(asRecord(result.capabilities).caseSections !== false);
           // Independent lookups: fetched together rather than back to back.
           const [topicResult, contributorResult] = await Promise.all([request("topics"), request("contributors")]);
           if (!current()) return;
@@ -391,7 +571,7 @@ export default function AdminWorkspace() {
         if (status === 401 || status === 403) setAccess(status === 401 ? "signed_out" : "denied");
         else setAccess("unavailable");
         setAccessMessage(message);
-      } else setNotice(message);
+      } else { setNotice(message); setNoticeTone("warn"); }
     }
     finally { if (current()) setLoading(false); }
   }
@@ -455,14 +635,18 @@ export default function AdminWorkspace() {
     else if (active === "contributors") setEditing({ display_name: "", credentials: "", role_title: "", group_name: "", biography: "", published: true, sort_order: 0 });
     else setEditing(null);
   }
-  async function save(value: RecordItem) {
+  async function save(value: RecordItem): Promise<boolean> {
     try {
-      await request(active, { method: "POST", body: JSON.stringify(value) }); setNotice("Saved. The public site will reflect published changes without a code release."); setEditing(null); await load();
-    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not save this item."); }
+      const result = await request(active, { method: "POST", body: JSON.stringify(value) });
+      const warning = typeof result.warning === "string" ? result.warning : "";
+      setNotice(warning || "Saved. The public site will reflect published changes without a code release."); setNoticeTone(warning ? "warn" : "ok");
+      setEditing(null); await load();
+      return true;
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not save this item."); setNoticeTone("warn"); return false; }
   }
   async function remove(item: RecordItem) {
     if (!window.confirm(`Delete a&S${String(item.title ?? item.name ?? item.display_name ?? "this item")}a? This cannot be undone.`)) return;
-    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); }
+    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); setNoticeTone("warn"); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
@@ -470,7 +654,7 @@ export default function AdminWorkspace() {
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We could not verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "research", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "research" ? "research" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className="admin-notice" role="status"><IconCheck size={17}/>{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "research", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "research" ? "research" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} caseSectionsStorable={caseSectionsStorable} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
 function Overview({ metrics, setActive }: { metrics: RecordItem; setActive: (section: Section) => void }) {
@@ -486,9 +670,13 @@ function List({ section, items, search, setSearch, topics, filters, setFilters, 
   const change = (key: keyof ContentFilters, value: string) => setFilters({ ...filters, [key]: value, ...(key === "major" ? { subtopic: "" } : {}) });
   return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}...`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}{section === "research" ? <div className="admin-content-filters"><label>Year<select value={researchFilters.year} onChange={(event) => setResearchFilters({ ...researchFilters, year: event.target.value })}><option value="">All years</option>{researchYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label>Type<select value={researchFilters.category} onChange={(event) => setResearchFilters({ ...researchFilters, category: event.target.value })}><option value="">All types</option>{researchCategories.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label>Status<select value={researchFilters.status} onChange={(event) => setResearchFilters({ ...researchFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><button type="button" onClick={() => setResearchFilters(EMPTY_RESEARCH_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className="admin-delete" type="button" onClick={() => onDelete(item)}>Delete</button>}</div></div></article>)}</div></div>;
 }
-function Editor({ section, value, topics, contributors, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; contributors: RecordItem[]; onCancel: () => void; onSave: (value: RecordItem) => void }) {
-  const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [], research_media: Array.isArray(value.research_media) ? value.research_media : [] }));
+function Editor({ section, value, topics, contributors, caseSectionsStorable = true, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; contributors: RecordItem[]; caseSectionsStorable?: boolean; onCancel: () => void; onSave: (value: RecordItem) => boolean | void | Promise<boolean | void> }) {
+  const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [], research_media: Array.isArray(value.research_media) ? value.research_media : [], case_sections: initialCaseSections(value) }));
   const [uploading, setUploading] = useState(false);
+  // Saving a case can take a while: every pending image is uploaded to R2 one
+  // at a time before the record itself is written. Without this the admin had a
+  // dead button and no way to tell a slow save from a stuck one.
+  const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   // A rejected upload used to throw out of an event handler with no catch: the
   // spinner stopped and the editor said nothing at all.
   const [uploadError, setUploadError] = useState("");
@@ -525,6 +713,18 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   // the typed value wins.
   const setCoverUrl = (url: string) => setForm((current) => ({ ...current, cover_image_url: url, cover_file: undefined }));
 
+  // An import overwrites work in progress, so it asks first when there is any.
+  function applyImport(patch: RecordItem): boolean {
+    const replaced: string[] = [];
+    if (patch.title !== undefined && String(form.title ?? "").trim()) replaced.push("the title");
+    if (patch.summary !== undefined && String(form.summary ?? "").trim()) replaced.push("the card summary");
+    if (patch.video_url !== undefined && String(form.video_url ?? "").trim()) replaced.push("the video link");
+    if (patch.case_sections !== undefined && ((form.case_sections as CaseSection[]) ?? []).some((entry) => entry.body.trim())) replaced.push("every case section already written here");
+    if (replaced.length && !window.confirm(`Importing this file replaces ${replaced.join(", ")}. Continue?`)) return false;
+    setForm((current) => ({ ...current, ...patch }));
+    return true;
+  }
+
   // The single point that actually writes to R2. Returns the stored record.
   async function sendToStorage(file: File): Promise<{ path: string; publicUrl: string; kind: "image" | "document" }> {
     const token = await accessToken();
@@ -543,11 +743,12 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   }
   // Uploads every pending file in a media list, leaving already-stored items
   // (those with a storage_path) untouched.
-  async function commitList(list: Media[]): Promise<Media[]> {
+  async function commitList(list: Media[], step: (name: string) => void): Promise<Media[]> {
     const committed: Media[] = [];
     for (const item of list) {
       if (item.file && !item.storage_path) {
         const stored = await sendToStorage(item.file);
+        step(item.file.name);
         committed.push({ storage_path: stored.path, public_url: stored.publicUrl, kind: stored.kind, alt_text: item.alt_text ?? "", caption: item.caption ?? "", local_id: item.local_id });
       } else committed.push(item);
     }
@@ -557,24 +758,36 @@ function Editor({ section, value, topics, contributors, onCancel, onSave }: { se
   async function submit(event: FormEvent) {
     event.preventDefault();
     setUploading(true); setUploadError("");
+    // One step per file still to upload, plus the record write itself.
+    const pending = [...((form.content_media as Media[]) ?? []), ...((form.research_media as Media[]) ?? [])].filter((item) => item.file && !item.storage_path).length
+      + (form.cover_file instanceof File ? 1 : 0);
+    const total = pending + 1;
+    let done = 0;
+    const step = (label: string) => { done += 1; setProgress({ done, total, label }); };
+    setProgress({ done: 0, total, label: pending ? `Uploading ${pending} file${pending === 1 ? "" : "s"}...` : "Saving changes..." });
     try {
-      const contentMedia = await commitList((form.content_media as Media[]) ?? []);
-      const researchMedia = await commitList((form.research_media as Media[]) ?? []);
+      const contentMedia = await commitList((form.content_media as Media[]) ?? [], (name) => step(`Uploaded ${name}`));
+      const researchMedia = await commitList((form.research_media as Media[]) ?? [], (name) => step(`Uploaded ${name}`));
       let coverImageUrl = String(form.cover_image_url ?? "");
-      if (form.cover_file instanceof File) coverImageUrl = (await sendToStorage(form.cover_file)).publicUrl;
+      if (form.cover_file instanceof File) { coverImageUrl = (await sendToStorage(form.cover_file)).publicUrl; step("Uploaded the cover image"); }
       // A thumbnail chosen from a pending image referenced its temporary id;
       // repoint it at the real storage path now that the image is uploaded.
       let thumbnailPath = form.thumbnail_media_path;
       if (typeof thumbnailPath === "string" && thumbnailPath.startsWith("local-")) {
         thumbnailPath = contentMedia.find((item) => item.local_id === thumbnailPath)?.storage_path ?? "";
       }
-      onSave({ ...form, cover_image_url: coverImageUrl, cover_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
+      setProgress({ done, total, label: "Writing to the database..." });
+      // A rejected save keeps the editor open, so the bar must not be left
+      // sitting at "Saved" over a record that never landed.
+      const saved = await onSave({ ...form, ...legacyCaseColumns(section, form), cover_image_url: coverImageUrl, cover_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
+      if (saved === false) setProgress(null); else step("Saved");
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Could not upload the attached files.");
+      setProgress(null);
     } finally { setUploading(false); }
   }
-  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel}/><div className="admin-editor-grid"><section><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields form={form} set={set}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
-  if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel}/><div className="admin-editor-grid"><section>
+  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section><CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
+  if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
     <Field label="Authors" hint="Free-text byline, e.g. Dr. A, Dr. B, and colleagues." value={form.authors} onChange={(value) => set("authors", value)}/>
     <div className="admin-label"><span className="admin-label-text">Abstract</span><RichEditor value={String(form.abstract ?? "")} onChange={(value) => set("abstract", value)} placeholder="Write the abstract..."/></div>
@@ -633,8 +846,114 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
     {subTopics.length > 0 && <div className="admin-subtopic-list"><span className="admin-label-text">Subtopics in this major topic</span><div className="admin-subtopic-grid">{subTopics.map((topic) => <label className="admin-checkbox" key={String(topic.id)}><input type="checkbox" checked={selectedSubIds.includes(String(topic.id))} onChange={(event) => toggleSub(String(topic.id), event.target.checked)}/>{String(topic.name)}</label>)}</div><small>Choose every subtopic that applies. Leave all unchecked to file this under the major topic only.</small></div>}
   </section>;
 }
-function CaseFields({ form, set }: { form: RecordItem; set: (key: string, value: unknown) => void }) { const fields = [['case_presentation','Patient presentation'],['case_imaging','Imaging & workup'],['case_procedure','Surgical management'],['case_histopathology','Histopathology'],['case_outcome','Outcome & follow-up']]; return <section className="admin-case-fields"><h2>Structured case record</h2><p>Every section is optional. Add only reviewed, de-identified material.</p>{fields.map(([key, label]) => <div className="admin-label" key={key}><span className="admin-label-text">{label}</span><RichEditor value={String(form[key] ?? "")} onChange={(value) => set(key, value)} placeholder={`Write the ${label.toLowerCase()}...`}/></div>)}</section>; }
-function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (files: File[]) => void; uploading: boolean; error?: string }) { return <section className="admin-media"><h2>Images & PDFs</h2><p>Add in-article images or a downloadable PDF. Maximum 10 MB each. Select several at once. Files upload when you save.</p><label className="admin-upload"><input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) upload(files); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose files"}</label>{error && <p className="admin-upload-error" role="alert">{error}</p>}{media.map((item, index) => <div className="admin-media-item" key={item.local_id ?? item.storage_path}>{item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span>PDF</span>}<div><input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>{item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}</div><button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button></div>)}</section>; }
+// Reading a case.json is a two-step action on purpose: the file is parsed and
+// what it will do — and everything it could not do — is shown before anything
+// in the editor is touched.
+function CaseJsonImport({ topics, onApply }: { topics: RecordItem[]; onApply: (patch: RecordItem) => boolean }) {
+  const [result, setResult] = useState<CaseImport | null>(null);
+  const [error, setError] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function pick(file: File) {
+    setError(""); setResult(null); setDone(false); setFileName(file.name);
+    try {
+      const parsed = readCaseJson(await file.text(), topics);
+      if ("error" in parsed) { setError(parsed.error); return; }
+      setResult(parsed);
+    } catch { setError("That file could not be read."); }
+  }
+
+  return <section className="admin-case-import">
+    <h2>Import from case.json</h2>
+    <p>Fills the title, card summary and case sections from an archived case file. Images are never uploaded by the import — anything the file cannot set is listed for you.</p>
+    <label className="admin-upload"><input type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void pick(file); event.target.value = ""; }}/><IconPlus size={18}/>Choose a case.json</label>
+    {error && <p className="admin-upload-error" role="alert">{error}</p>}
+    {result && <div className="admin-import-report">
+      <b>{fileName}</b>
+      {done
+        ? <p className="admin-import-done"><IconCheck size={15}/> Imported. Review every section before saving.</p>
+        : <>
+            <p>{result.applied.length ? <>Will fill: {result.applied.join(", ")}.</> : "Nothing in this file can be filled in automatically."}</p>
+            {result.applied.length ? <button type="button" className="btn btn-primary admin-import-apply" onClick={() => { if (onApply(result.patch)) setDone(true); }}>Import into the editor</button> : null}
+          </>}
+      {result.issues.length ? <><span className="admin-import-flag">Check these {result.issues.length} point{result.issues.length === 1 ? "" : "s"}</span><ul>{result.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></> : <p>Nothing was flagged.</p>}
+    </div>}
+  </section>;
+}
+
+// The case record is fully editable: every heading can be renamed, sections can
+// be reordered or removed, and new ones (an MDT outcome, a second follow-up
+// note) can be appended. Each section gets the same rich-text editor, so the
+// added ones behave exactly like the built-in five.
+function CaseFields({ sections, setSections, storable = true }: { sections: CaseSection[]; setSections: (sections: CaseSection[]) => void; storable?: boolean }) {
+  const update = (index: number, patch: Partial<CaseSection>) => setSections(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
+  function add() {
+    // Keys must stay unique: they are how a section is identified across a
+    // rename, and how the five built-ins keep their legacy database columns.
+    const key = `section-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    setSections([...sections, { key, label: "", body: "" }]);
+  }
+  return <section className="admin-case-fields">
+    <h2>Structured case record</h2>
+    <p>Every section is optional. Rename any heading to suit the case, reorder them, or add your own. Add only reviewed, de-identified material.</p>
+    {!storable && <p className="admin-blocked" role="alert"><b>Renamed headings and added sections will not be saved yet.</b> The database is missing the <code>case_sections</code> column: run <code>supabase/migrations/0010_case_sections.sql</code> in the Supabase SQL editor, then reload this page. The five standard sections below save normally in the meantime.</p>}
+    {sections.map((section, index) => <div className="admin-case-section" key={section.key}>
+      <div className="admin-case-section-head">
+        <input className="admin-case-section-name" value={section.label} onChange={(event) => update(index, { label: event.target.value })} placeholder="Section heading (e.g. MDT outcome)" aria-label={`Heading for section ${index + 1}`}/>
+        <div className="admin-case-section-tools">
+          <button type="button" title="Move up" aria-label={`Move ${section.label || "section"} up`} disabled={index === 0} onClick={() => setSections(moveItem(sections, index, index - 1))}>↑</button>
+          <button type="button" title="Move down" aria-label={`Move ${section.label || "section"} down`} disabled={index === sections.length - 1} onClick={() => setSections(moveItem(sections, index, index + 1))}>↓</button>
+          <button type="button" className="admin-delete" title="Remove section" aria-label={`Remove ${section.label || "section"}`} onClick={() => { if (!section.body.trim() || window.confirm(`Remove “${section.label || "this section"}” and its text?`)) setSections(sections.filter((_, position) => position !== index)); }}>Remove</button>
+        </div>
+      </div>
+      <RichEditor value={section.body} onChange={(value) => update(index, { body: value })} placeholder={`Write the ${(section.label || "section").toLowerCase()}...`}/>
+      {!section.label.trim() && section.body.trim() ? <small className="admin-upload-error">Give this section a heading, or it will not be published.</small> : null}
+    </div>)}
+    <button type="button" className="admin-add-section" onClick={add}><IconPlus size={16}/> Add a section</button>
+  </section>;
+}
+// Files are shown, and published, in the order they appear here — the order is
+// saved as each row's `sort_order`. Picking six images rarely picks them in the
+// right order, so a row can be dragged into place (or nudged with the arrows,
+// which is also the keyboard route).
+function MediaManager({ media, setMedia, upload, uploading, error }: { media: Media[]; setMedia: (value: Media[]) => void; upload: (files: File[]) => void; uploading: boolean; error?: string }) {
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  function drop(target: number) {
+    if (dragging !== null) setMedia(moveItem(media, dragging, target));
+    setDragging(null); setOver(null);
+  }
+  return <section className="admin-media">
+    <h2>Images & PDFs</h2>
+    <p>Add in-article images or a downloadable PDF. Maximum 10 MB each. Select several at once. Files upload when you save.</p>
+    <label className="admin-upload"><input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) upload(files); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose files"}</label>
+    {error && <p className="admin-upload-error" role="alert">{error}</p>}
+    {media.length > 1 && <p className="admin-media-hint">Drag a file to change the order it appears in, or use the arrows.</p>}
+    {media.map((item, index) => <div
+      className={`admin-media-item${dragging === index ? " is-dragging" : ""}${over === index && dragging !== null && dragging !== index ? " is-drop-target" : ""}`}
+      key={item.local_id ?? item.storage_path}
+      draggable
+      onDragStart={(event) => { setDragging(index); event.dataTransfer.effectAllowed = "move"; }}
+      onDragEnd={() => { setDragging(null); setOver(null); }}
+      onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; setOver(index); }}
+      onDrop={(event) => { event.preventDefault(); drop(index); }}
+    >
+      <span className="admin-media-handle" aria-hidden="true" title="Drag to reorder">⠿</span>
+      <span className="admin-media-position" aria-hidden="true">{index + 1}</span>
+      {item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span className="admin-media-kind">PDF</span>}
+      <div>
+        <input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>
+        {item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}
+      </div>
+      <div className="admin-media-tools">
+        <button type="button" title="Move up" aria-label={`Move ${item.alt_text || `file ${index + 1}`} earlier`} disabled={index === 0} onClick={() => setMedia(moveItem(media, index, index - 1))}>↑</button>
+        <button type="button" title="Move down" aria-label={`Move ${item.alt_text || `file ${index + 1}`} later`} disabled={index === media.length - 1} onClick={() => setMedia(moveItem(media, index, index + 1))}>↓</button>
+        <button type="button" onClick={() => setMedia(media.filter((_, position) => position !== index))}>Remove</button>
+      </div>
+    </div>)}
+  </section>;
+}
 function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
   return <section className="admin-media admin-cover-picker"><h2>Cover image</h2><p>Shown on the research card and at the top of its page. Choose one, or paste an image URL. It uploads when you save.</p>
     {value && <div className="admin-cover-preview"><img src={value} alt="Cover preview"/></div>}
@@ -648,7 +967,16 @@ function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { 
 function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}></button></div>) : <p>No chapters added.</p>}</section>; }
 // Saving lives in the header, and the header sticks: long case records used to
 // hide the only save button several screens below the fold.
-function EditorHead({ title, onCancel }: { title: string; onCancel: () => void }) { return <div className="admin-editor-head"><div><span className="admin-kicker">Content editor</span><h2>{title}</h2></div><div className="admin-editor-actions"><button className="btn btn-primary" type="submit">Save changes <IconArrowRight size={17}/></button><button type="button" className="btn btn-secondary" onClick={onCancel}>Cancel</button></div></div>; }
+function EditorHead({ title, onCancel, busy = false, progress = null }: { title: string; onCancel: () => void; busy?: boolean; progress?: { done: number; total: number; label: string } | null }) {
+  const percent = progress ? Math.round((progress.done / Math.max(progress.total, 1)) * 100) : 0;
+  return <div className="admin-editor-head"><div><span className="admin-kicker">Content editor</span><h2>{title}</h2></div><div className="admin-editor-actions">
+    <div className="admin-save-actions"><button className="btn btn-primary" type="submit" disabled={busy}>{busy ? "Saving..." : <>Save changes <IconArrowRight size={17}/></>}</button><button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button></div>
+    {progress && <div className="admin-save-progress" role="status" aria-live="polite">
+      <div className="admin-save-bar"><span style={{ width: `${percent}%` }}/></div>
+      <small>{progress.label} · {percent}%</small>
+    </div>}
+  </div></div>;
+}
 function Field({ label, value, onChange, type = "text", hint, required = false }: { label: string; value: unknown; onChange: (value: string) => void; type?: string; hint?: string; required?: boolean }) { return <label className="admin-label">{label}{type === "textarea" ? <textarea value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/> : <input type={type} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/>} {hint && <small>{hint}</small>}</label>; }
 function Select({ label, value, onChange, options }: { label: string; value: unknown; onChange: (value: string) => void; options: string[][] }) { return <label className="admin-label">{label}<select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}>{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select></label>; }
 function SimpleEditor({ title, fields, form, set, onCancel, onSave, topics }: { title: string; fields: string[][]; form: RecordItem; set: (key: string, value: unknown) => void; onCancel: () => void; onSave: (event: FormEvent) => void; topics?: RecordItem[] }) { return <form className="admin-editor admin-simple-editor" onSubmit={onSave}><EditorHead title={title} onCancel={onCancel}/><div className="admin-simple-fields">{fields.map(([key, label]) => <Field key={key} label={label} hint={key === "highlights" ? "One highlight per line." : undefined} type={key === "summary" || key === "description" || key === "biography" || key === "highlights" ? "textarea" : key.includes("_at") ? "datetime-local" : key.includes("url") ? "url" : key === "sort_order" ? "number" : "text"} value={form[key]} onChange={(value) => set(key, value)}/>) }{topics && <label className="admin-label">Parent topic<select value={String(form.parent_id ?? "")} onChange={(event) => set("parent_id", event.target.value)}><option value="">No parent (top-level topic)</option>{topics.filter((topic) => topic.id !== form.id).map((topic) => <option value={String(topic.id)} key={String(topic.id)}>{String(topic.name)}</option>)}</select></label>}</div></form>; }

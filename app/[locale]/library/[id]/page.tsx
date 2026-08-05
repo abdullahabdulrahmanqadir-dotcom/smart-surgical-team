@@ -11,7 +11,7 @@ import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
 import BackToPrevious from "../../../components/BackToPrevious";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
-import { CASE_SUMMARY_FIELDS, getContent, getContentForMember, getLibraryContent, type CaseSummary, type ContentKind } from "../../../lib/content";
+import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
@@ -83,9 +83,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   }
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
-  const summarySections = CASE_SUMMARY_FIELDS
-    .map(({ key, label }) => ({ key, label, value: content.caseSummary?.[key]?.trim() }))
-    .filter((section): section is { key: keyof CaseSummary; label: string; value: string } => Boolean(section.value));
+  const summarySections = resolveCaseSections(content);
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
   const images = content.media?.filter((item) => item.kind === "image") ?? [];
   // With no video, the case still deserves a lead visual. The image chosen as
@@ -115,7 +113,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
             <div className="section-mini-head"><div><span className="section-kicker">Overview</span><h2 id="case-summary-title">Case details</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
               <dl className="case-summary-list">
-                {summarySections.map(({ key, label, value }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: value }} /></div>)}
+                {summarySections.map(({ key, label, body }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
               </dl>
             ) : (
               <div className="case-summary-empty"><IconFile size={20} /><div><b>Case detail is not published yet.</b><span>Presentation, imaging, procedure, histopathology and outcome appear here once the team has reviewed and de-identified them.</span></div></div>

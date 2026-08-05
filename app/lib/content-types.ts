@@ -32,6 +32,30 @@ export const CASE_SUMMARY_FIELDS: { key: keyof CaseSummary; label: string }[] = 
   { key: "outcome", label: "Outcome & follow-up" },
 ];
 
+// A case record is an ordered list of named rich-text sections. The five keys
+// above are the defaults every new case starts from; an editor may rename any
+// of them and append sections of their own, which carry a generated key.
+export type CaseSection = { key: string; label: string; body: string };
+
+export const CASE_SECTION_KEYS = CASE_SUMMARY_FIELDS.map((field) => field.key) as string[];
+
+// The one place that decides what a case's sections are, used by every reader.
+// `caseSections` wins when the item has been saved since custom sections
+// existed; anything older is rendered from the five legacy columns under their
+// original headings. Empty sections never reach the page.
+export function resolveCaseSections(record: { caseSections?: CaseSection[]; caseSummary?: CaseSummary }): CaseSection[] {
+  const stored = record.caseSections;
+  if (stored?.length) {
+    return stored
+      .filter((section) => section && typeof section.body === "string" && section.body.trim() && String(section.label ?? "").trim())
+      .map((section, index) => ({ key: String(section.key || `section-${index}`), label: String(section.label).trim(), body: section.body.trim() }));
+  }
+  return CASE_SUMMARY_FIELDS.flatMap(({ key, label }) => {
+    const body = record.caseSummary?.[key]?.trim();
+    return body ? [{ key, label, body }] : [];
+  });
+}
+
 export type ContentTopic = { name: string; slug: string };
 
 /**
@@ -67,6 +91,7 @@ export type ContentRecord = ContentCard & {
   posterUrl?: string;
   chapters: ContentChapter[];
   caseSummary?: CaseSummary;
+  caseSections?: CaseSection[];
   learnerCount?: number;
   progress?: number;
   media?: { id: string; storagePath: string; kind: "image" | "document"; publicUrl: string; altText?: string; caption?: string }[];

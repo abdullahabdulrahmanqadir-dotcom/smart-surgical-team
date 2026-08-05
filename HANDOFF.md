@@ -192,6 +192,40 @@ module. Run the tests through the hook, as `npm test` now does:
 node --import ./tests/register-hooks.mjs --test tests/rendered-html.test.mjs
 ```
 
+### Editable case sections (2026-08-05)
+
+A case record is no longer five fixed headings. In the content editor every
+heading can be renamed, sections can be reordered or removed, and **Add a
+section** appends a new one with the same rich-text toolbar as the rest.
+
+- New migration `supabase/migrations/0010_case_sections.sql` adds
+  `content_items.case_sections` (jsonb), holding the whole ordered record as
+  `[{ key, label, body }, …]`. **Apply it to Supabase.** Until it is applied the
+  code degrades rather than breaks: reads and writes retry without the column,
+  the five built-in sections keep using their legacy `case_*` columns, and a
+  save that would have stored a renamed heading or an added section returns a
+  warning the workspace shows in place of the usual "Saved" notice.
+- The built-in five keep their keys (`presentation`, `imaging`, `procedure`,
+  `histopathology`, `outcome`) and are still mirrored into their own columns, so
+  renaming a heading does not move the text. `resolveCaseSections()` in
+  `app/lib/content-types.ts` is the single reader: it prefers `case_sections`
+  and falls back to the legacy columns for rows saved before this change.
+- Media in the editor can be dragged into the order it should publish in (or
+  nudged with the arrow buttons); the list order is written as `sort_order`,
+  which the gallery and the videoless hero image already follow.
+- Saving shows a progress bar in the sticky editor header, stepping through each
+  pending R2 upload and the database write.
+- **Import from case.json** at the top of the content editor reads an archived
+  case file (`cases/<page> - <n>/case.json`) and fills the title, card summary,
+  video link, reading time and the whole section list. It shows what it will do
+  before touching the editor, asks before replacing work in progress, and lists
+  everything it could not apply: skipped empty headings, sections with no
+  heading, the file's categories, its publication date, and the images (never
+  uploaded — pick them from the same folder with "Choose files"). The archive
+  writes a heading as its own text-less entry followed by unheaded body entries;
+  those are collected back under their heading. Verified against all 20 files in
+  `cases/`.
+
 ### Verification commands on Windows
 
 `npm run build` uses Unix-style environment assignment and fails under normal
