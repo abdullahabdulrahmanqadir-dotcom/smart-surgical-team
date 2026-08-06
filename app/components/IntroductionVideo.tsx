@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const videoUrl = "https://www.youtube-nocookie.com/embed/gUKXoL-zXdM?playsinline=1&rel=0&enablejsapi=1";
-const autoplayVideoUrl = `${videoUrl}&autoplay=1&mute=1`;
+const autoplayVideoUrl = `${videoUrl}&autoplay=1`;
 
 export default function IntroductionVideo() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,9 +14,17 @@ export default function IntroductionVideo() {
     const player = playerRef.current?.contentWindow;
     if (!player || !shouldAutoplay) return;
 
-    player.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
+    player.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [25] }), "*");
+    player.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
     player.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
   }, [shouldAutoplay]);
+
+  const pausePlayback = useCallback(() => {
+    const player = playerRef.current?.contentWindow;
+    if (!player) return;
+
+    player.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -26,16 +34,19 @@ export default function IntroductionVideo() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return;
-        setShouldAutoplay(true);
-        observer.disconnect();
+        if (entry.isIntersecting) {
+          setShouldAutoplay(true);
+          startPlayback();
+        } else {
+          pausePlayback();
+        }
       },
       { rootMargin: "0px 0px -10%", threshold: 0.15 },
     );
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
+  }, [startPlayback, pausePlayback]);
 
   useEffect(() => {
     if (!shouldAutoplay) return;
