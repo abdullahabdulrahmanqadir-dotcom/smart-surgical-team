@@ -3084,7 +3084,8 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .contact-intro { position: relative; max-width: 720px; padding-inline-start: clamp(1.1rem, 3vw, 2.6rem); }
 .contact-intro::before { content: ""; position: absolute; inset: .45rem auto 0 0; width: 2px; background: var(--brand-copper); }
 .contact-intro h1 { max-width: 14ch; }
-.contact-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .72fr); gap: clamp(1rem, 3vw, 2rem); width: min(100%, 980px); margin: clamp(2.5rem, 6vw, 5rem) 0 0 auto; }
+/* Full shell width so the details cards line up with the map below them. */
+.contact-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .72fr); gap: clamp(1rem, 3vw, 2rem); width: 100%; margin: clamp(2.5rem, 6vw, 5rem) 0 0; }
 .contact-details { background: color-mix(in srgb, var(--surface) 88%, var(--brand-ivory)); border-color: color-mix(in srgb, var(--brand-copper) 28%, var(--line)); box-shadow: 0 16px 40px rgba(64, 50, 42, .08); }
 .contact-details dt { color: var(--accent); }
 .contact-location { position: relative; display: flex; flex-direction: column; justify-content: end; min-height: 100%; overflow: hidden; padding: clamp(1.5rem, 3vw, 2.3rem); border: 1px solid color-mix(in srgb, var(--brand-copper) 38%, var(--line)); border-radius: var(--radius-xl); background: var(--brand-teal-deep); color: #f5f2ea; box-shadow: var(--shadow-md); }
@@ -3093,6 +3094,14 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .contact-location p { position: relative; max-width: 29ch; margin-top: 1rem; color: #d4e8e3; font-size: .91rem; line-height: 1.7; }
 .contact-directions { position: relative; display: inline-flex; gap: .45rem; align-items: center; align-self: start; margin-top: 1.6rem; padding-bottom: .25rem; border-bottom: 1px solid #dcb184; color: #fffaf2; font-size: .82rem; font-weight: 750; transition: color .2s ease, gap .2s ease; }
 .contact-directions:hover { gap: .7rem; color: #dcb184; }
+.contact-map-section { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
+.contact-map-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: clamp(1rem, 2.5vw, 1.6rem); }
+.contact-map-head h2 { margin-top: .5rem; font-size: clamp(1.7rem, 3.2vw, 2.6rem); line-height: 1.05; }
+.contact-map-cta { display: inline-flex; flex: none; gap: .45rem; align-items: center; padding-bottom: .25rem; border-bottom: 1px solid var(--brand-copper); color: var(--text); font-size: .82rem; font-weight: 750; transition: color .2s ease, gap .2s ease; }
+.contact-map-cta:hover { gap: .7rem; color: var(--accent); }
+.contact-map { position: relative; height: clamp(360px, 52vh, 620px); overflow: hidden; border: 1px solid color-mix(in srgb, var(--brand-copper) 32%, var(--line)); border-radius: var(--radius-xl); background: var(--surface-2); box-shadow: var(--shadow-md); }
+.contact-map iframe { display: block; width: 100%; height: 100%; border: 0; }
+@media (max-width: 620px) { .contact-map-head { flex-direction: column; align-items: flex-start; gap: .9rem; } }
 .contact-location small { position: relative; margin-top: 1.15rem; color: #a9cbc2; font-size: .7rem; line-height: 1.5; }
 .contact-location-orbit { position: absolute; inset: -8rem -7rem auto auto; width: 17rem; aspect-ratio: 1; opacity: .9; }
 .contact-location-orbit span, .contact-location-orbit i { position: absolute; display: block; border: 1px solid rgba(205, 235, 229, .24); border-radius: 50%; }

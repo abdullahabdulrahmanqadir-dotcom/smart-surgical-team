@@ -10,7 +10,14 @@ import { notFound } from "next/navigation";
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
 const TOWER_URL = "https://smarthealth.group/ar";
-const DIRECTIONS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Smart Health Tower, Sulaymaniyah, Iraq")}`;
+/* Pinned by coordinates rather than by name: searching for "Smart Health Tower"
+   drops the map on empty ground, these are the tower itself. */
+const MAP_COORDS = "35.5685910,45.4430236";
+/* The universal `maps/dir` URL hands off to the Google Maps app on phones and
+   routes from the visitor's own location straight to the tower. */
+const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${MAP_COORDS}&travelmode=driving`;
+/* `output=embed` is the keyless Maps embed, so no API key has to ship. */
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${MAP_COORDS}(${encodeURIComponent("Smart Health Tower")})&hl=en&z=17&output=embed`;
 
 export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -56,6 +63,27 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <small>Majid Bag Main Street · Sulaymaniyah, Iraq</small>
             </section>
           </div>
+
+          {/* Full-width map closes the page so visitors can actually explore the
+              area before they hand off to the Maps app. */}
+          <section className="contact-map-section" aria-labelledby="map-heading">
+            <div className="contact-map-head">
+              <div>
+                <span className="auth-kicker">On the map</span>
+                <h2 id="map-heading">Where to find us.</h2>
+              </div>
+              <a className="contact-map-cta" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">Get directions <IconArrowRight size={17} /></a>
+            </div>
+            <div className="contact-map">
+              <iframe
+                src={MAP_EMBED_URL}
+                title="Map showing Smart Health Tower, Sulaymaniyah"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                allowFullScreen
+              />
+            </div>
+          </section>
         </div>
       </main>
       <SiteFooter locale={active} dict={dict}/>
