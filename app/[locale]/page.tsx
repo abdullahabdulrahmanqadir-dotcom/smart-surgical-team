@@ -242,44 +242,29 @@ export default async function Home({
           </Link>
         </section>}
 
-        {/* ---------------- Upcoming events + about ---------------- */}
-        <section className="section section-muted section-library" id="library">
+        {/* ---------------- Introduction video ---------------- */}
+        <section className="section section-muted section-introduction" id="introduction" aria-labelledby="introduction-heading">
           <div className="section-head">
             <div>
-              <span className="section-kicker">Stay connected</span>
-              <h2>Upcoming events and latest updates</h2>
+              <span className="section-kicker">Introducing the clinic</span>
+              <h2 id="introduction-heading">Meet Smart Surgical Team</h2>
               <p className="section-sub">
-                Join the conversations, teaching sessions and community behind Smart Surgical
-                Team.
+                A short tour of the clinic, the team and the care pathway behind every case we
+                publish.
               </p>
             </div>
+            <span className="badge badge-accent">Clinic overview</span>
           </div>
 
-          <div className="dashboard">
-            {/* The rest of the homepage is static and no longer waits behind
-                this database read: the panel arrives with placeholder rows and
-                fills in when the events resolve. */}
-            <Suspense fallback={<UpcomingEventsPanel locale={active} />}>
-              <UpcomingEvents locale={active} />
-            </Suspense>
-
-            <article className="panel featured-panel" id="introduction">
-              <div className="panel-heading introduction-heading">
-                <div>
-                  <span className="section-kicker">Introducing the clinic</span>
-                </div>
-                <span className="badge badge-accent">Clinic overview</span>
-              </div>
-
-              <IntroductionVideo />
-
-            </article>
-          </div>
+          {/* The stage carries the gutter so the player lines up with every
+              other section instead of bleeding past them. */}
+          <div className="introduction-stage"><IntroductionVideo /></div>
         </section>
 
-        {/* ---------------- Expert team ---------------- */}
-        <section className="section section-explore" id="team" aria-labelledby="team-heading">
-          <article className="panel team-feature-panel">
+        {/* ---------------- Expert team + upcoming events ---------------- */}
+        <section className="section section-muted section-library" id="library">
+          <div className="dashboard">
+          <article className="panel team-feature-panel" id="team" aria-labelledby="team-heading">
             <div className="panel-heading">
               <div>
                 <span className="section-kicker">The people behind the work</span>
@@ -307,6 +292,14 @@ export default async function Home({
               ))}
             </div>
           </article>
+
+          {/* The rest of the homepage is static and no longer waits behind
+              this database read: the panel arrives with placeholder rows and
+              fills in when the events resolve. */}
+          <Suspense fallback={<UpcomingEventsPanel locale={active} />}>
+            <UpcomingEvents locale={active} />
+          </Suspense>
+          </div>
         </section>
 
         {/* ---------------- Vision ---------------- */}
