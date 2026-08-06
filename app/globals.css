@@ -1719,11 +1719,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 .featured-panel { min-height: 100%; }
 
-/* Team and events share one section side by side, so the team panel stacks its
-   cards and drops a display size inside a half-width column. */
-.section-library .team-feature-panel h2 { font-size: clamp(1.6rem, 2.6vw, 2.15rem); }
-.section-library .team-feature-list { grid-template-columns: minmax(0, 1fr); }
-
 
 /* --- tabs + filter --- */
 
@@ -2007,19 +2002,14 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 /* --- expert team feature --- */
 
-.team-feature-panel { padding: clamp(1.35rem, 3.5vw, 2.4rem); }
-.team-feature-panel .panel-heading { align-items: end; gap: 1.5rem; }
-.team-feature-panel .section-kicker { color: var(--primary); }
-.team-feature-panel h2 { margin-top: .35rem; font-size: clamp(2rem, 4vw, 3.25rem); }
-.team-feature-panel .panel-sub { max-width: 50ch; }
-.team-feature-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-top: 1.8rem; }
-.team-feature-card { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; align-items: center; gap: 1rem; min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2); transition: border-color .18s, background .18s, transform .18s; }
-.team-feature-card:hover { border-color: var(--primary); background: var(--primary-soft); transform: translateY(-2px); }
-.team-feature-portrait { display: block; width: 6rem; height: 6rem; overflow: hidden; border-radius: 50%; background: var(--primary-soft); }
+.team-feature-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; margin-top: 0; }
+.team-feature-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.9rem; min-width: 0; padding: 0.85rem; border: 1px solid var(--line); border-radius: var(--radius-md); transition: border-color .18s, background .18s; }
+.team-feature-card:hover { border-color: var(--primary); background: var(--primary-soft); }
+.team-feature-portrait { display: block; width: 2.75rem; height: 2.75rem; overflow: hidden; border-radius: 50%; background: var(--primary-soft); }
 .team-feature-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
-.team-feature-body h3 { font-size: 1rem; line-height: 1.32; }
-.team-feature-body p { margin-top: .28rem; color: var(--text-muted); font-size: .82rem; line-height: 1.45; }
-.team-feature-body small { display: block; margin-top: .45rem; color: var(--text-soft); font-size: .74rem; line-height: 1.45; }
+.team-feature-body h3 { font-size: .92rem; line-height: 1.35; }
+.team-feature-body p { margin-top: .2rem; color: var(--text-muted); font-size: .8rem; line-height: 1.45; }
+.team-feature-body small { display: block; margin-top: .3rem; color: var(--text-soft); font-size: .75rem; line-height: 1.45; }
 
 /* ============================================================
    Events
@@ -2450,8 +2440,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .team-feature-list { grid-template-columns: minmax(0, 1fr); }
-
   .cta-inner {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2606,11 +2594,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     align-items: flex-start;
     gap: 1rem;
   }
-
-  .team-feature-panel .panel-heading { align-items: flex-start; }
-  .team-feature-list { grid-template-columns: minmax(0, 1fr); }
-  .team-feature-card { grid-template-columns: 5rem minmax(0, 1fr) auto; gap: .85rem; padding: .9rem; }
-  .team-feature-portrait { width: 5rem; height: 5rem; }
 
   .topic-grid {
     grid-template-columns: minmax(0, 1fr);

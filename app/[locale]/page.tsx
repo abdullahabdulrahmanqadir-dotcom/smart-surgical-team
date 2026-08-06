@@ -267,14 +267,10 @@ export default async function Home({
           <article className="panel team-feature-panel" id="team" aria-labelledby="team-heading">
             <div className="panel-heading">
               <div>
-                <span className="section-kicker">The people behind the work</span>
                 <h2 id="team-heading">Our Expert Team</h2>
                 <p className="panel-sub">Practising head, neck and thyroid surgeons leading clinical care and education.</p>
               </div>
-              <Link className="text-link" href={localePath(active, "about")}>
-                Meet the full team
-                <IconArrowRight size={16} />
-              </Link>
+              <span className="badge">{featuredTeam.length} featured</span>
             </div>
             <div className="team-feature-list">
               {featuredTeam.map((member) => (
@@ -291,6 +287,10 @@ export default async function Home({
                 </Link>
               ))}
             </div>
+            <Link className="panel-link" href={localePath(active, "about")}>
+              Meet the full team
+              <IconArrowRight size={16} />
+            </Link>
           </article>
 
           {/* The rest of the homepage is static and no longer waits behind
