@@ -17,7 +17,9 @@ const MAP_COORDS = "35.5685910,45.4430236";
    routes from the visitor's own location straight to the tower. */
 const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${MAP_COORDS}&travelmode=driving`;
 /* `output=embed` is the keyless Maps embed, so no API key has to ship. */
-const MAP_EMBED_URL = `https://www.google.com/maps?q=${MAP_COORDS}(${encodeURIComponent("Smart Health Tower")})&hl=en&z=17&output=embed`;
+/* `t=k` opens on the satellite basemap, so the tower and the block around it are
+   visible rather than a flat street diagram. */
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${MAP_COORDS}(${encodeURIComponent("Smart Health Tower")})&t=k&hl=en&z=18&output=embed`;
 
 export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
