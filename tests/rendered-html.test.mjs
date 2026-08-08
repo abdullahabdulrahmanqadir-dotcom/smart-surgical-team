@@ -234,13 +234,15 @@ test("events hub and its two initial records are available in every locale", asy
     const html = await hub.text();
     assert.match(html, /Second Middle East Thyroid Summit/);
     assert.match(html, /First Middle East Thyroid Summit/);
-    assert.match(html, /Past event/);
+    // Event titles are content and stay English in both locales; the "past event"
+    // badge is UI chrome and must follow the active locale.
+    assert.match(html, locale === "ar" ? /فعالية سابقة/ : /Past event/);
     assert.match(html, new RegExp(`href="/${locale}/events/second-middle-east-thyroid-summit"`));
 
     const detail = await fetchPath(`/${locale}/events/second-middle-east-thyroid-summit`);
     assert.equal(detail.status, 200);
     const detailHtml = await detail.text();
-    assert.match(detailHtml, /Register on MET site/);
+    assert.match(detailHtml, locale === "ar" ? /التسجيل عبر موقع القمة/ : /Register on MET site/);
     assert.match(detailHtml, /mets\.smarthealth\.group\/register/);
     assert.doesNotMatch(detailHtml, /\$100|\$75|\$30/);
   }
