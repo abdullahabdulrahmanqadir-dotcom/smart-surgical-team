@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { localePath, type Locale } from "../lib/i18n";
 import { IconArrowRight } from "./icons";
+import type { Dictionary } from "../lib/dictionaries";
 
-export default function JoinCtaLink({ locale }: { locale: Locale }) {
+export default function JoinCtaLink({ locale, t }: { locale: Locale; t: Dictionary["joinCta"] }) {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function JoinCtaLink({ locale }: { locale: Locale }) {
 
   return (
     <Link className="btn btn-primary btn-lg cta-signup-link" href={localePath(locale, signedIn ? "profile" : "sign-up")}>
-      {signedIn ? "Open your profile" : "Create free account"}
+      {signedIn ? t.profile : t.createAccount}
       <IconArrowRight size={18} />
     </Link>
   );

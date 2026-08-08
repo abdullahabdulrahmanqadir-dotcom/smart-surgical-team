@@ -1,3 +1,5 @@
+import type { Dictionary } from "./dictionaries";
+
 /**
  * Event shapes, the built-in event records and the date formatters.
  *
@@ -11,6 +13,7 @@ export type EventStatus = "upcoming" | "past";
 export type EventFormat = "in-person" | "hybrid" | "online";
 
 export type TeamEvent = {
+  fallbackKey?: "secondMet" | "firstMet";
   slug: string;
   title: string;
   shortTitle: string;
@@ -33,6 +36,7 @@ export type TeamEvent = {
 
 export const EVENTS: TeamEvent[] = [
   {
+    fallbackKey: "secondMet",
     slug: "second-middle-east-thyroid-summit",
     title: "Second Middle East Thyroid Summit",
     shortTitle: "2nd MET Summit",
@@ -64,6 +68,7 @@ export const EVENTS: TeamEvent[] = [
     ],
   },
   {
+    fallbackKey: "firstMet",
     slug: "first-met-summit-2024",
     title: "First Middle East Thyroid Summit",
     shortTitle: "1st MET Summit",
@@ -86,28 +91,47 @@ export function getEvent(slug: string) {
   return EVENTS.find((event) => event.slug === slug);
 }
 
+export function localizeFallbackEvent(event: TeamEvent, t: Dictionary["eventFallback"]): TeamEvent {
+  if (event.fallbackKey === "secondMet") return {
+    ...event,
+    title: t.secondTitle, shortTitle: t.secondShortTitle, topic: t.secondTopic, location: t.secondLocation, summary: t.secondSummary,
+    highlights: [t.secondHighlightOne, t.secondHighlightTwo, t.secondHighlightThree, t.secondHighlightFour],
+    selectedFaculty: event.selectedFaculty.map((faculty, index) => ({
+      ...faculty,
+      specialty: [t.abdulwahidSpecialty, t.sosaSpecialty, t.kyungSpecialty, t.tolleySpecialty][index] ?? faculty.specialty,
+      country: [t.iraq, t.usa, t.korea, t.uk][index] ?? faculty.country,
+    })),
+  };
+  if (event.fallbackKey === "firstMet") return {
+    ...event,
+    title: t.firstTitle, shortTitle: t.firstShortTitle, topic: t.firstTopic, location: t.firstLocation, summary: t.firstSummary,
+    highlights: [t.firstHighlightOne, t.firstHighlightTwo, t.firstHighlightThree],
+  };
+  return event;
+}
+
 
 /**
  * Day range and month for the featured-event stamp. The card used to print a
  * hardcoded "27–28 AUG", which stayed on screen once a different event became
  * featured.
  */
-export function eventDateStamp(event: TeamEvent) {
+export function eventDateStamp(event: TeamEvent, locale: string) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
-  const day = (date: Date) => new Intl.DateTimeFormat("en", { day: "numeric" }).format(date);
+  const day = (date: Date) => new Intl.DateTimeFormat(locale, { day: "numeric" }).format(date);
   return {
     days: event.startDate === event.endDate ? day(start) : `${day(start)}–${day(end)}`,
-    month: new Intl.DateTimeFormat("en", { month: "short" }).format(start).toUpperCase(),
+    month: new Intl.DateTimeFormat(locale, { month: "short" }).format(start).toUpperCase(),
   };
 }
 
-export function eventDateRange(event: TeamEvent) {
+export function eventDateRange(event: TeamEvent, locale: string) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   const format = (date: Date, options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en", options).format(date);
+    new Intl.DateTimeFormat(locale, options).format(date);
 
   return sameMonth
     ? `${format(start, { day: "numeric" })}–${format(end, { day: "numeric", month: "long", year: "numeric" })}`

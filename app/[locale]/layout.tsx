@@ -7,8 +7,8 @@ import { getDictionary } from "../lib/dictionaries";
 import "../globals.css";
 
 // Type locked 2026-07-26 — see assets/design-system/smart-surgical-team/MASTER.md.
-// Latin faces carry headings/body in English; the Noto pair covers Arabic and
-// Sorani Kurdish. All four are self-hosted at build time by next/font.
+// Latin faces carry headings/body in English; the Noto pair covers Arabic.
+// All four are self-hosted at build time by next/font.
 const newsreader = Newsreader({
   variable: "--font-display",
   subsets: ["latin"],
@@ -67,8 +67,7 @@ export async function generateMetadata({
     requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
 
   const title = `${dict.brand.name} | ${dict.brand.tagline}`;
-  const description =
-    "A trusted learning platform for head and neck surgery, created by Smart Surgical Team in Sulaymaniah.";
+  const description = dict.metadata.description;
 
   return {
     metadataBase: new URL(`${protocol}://${host}`),
@@ -131,7 +130,14 @@ export default async function LocaleLayout({
           }}
         />
       </head>
-      <body className="antialiased">{children}</body>
+      {/* On /ar the interface is already translated, so a browser page-translate
+          would re-translate correct Arabic into worse Arabic. `translate` is
+          inherited, so switching it off here makes "no" the default and lets the
+          English database content opt back in with translate="yes" (see
+          TranslatableContent). English pages stay fully translatable. */}
+      <body className="antialiased" translate={locale === "ar" ? "no" : undefined}>
+        {children}
+      </body>
     </html>
   );
 }

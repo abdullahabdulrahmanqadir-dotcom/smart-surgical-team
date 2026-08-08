@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Dictionary } from "../lib/dictionaries";
 
 type Tissue = "thyroid" | "trachea" | "artery" | "vessels";
 
@@ -42,7 +43,7 @@ function idlePosition(rawTime: number) {
   return { x: current.x + (next.x - current.x) * eased, y: current.y + (next.y - current.y) * eased };
 }
 
-export default function AnatomyHero() {
+export default function AnatomyHero({ t }: { t: Dictionary["anatomyHero"] }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef(false);
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -142,7 +143,7 @@ export default function AnatomyHero() {
       className={`anatomy-hero${touchInteractionEnabled ? " anatomy-hero--touch-interactive" : ""}`}
       tabIndex={0}
       role="group"
-      aria-label="Thyroid, trachea, and neck vessel illustration."
+      aria-label={t.label}
       onPointerEnter={(event) => { if (event.pointerType === "mouse") { pause(); updateTarget(event); } }}
       onPointerMove={(event) => { if (canHandlePointer(event)) { pause(); updateTarget(event); } }}
       onPointerLeave={(event) => { if (event.pointerType === "mouse") resume(); }}
@@ -169,7 +170,7 @@ export default function AnatomyHero() {
         aria-pressed={touchInteractionEnabled}
         onClick={() => setTouchInteractionEnabled((enabled) => !enabled)}
       >
-        {touchInteractionEnabled ? "Done" : "Interact"}
+        {touchInteractionEnabled ? t.done : t.interact}
       </button>
     </div>
   );

@@ -14,7 +14,6 @@ import {
 // are both still to be supplied — the brief lists the domain as not yet chosen.
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 const TOWER_URL = "https://smarthealth.group/ar";
-const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
 
 /**
  * Extracted from the home page so every page shares one footer. The class names
@@ -33,7 +32,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             <span className="brand-name">{dict.brand.name}</span>
           </Link>
           <p>{dict.footer.blurb}</p>
-          <SocialLinks className="socials" />
+          <SocialLinks className="socials" t={dict.social} />
         </div>
 
         <nav className="footer-col" aria-label={dict.footer.quickLinks}>
@@ -52,22 +51,21 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
           <p>
-            <IconPin size={16} /> {ADDRESS}
+            <IconPin size={16} /> {dict.footer.address}
           </p>
           <p>
             <IconGlobe size={16} /> <a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a>
           </p>
         </div>
 
-        {/* Replaces a hardcoded Sorani column from the pre-i18n design. That
-            column existed to show *some* Kurdish on an English-only page; the
-            locale switcher does that job properly now, and on /ckb the whole
-            page is already Kurdish. */}
+        {/* Replaces a hardcoded Kurdish column from the pre-i18n design. That
+            column existed to show *some* non-English copy on an English-only
+            page; the locale switcher does that job properly now. */}
         <nav className="footer-col" aria-label={dict.topics.title}>
           <h3>{dict.topics.title}</h3>
           {PUBLIC_TOPIC_GROUPS.map((group) => (
             <Link key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
-              {group.name}
+              {dict.taxonomy[group.slug as keyof Dictionary["taxonomy"]] ?? group.name}
             </Link>
           ))}
         </nav>

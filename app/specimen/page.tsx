@@ -37,15 +37,6 @@ const AR_BODY =
   "منصة تعليمية متخصصة في جراحة الرأس والرقبة من برج الصحة الذكي في السليمانية — مقاطع جراحية وندوات وملصقات إلكترونية.";
 const AR_EYEBROW = "الغدة الدرقية وجارات الدرقية";
 
-const CKB_HEADING = "نەشتەرگەری سەر و مل، بە شارەزایی.";
-const CKB_BODY =
-  "پلاتفۆرمێکی فێرکاری تایبەت بە نەشتەرگەری سەر و مل لە تاوەری تەندروستی زەیرەک لە سلێمانی.";
-const CKB_EYEBROW = "گواشی دەرقی و پارادەرقی";
-
-// The glyphs Sorani needs that many Arabic-script webfonts omit. If any of
-// these render as a box or fall back to a different face, that font is out.
-const KURDISH_GLYPH_TEST = "ڕ للل ڵ ۆ ێ گ چ ژ پ ک ە وو";
-
 type Pairing = {
   id: string;
   name: string;
@@ -129,9 +120,6 @@ function Sample({
       <p className={`spec-eyebrow ${bodyClass}`}>{eyebrow}</p>
       <h3 className={`spec-heading ${headingClass}`}>{heading}</h3>
       <p className={`spec-body ${bodyClass}`}>{body}</p>
-      {dir === "rtl" && lang === "ckb" ? (
-        <p className={`spec-glyphs ${bodyClass}`}>{KURDISH_GLYPH_TEST}</p>
-      ) : null}
     </div>
   );
 }
@@ -143,10 +131,10 @@ export default function SpecimenPage() {
         <p className="spec-kicker">Smart Surgical Team — type specimen</p>
         <h1 className="spec-title">Pick a pairing</h1>
         <p className="spec-lede">
-          Each block below is the same content set in one candidate pairing, in all three
-          locales. The last line of every Sorani block is a glyph test: if any character
-          there renders as a box, or visibly different from the rest of the line, that font
-          does not properly support Kurdish and is disqualified regardless of how it looks.
+          Each block below is the same content set in one candidate pairing, in both
+          locales. Arabic blocks are the deciding test: if any character renders as a box,
+          or visibly different from the rest of the line, that font does not properly
+          support Arabic and is disqualified regardless of how it looks.
         </p>
       </header>
 
@@ -179,17 +167,6 @@ export default function SpecimenPage() {
             eyebrow={AR_EYEBROW}
             heading={AR_HEADING}
             body={AR_BODY}
-            headingClass={p.arabicHeading}
-            bodyClass={p.arabicBody}
-          />
-          <Sample
-            dir="rtl"
-            lang="ckb"
-            scriptLabel="Sorani Kurdish"
-            fontNames={p.arabicNames}
-            eyebrow={CKB_EYEBROW}
-            heading={CKB_HEADING}
-            body={CKB_BODY}
             headingClass={p.arabicHeading}
             bodyClass={p.arabicBody}
           />
