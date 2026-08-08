@@ -116,6 +116,13 @@ export const en = {
     downloadDocument: "Download document",
     overview: "Overview",
     caseDetails: "Case details",
+    // Case prose is authored in English only; these drive the in-browser
+    // translation affordance shown on /ar.
+    translateCase: "Translate to Arabic",
+    translatingCase: "Translating…",
+    downloadingModel: "Preparing translation…",
+    showOriginalCase: "Show the English original",
+    translateFailed: "Translation is unavailable right now.",
     caseEmptyTitle: "Case detail is not published yet.",
     caseEmptyBody: "Presentation, imaging, procedure, histopathology and outcome appear here once the team has reviewed and de-identified them.",
     contributor: "Contributor",

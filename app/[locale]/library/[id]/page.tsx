@@ -16,6 +16,7 @@ import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries"
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 import { TEAM_GROUPS } from "../../../lib/team";
+import TranslatableContent from "../../../components/TranslatableContent";
 
 const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
 
@@ -115,9 +116,22 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">{dict.library.overview}</span><h2 id="case-summary-title">{dict.library.caseDetails}</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
-              <dl className="case-summary-list">
-                {summarySections.map(({ key, label, body }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
-              </dl>
+              // The <dt> headings are translated UI; only the <dd> bodies are
+              // English database prose, so the wrapper marks those alone.
+              <TranslatableContent
+                locale={active}
+                labels={{
+                  translate: dict.library.translateCase,
+                  translating: dict.library.translatingCase,
+                  downloading: dict.library.downloadingModel,
+                  showOriginal: dict.library.showOriginalCase,
+                  failed: dict.library.translateFailed,
+                }}
+              >
+                <dl className="case-summary-list">
+                  {summarySections.map(({ key, label, body }) => <div key={key}><dt translate="no" lang={active}>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
+                </dl>
+              </TranslatableContent>
             ) : (
               <div className="case-summary-empty"><IconFile size={20} /><div><b>{dict.library.caseEmptyTitle}</b><span>{dict.library.caseEmptyBody}</span></div></div>
             )}
