@@ -67,8 +67,7 @@ export async function generateMetadata({
     requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
 
   const title = `${dict.brand.name} | ${dict.brand.tagline}`;
-  const description =
-    "A trusted learning platform for head and neck surgery, created by Smart Surgical Team in Sulaymaniah.";
+  const description = dict.metadata.description;
 
   return {
     metadataBase: new URL(`${protocol}://${host}`),

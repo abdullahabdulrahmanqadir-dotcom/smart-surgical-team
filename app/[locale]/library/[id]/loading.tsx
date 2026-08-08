@@ -4,7 +4,7 @@
  */
 export default function LoadingCase() {
   return (
-    <main id="main-content" className="content-page" role="status" aria-label="Loading case">
+    <LocalizedLoadingStatus className="content-page" labels={labels}>
       <div className="content-heading">
         <div>
           <span className="skeleton-line skeleton-line-xs" />
@@ -28,6 +28,14 @@ export default function LoadingCase() {
           </section>
         </aside>
       </div>
-    </main>
+    </LocalizedLoadingStatus>
   );
 }
+import LocalizedLoadingStatus from "../../../components/LocalizedLoadingStatus";
+import { getDictionary } from "../../../lib/dictionaries";
+import type { Locale } from "../../../lib/i18n";
+
+const labels = {
+  en: getDictionary("en").loading.case,
+  ar: getDictionary("ar").loading.case,
+} satisfies Record<Locale, string>;

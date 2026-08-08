@@ -35,33 +35,33 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="contact-backdrop" aria-hidden="true"/>
         <div className="contact-shell">
           <header className="contact-intro">
-            <span className="eyebrow">Contact Smart Surgical Team</span>
-            <h1>Find our team.</h1>
-            <p>Visit Smart Health Tower or use the details below to connect with Smart Surgical Team.</p>
+            <span className="eyebrow">{dict.contact.eyebrow}</span>
+            <h1>{dict.contact.title}</h1>
+            <p>{dict.contact.intro}</p>
           </header>
           <div className="contact-layout">
             <aside className="contact-details" aria-labelledby="contact-details-heading">
-              <span className="auth-kicker">Direct details</span>
-              <h2 id="contact-details-heading">Our details.</h2>
-              <p>For general enquiries, email is the quickest way to reach us. You are also welcome to visit us at Smart Health Tower.</p>
+              <span className="auth-kicker">{dict.contact.directDetails}</span>
+              <h2 id="contact-details-heading">{dict.contact.detailsTitle}</h2>
+              <p>{dict.contact.detailsBody}</p>
               <dl>
-                <div><dt><IconMail size={19} /> Email</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
-                <div><dt><IconPin size={19} /> Location</dt><dd>{dict.footer.address}</dd></div>
-                <div><dt><IconClock size={19} /> Hours</dt><dd>Saturday to Thursday</dd></div>
-                <div><dt><IconGlobe size={19} /> Online</dt><dd><a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a></dd></div>
+                <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
+                <div><dt><IconPin size={19} /> {dict.contact.location}</dt><dd>{dict.footer.address}</dd></div>
+                <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
+                <div><dt><IconGlobe size={19} /> {dict.contact.online}</dt><dd><a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a></dd></div>
               </dl>
               <div className="contact-social-section">
-                <p>Follow Smart Health Tower</p>
+                <p>{dict.contact.followTower}</p>
                 <SocialLinks className="socials contact-socials" t={dict.social} />
               </div>
             </aside>
             <section className="contact-location" aria-labelledby="visit-heading">
               <div className="contact-location-orbit" aria-hidden="true"><span /><span /><i /></div>
-              <span className="auth-kicker">Visit us</span>
-              <h2 id="visit-heading">Smart Health Tower.</h2>
-              <p>Located beside the University of Sulaymaniyah Old Campus, our team is easy to find when you need to visit in person.</p>
-              <a className="contact-directions" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">Get directions <IconArrowRight size={17} /></a>
-              <small>Majid Bag Main Street · Sulaymaniyah, Iraq</small>
+              <span className="auth-kicker">{dict.contact.visitUs}</span>
+              <h2 id="visit-heading">{dict.contact.towerTitle}</h2>
+              <p>{dict.contact.visitBody}</p>
+              <a className="contact-directions" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">{dict.contact.getDirections} <IconArrowRight size={17} /></a>
+              <small>{dict.contact.shortAddress}</small>
             </section>
           </div>
 
@@ -70,15 +70,15 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           <section className="contact-map-section" aria-labelledby="map-heading">
             <div className="contact-map-head">
               <div>
-                <span className="auth-kicker">On the map</span>
-                <h2 id="map-heading">Where to find us.</h2>
+                <span className="auth-kicker">{dict.contact.mapKicker}</span>
+                <h2 id="map-heading">{dict.contact.mapTitle}</h2>
               </div>
-              <a className="contact-map-cta" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">Get directions <IconArrowRight size={17} /></a>
+              <a className="contact-map-cta" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">{dict.contact.getDirections} <IconArrowRight size={17} /></a>
             </div>
             <div className="contact-map">
               <iframe
                 src={MAP_EMBED_URL}
-                title="Map showing Smart Health Tower, Sulaymaniyah"
+                title={dict.contact.mapFrameTitle}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 allowFullScreen

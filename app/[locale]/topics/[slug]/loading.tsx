@@ -8,7 +8,7 @@
  */
 export default function LoadingTopics() {
   return (
-    <main id="main-content" role="status" aria-label="Loading topics">
+    <LocalizedLoadingStatus labels={labels}>
       <section className="section section-topic-index">
         <div className="content-browser">
           <div className="content-browser-hero">
@@ -33,6 +33,14 @@ export default function LoadingTopics() {
           </div>
         </div>
       </section>
-    </main>
+    </LocalizedLoadingStatus>
   );
 }
+import LocalizedLoadingStatus from "../../../components/LocalizedLoadingStatus";
+import { getDictionary } from "../../../lib/dictionaries";
+import type { Locale } from "../../../lib/i18n";
+
+const labels = {
+  en: getDictionary("en").loading.topics,
+  ar: getDictionary("ar").loading.topics,
+} satisfies Record<Locale, string>;
