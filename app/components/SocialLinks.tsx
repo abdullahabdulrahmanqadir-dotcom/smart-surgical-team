@@ -6,6 +6,7 @@ import {
   IconX,
   IconYoutube,
 } from "./icons";
+import type { Dictionary } from "../lib/dictionaries";
 
 const SMART_HEALTH_SOCIALS = [
   { label: "Facebook", href: "https://www.facebook.com/SmartHTA", Icon: IconFacebook },
@@ -16,9 +17,9 @@ const SMART_HEALTH_SOCIALS = [
   { label: "YouTube", href: "https://www.youtube.com/channel/UC03cV_1kafDf1uyZPXx93CA", Icon: IconYoutube },
 ];
 
-export default function SocialLinks({ className }: { className: string }) {
+export default function SocialLinks({ className, t }: { className: string; t: Dictionary["social"] }) {
   return (
-    <div className={className} aria-label="Smart Health Tower social media">
+    <div className={className} aria-label={t.ariaLabel}>
       {SMART_HEALTH_SOCIALS.map(({ label, href, Icon }) => (
         <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} title={label}>
           <Icon size={18} />

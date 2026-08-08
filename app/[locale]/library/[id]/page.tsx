@@ -83,7 +83,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   }
   const home = localePath(active);
   const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
-  const summarySections = resolveCaseSections(content);
+  const summarySections = resolveCaseSections(content, dict.caseSummary);
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
   const images = content.media?.filter((item) => item.kind === "image") ?? [];
   // With no video, the case still deserves a lead visual. The image chosen as

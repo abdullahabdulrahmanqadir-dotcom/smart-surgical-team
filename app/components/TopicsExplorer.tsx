@@ -73,6 +73,7 @@ export default function TopicsExplorer({
   groups,
   locale,
   t,
+  anatomyLabels,
   initialSlug,
   initialItems = [],
   initialLatestCase,
@@ -80,6 +81,7 @@ export default function TopicsExplorer({
   groups: TopicGroup[];
   locale: Locale;
   t: Dictionary["topics"];
+  anatomyLabels: Dictionary["anatomy"];
   initialSlug?: string;
   /** Cases for `initialSlug` only. Every other topic is fetched when opened. */
   initialItems?: ContentCard[];
@@ -239,6 +241,7 @@ export default function TopicsExplorer({
           <HeadNeckMap
             active={activeGroup?.slug ?? null}
             labels={regionLabels}
+            fallbackLabels={anatomyLabels}
             onSelect={openTopic}
             onReset={clearTopic}
             resetLabel={t.mapReset}

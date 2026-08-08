@@ -8,6 +8,7 @@ type HeadNeckMapProps = {
   active: string | null;
   /** Accessible name for each region's hotspot, keyed by topic slug. */
   labels: Record<string, string>;
+  fallbackLabels: Record<string, string>;
   onSelect: (slug: string) => void;
   onReset: () => void;
   resetLabel: string;
@@ -19,7 +20,7 @@ type HeadNeckMapProps = {
  * region tweens straight there, which passes through the intermediate scale and
  * gives the pull-back-and-push-in motion for free.
  */
-export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLabel }: HeadNeckMapProps) {
+export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, onReset, resetLabel }: HeadNeckMapProps) {
   const region = getAnatomyRegion(active);
 
   // Scaling about the focus point keeps it fixed, so the translate that brings
@@ -81,9 +82,9 @@ export default function HeadNeckMap({ active, labels, onSelect, onReset, resetLa
             >
               <span className="content-map-dot" aria-hidden="true" />
               <span className="content-map-leader" aria-hidden="true" />
-              <span className="content-map-tag" aria-hidden="true">{labels[item.slug] ?? item.label}</span>
+              <span className="content-map-tag" aria-hidden="true">{labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label}</span>
               {/* The visual and accessible labels mirror the topic cards below. */}
-              <span className="visually-hidden">{labels[item.slug] ?? item.label}</span>
+              <span className="visually-hidden">{labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label}</span>
             </button>
           ))}
         </div>

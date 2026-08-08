@@ -8,7 +8,6 @@ import { isLocale, type Locale } from "../../lib/i18n";
 import { notFound } from "next/navigation";
 
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
-const ADDRESS = "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq";
 const TOWER_URL = "https://smarthealth.group/ar";
 /* Pinned by coordinates rather than by name: searching for "Smart Health Tower"
    drops the map on empty ground, these are the tower itself. */
@@ -47,13 +46,13 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <p>For general enquiries, email is the quickest way to reach us. You are also welcome to visit us at Smart Health Tower.</p>
               <dl>
                 <div><dt><IconMail size={19} /> Email</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
-                <div><dt><IconPin size={19} /> Location</dt><dd>{ADDRESS}</dd></div>
+                <div><dt><IconPin size={19} /> Location</dt><dd>{dict.footer.address}</dd></div>
                 <div><dt><IconClock size={19} /> Hours</dt><dd>Saturday to Thursday</dd></div>
                 <div><dt><IconGlobe size={19} /> Online</dt><dd><a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a></dd></div>
               </dl>
               <div className="contact-social-section">
                 <p>Follow Smart Health Tower</p>
-                <SocialLinks className="socials contact-socials" />
+                <SocialLinks className="socials contact-socials" t={dict.social} />
               </div>
             </aside>
             <section className="contact-location" aria-labelledby="visit-heading">

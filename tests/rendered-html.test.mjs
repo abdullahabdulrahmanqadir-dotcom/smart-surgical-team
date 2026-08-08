@@ -159,8 +159,19 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
       4,
       `${locale} renders a labelled callout per region`,
     );
-    for (const label of ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"]) {
-      assert.match(html, new RegExp(`content-map-tag[^>]*>${label}<`), `${locale} labels ${label}`);
+    const labels = locale === "ar"
+      ? [
+          "الغدة الدرقية وجارات الدرقية (Thyroid &amp; Parathyroid)",
+          "الغدد اللعابية (Salivary Glands)",
+          "جراحة العنق والجهاز اللمفاوي (Neck &amp; Lymphatic Surgery)",
+          "الجلد والأنسجة الرخوة (Skin &amp; Soft Tissue)",
+        ]
+      : ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"];
+    for (const label of labels) {
+      assert.ok(
+        html.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`),
+        `${locale} labels ${label}`,
+      );
     }
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);
     assert.doesNotMatch(html, />Parathyroid · Thyroid<|>Oral Cavity · Larynx</);

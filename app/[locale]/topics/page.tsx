@@ -6,7 +6,7 @@ import ScrollMotion from "../../components/ScrollMotion";
 import TopicsExplorer from "../../components/TopicsExplorer";
 import { LOCALES, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getDictionary } from "../../lib/dictionaries";
-import { PUBLIC_TOPIC_GROUPS } from "../../lib/topics";
+import { localizeTopicGroups, PUBLIC_TOPIC_GROUPS } from "../../lib/topics";
 import { getLibraryContent } from "../../lib/content";
 
 export function generateStaticParams() {
@@ -37,6 +37,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
   // used to fetch and serialise the entire published catalogue in order to
   // display none of it. Each topic is now fetched when the reader opens it.
   const dict = getDictionary(active);
+  const groups = localizeTopicGroups(PUBLIC_TOPIC_GROUPS, dict.taxonomy);
   const latestCase = (await getLibraryContent())[0];
 
   return (
@@ -51,7 +52,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <main id="main-content">
         <section className="section section-topic-index" aria-labelledby="topic-index-heading">
           <h1 className="visually-hidden" id="topic-index-heading">{dict.topics.title}</h1>
-          <TopicsExplorer groups={PUBLIC_TOPIC_GROUPS} locale={active} t={dict.topics} initialLatestCase={latestCase} />
+          <TopicsExplorer groups={groups} locale={active} t={dict.topics} anatomyLabels={dict.anatomy} initialLatestCase={latestCase} />
         </section>
       </main>
 

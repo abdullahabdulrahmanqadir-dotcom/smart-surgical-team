@@ -219,8 +219,8 @@ export default async function Home({
                   <span className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}>
                     <TopicGlyph icon={topic.icon} imageIcon={topic.imageIcon} size={64} />
                   </span>
-                  <b>{topic.name}</b>
-                  <p>{topic.blurb}</p>
+                  <b>{dict.taxonomy[topic.slug as keyof typeof dict.taxonomy] ?? topic.name}</b>
+                  <p>{dict.taxonomy[`${topic.slug}-blurb` as keyof typeof dict.taxonomy] ?? topic.blurb}</p>
                   <span className="topic-foot">
                     <small>{dict.topics.exploreGroup}</small>
                     <span className="topic-go" aria-hidden="true">
