@@ -92,22 +92,22 @@ export function getEvent(slug: string) {
  * hardcoded "27–28 AUG", which stayed on screen once a different event became
  * featured.
  */
-export function eventDateStamp(event: TeamEvent) {
+export function eventDateStamp(event: TeamEvent, locale: string) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
-  const day = (date: Date) => new Intl.DateTimeFormat("en", { day: "numeric" }).format(date);
+  const day = (date: Date) => new Intl.DateTimeFormat(locale, { day: "numeric" }).format(date);
   return {
     days: event.startDate === event.endDate ? day(start) : `${day(start)}–${day(end)}`,
-    month: new Intl.DateTimeFormat("en", { month: "short" }).format(start).toUpperCase(),
+    month: new Intl.DateTimeFormat(locale, { month: "short" }).format(start).toUpperCase(),
   };
 }
 
-export function eventDateRange(event: TeamEvent) {
+export function eventDateRange(event: TeamEvent, locale: string) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
   const format = (date: Date, options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en", options).format(date);
+    new Intl.DateTimeFormat(locale, options).format(date);
 
   return sameMonth
     ? `${format(start, { day: "numeric" })}–${format(end, { day: "numeric", month: "long", year: "numeric" })}`

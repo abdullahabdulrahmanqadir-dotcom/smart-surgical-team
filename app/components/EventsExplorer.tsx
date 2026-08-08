@@ -23,8 +23,8 @@ export default function EventsExplorer({ locale, events }: { locale: Locale; eve
   const activeFilters = [status, type, topic, format, year].some((value) => value !== "all");
   const options = <T extends string>(items: T[]) => [...new Set(items)];
   const renderEvent = (event: TeamEvent) => <Link className="event-row" href={localePath(locale, `events/${event.slug}`)} key={event.slug}>
-    <div className="event-row-date"><b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b><strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong><span>{event.startDate.slice(0, 4)}</span></div>
-    <div className="event-row-copy"><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? "Past event" : "Upcoming"}</span><span>{event.type}</span><span>{event.format.replace("-", " ")}</span></div><h3>{event.title}</h3><p>{event.summary}</p><div className="event-meta"><span><IconCalendar size={15}/>{eventDateRange(event)}</span><span><IconPin size={15}/>{event.location}</span></div></div>
+    <div className="event-row-date"><b>{new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b><strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong><span>{event.startDate.slice(0, 4)}</span></div>
+    <div className="event-row-copy"><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? "Past event" : "Upcoming"}</span><span>{event.type}</span><span>{event.format.replace("-", " ")}</span></div><h3>{event.title}</h3><p>{event.summary}</p><div className="event-meta"><span><IconCalendar size={15}/>{eventDateRange(event, locale)}</span><span><IconPin size={15}/>{event.location}</span></div></div>
     <span className="event-row-go" aria-hidden="true"><IconArrowRight size={19}/></span>
   </Link>;
   const upcoming = filtered.filter((event) => event.status === "upcoming");

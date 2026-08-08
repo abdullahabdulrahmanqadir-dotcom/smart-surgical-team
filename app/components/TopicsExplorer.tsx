@@ -158,7 +158,7 @@ export default function TopicsExplorer({
         // filtering by any of its other subtopics made the item disappear.
         const matchingSubTopics = activeGroup.subTopics.filter((topic) => item.topics.some(({ slug }) => slug === topic.slug));
         const matchingSubTopic = matchingSubTopics[0];
-        const date = item.publishedAt ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : "Recently added";
+        const date = item.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : "Recently added";
         return {
           ...item,
           subTopic: matchingSubTopic?.name ?? activeGroup.name,
@@ -168,7 +168,7 @@ export default function TopicsExplorer({
           hasVideo: item.kind === "video" || item.kind === "webinar_recording",
         };
       });
-  }, [activeGroup, casesByTopic]);
+  }, [activeGroup, casesByTopic, locale]);
   const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))].sort((a, b) => b.localeCompare(a)), [libraryCases]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
@@ -223,8 +223,8 @@ export default function TopicsExplorer({
     const group = groups.find((candidate) => initialLatestCase.topics.some(({ slug }) => slug === candidate.slug || candidate.subTopics.some((topic) => topic.slug === slug)));
     if (!group) return null;
     const subTopic = group.subTopics.find((topic) => initialLatestCase.topics.some(({ slug }) => slug === topic.slug));
-    return { ...initialLatestCase, subTopic: subTopic?.name ?? group.name, subTopicNames: [subTopic?.name ?? group.name], imageIcon: subTopic?.imageIcon ?? group.imageIcon, date: initialLatestCase.publishedAt ? new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(initialLatestCase.publishedAt)) : "Recently added", hasVideo: initialLatestCase.kind === "video" || initialLatestCase.kind === "webinar_recording" };
-  }, [groups, initialLatestCase]);
+    return { ...initialLatestCase, subTopic: subTopic?.name ?? group.name, subTopicNames: [subTopic?.name ?? group.name], imageIcon: subTopic?.imageIcon ?? group.imageIcon, date: initialLatestCase.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(initialLatestCase.publishedAt)) : "Recently added", hasVideo: initialLatestCase.kind === "video" || initialLatestCase.kind === "webinar_recording" };
+  }, [groups, initialLatestCase, locale]);
   const latestGroup = latestCase ? groups.find((group) => latestCase.topics.some(({ slug }) => slug === group.slug || group.subTopics.some((topic) => topic.slug === slug))) : null;
 
   return (

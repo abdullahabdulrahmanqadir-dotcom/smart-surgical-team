@@ -76,14 +76,14 @@ async function UpcomingEvents({ locale }: { locale: Locale }) {
       {upcoming.map((event) => (
         <Link href={localePath(locale, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
           <span className="date-chip">
-            <b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
+            <b>{new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
             <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
           </span>
           <span className="webinar-body">
             <h3>{event.title}</h3>
             <p>{event.location}</p>
             <small>
-              <IconClock size={13} /> {eventDateRange(event)}
+              <IconClock size={13} /> {eventDateRange(event, locale)}
             </small>
           </span>
           <span className="row-action" aria-hidden="true">
@@ -124,15 +124,14 @@ export default async function Home({
             <div className="hero-copy">
               <p className="eyebrow">
                 <IconSparkle size={15} />
-                Smart Health Tower · Sulaymaniah, Kurdistan
+                {dict.brand.location}
               </p>
               <h1>
-                Head &amp; Neck Surgery,{" "}
-                <span className="headline-accent">Guided by Expertise.</span>
+                {dict.brand.tagline}
               </h1>
               <div className="hero-actions">
                 <Link className="btn btn-primary btn-lg" href={localePath(active, "topics")}>
-                  Explore the Library
+                  {dict.cta.exploreLibrary}
                   <IconArrowRight size={18} />
                 </Link>
               </div>
@@ -198,7 +197,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <span className="section-kicker">Curriculum</span>
-              <h2 id="topics-heading">Browse by Topic</h2>
+              <h2 id="topics-heading">{dict.topics.title}</h2>
               <p className="section-sub">
                 Four highlighted surgical areas from the complete head and neck curriculum.
               </p>
