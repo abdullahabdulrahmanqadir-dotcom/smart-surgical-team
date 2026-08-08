@@ -6,5 +6,10 @@ declare namespace Cloudflare {
   interface Env {
     ASSETS: Fetcher;
     MEDIA_BUCKET: R2Bucket;
+    /** Bound to the `sst-cache` KV namespace. Backs the cached Supabase reads
+        in app/lib/content.ts, events.ts and research.ts. Declared optional
+        because worker/index.ts falls back to vinext's in-memory handler when
+        it is absent, which is what local dev runs on. */
+    VINEXT_CACHE?: KVNamespace;
   }
 }

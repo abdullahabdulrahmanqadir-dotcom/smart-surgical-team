@@ -7,11 +7,12 @@ import handler from "vinext/server/app-router-entry";
 interface Env {
   ASSETS: Fetcher;
   MEDIA_BUCKET: R2Bucket;
-  /** Optional. Backs the cached Supabase reads in app/lib/content.ts and
-      app/lib/events.ts. Bind a KV namespace named VINEXT_CACHE in the Worker's
-      dashboard Bindings tab to make that cache shared and durable; without it
-      vinext falls back to a per-isolate memory cache, which still works but
-      goes cold whenever Cloudflare starts a fresh isolate. */
+  /** Backs the cached Supabase reads in app/lib/content.ts, events.ts and
+      research.ts. In production this is bound to the `sst-cache` KV namespace
+      in the `smart` Worker's dashboard Bindings tab, which makes the cache
+      shared and durable. Still optional: without the binding vinext falls back
+      to a per-isolate memory cache, which works but goes cold whenever
+      Cloudflare starts a fresh isolate. That is what local dev runs on. */
   VINEXT_CACHE?: KVNamespace;
   IMAGES: {
     input(stream: ReadableStream): {
