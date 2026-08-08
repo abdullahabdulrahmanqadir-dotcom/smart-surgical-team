@@ -59,10 +59,9 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           </p>
         </div>
 
-        {/* Replaces a hardcoded Sorani column from the pre-i18n design. That
-            column existed to show *some* Kurdish on an English-only page; the
-            locale switcher does that job properly now, and on /ckb the whole
-            page is already Kurdish. */}
+        {/* Replaces a hardcoded Kurdish column from the pre-i18n design. That
+            column existed to show *some* non-English copy on an English-only
+            page; the locale switcher does that job properly now. */}
         <nav className="footer-col" aria-label={dict.topics.title}>
           <h3>{dict.topics.title}</h3>
           {PUBLIC_TOPIC_GROUPS.map((group) => (

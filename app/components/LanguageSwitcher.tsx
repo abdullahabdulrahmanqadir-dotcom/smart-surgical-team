@@ -7,7 +7,6 @@ import { LOCALES, LOCALE_META, swapLocaleInPath, type Locale } from "../lib/i18n
 
 const flagClass: Record<Locale, string> = {
   en: "flag-us",
-  ckb: "flag-kurdistan",
   ar: "flag-iraq",
 };
 

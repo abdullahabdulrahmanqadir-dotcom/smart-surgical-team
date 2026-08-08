@@ -64,14 +64,15 @@ scaffold that came with it. The app's data layer is Supabase.
 
 ### Shared site foundation
 
-- Locale-prefixed public routes: `/en`, `/ar` and `/ckb`
+- Locale-prefixed public routes: `/en` and `/ar`
 - Locale negotiation at the bare root through `proxy.ts`
-- English is the current source dictionary. Arabic and Sorani fall back to
-  English until approved translations are supplied.
+- English is the source dictionary. Arabic is translated in
+  `app/lib/dictionaries.ts` and falls back to English per missing key. Kurdish
+  (`ckb`) was removed 2026-08-08 — do not reintroduce it without re-adding the
+  locale to `LOCALES`, `LOCALE_META`, the switcher flag map and the tests.
 - Light/dark themes, reduced-motion handling, skip link, responsive header and
   shared footer
 - Newsreader/Inter for Latin text; Noto Kufi Arabic/Noto Naskh Arabic for Arabic
-  and Sorani
 
 ### Current Topics experience
 
@@ -165,7 +166,7 @@ old external `smarthealth.group` feed is no longer read.
 | `app/components/SiteHeader.tsx` | Header placement and mobile menu integration |
 | `app/globals.css` | Global tokens and all Topics/language-menu responsive styles |
 | `tests/rendered-html.test.mjs` | Static rendered-route contract tests; currently needs updating |
-| `app/lib/dictionaries.ts` | English source strings and future Arabic/Sorani translations |
+| `app/lib/dictionaries.ts` | English source strings and the Arabic translation |
 
 ## 6. Validation status — do not overstate it
 
@@ -280,23 +281,23 @@ TypeScript cleanup.
 
 ### Required manual QA before the next requested release
 
-- `/en/topics`, `/ar/topics` and `/ckb/topics`
+- `/en/topics` and `/ar/topics`
 - One direct detail URL for each public topic
 - Topic switching, search, every dropdown filter, native search clear affordance
   and `Clear all`
 - Language menu: mouse/touch, Escape, outside click, keyboard focus and each
   locale link
 - Light and dark themes at 375px, 768px, 1024px and 1440px
-- RTL typography: Arabic and Sorani headings must have normal tracking and use
-  the Noto font stacks; verify no horizontal overflow
+- RTL typography: Arabic headings must have normal tracking and use the Noto
+  font stacks; verify no horizontal overflow
 
 ### QA pass completed 2026-07-28
 
 This gate was run against the local preview and covers the three previously
 ungated commits (palette refresh, language-menu restyle, case search/filters).
 
-- **Locales/routes** — `/en`, `/ar`, `/ckb` topics index plus detail routes:
-  correct `dir`/`lang` (`rtl`, `ckb-Arab`), four topic selectors, three filters,
+- **Locales/routes** — `/en`, `/ar` topics index plus detail routes:
+  correct `dir`/`lang` (`rtl`, `ar`), four topic selectors, three filters,
   five case cards, correct topic pre-selected on deep links.
 - **RTL typography** — zero elements with non-normal `letter-spacing` across all
   headings/links/buttons; Noto Kufi Arabic for headings, Noto Naskh Arabic for
@@ -358,7 +359,9 @@ Phase 1a is therefore cleared to merge to `main`. Remember that merging to
   and Register pages remain to be planned/built.
 - Contact delivery destination, webinar provider, email provider, final domain,
   approved bios/photos and final logo are still required from the client.
-- Arabic and Sorani translations still need a professional content pass.
+- The Arabic UI strings are translated but have not had a native-speaker
+  review pass. Dynamic content (cases, events, research) is still English-only —
+  the database has no translated columns.
 
 ### Deferred by scope
 
@@ -387,7 +390,7 @@ Phase 1a is therefore cleared to merge to `main`. Remember that merging to
 | Needed for | Decision or input |
 |---|---|
 | Topics / Phase 2 | Approved case records, media destinations, imagery and copy; confirmation of how case cards should link/open |
-| All locales | Approved Arabic and Sorani translations |
+| Arabic | Native-speaker review of `dictionaries.ts`; a decision on whether case/event/research content should be translated (needs a schema migration) |
 | Contact page | Contact email, WhatsApp number and form-delivery destination |
 | Webinars | Zoom or another provider, registration/reminder policy |
 | Identity | Account activation wording, email provider and Google OAuth credentials if Google sign-in is wanted |

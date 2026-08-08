@@ -12,7 +12,7 @@ import { getResearchById } from "../../../lib/research";
 
 function readableDate(value: string, locale: Locale) {
   const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.valueOf()) ? value || "Publication date unavailable" : new Intl.DateTimeFormat(locale === "ckb" ? "ku" : locale, { year: "numeric", month: "long", day: "numeric" }).format(date);
+  return Number.isNaN(date.valueOf()) ? value || "Publication date unavailable" : new Intl.DateTimeFormat(locale, { year: "numeric", month: "long", day: "numeric" }).format(date);
 }
 
 // Abstracts edited in the admin rich editor arrive as sanitised HTML; older

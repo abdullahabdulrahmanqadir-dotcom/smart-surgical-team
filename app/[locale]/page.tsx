@@ -318,19 +318,6 @@ export default async function Home({
                 </p>
               </div>
             </div>
-            <span className="vision-divider" aria-hidden="true" />
-            <div className="vision-block vision-kr" dir="rtl" lang="ckb">
-              <span className="vision-icon">
-                <IconGlobe size={22} />
-              </span>
-              <div>
-                <h2>دیدگای ئێمە</h2>
-                <p>
-                  ببینە پلاتفۆرمی پێشەنگی پەروەردەی نەشتەرگەری سەر و گەردن، بە بەهێزکردنی نەشتەرگەران
-                  و بەشداریکردن لە باشترکردنی ئەنجامەکانی چارەسەری نەخۆشەکان.
-                </p>
-              </div>
-            </div>
           </div>
         </section>
 

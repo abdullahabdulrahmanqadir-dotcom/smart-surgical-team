@@ -1,8 +1,7 @@
 import type { Locale } from "./i18n";
 
-// English is the source of truth. Arabic and Sorani start empty and fall back
-// to English per-key, so a partial translation renders a partly-translated page
-// rather than a crash or a blank string.
+// English is the source of truth. Arabic falls back to English per-key, so a
+// missing key renders English rather than a crash or a blank string.
 
 const en = {
   brand: {
@@ -86,12 +85,92 @@ type PartialDictionary = {
   [K in keyof Dictionary]?: Partial<Dictionary[K]>;
 };
 
-// PLACEHOLDER: awaiting professional translation. Keys added here override the
-// English fallback immediately, so translation can land key-by-key.
-const ar: PartialDictionary = {};
-const ckb: PartialDictionary = {};
+// Modern Standard Arabic, clinical/academic register. Any key removed here
+// falls back to English, so this file can be corrected key-by-key without
+// breaking the page.
+//
+// Deliberate choices worth knowing before you edit:
+//  - `brand.name` / `brand.short` stay in Latin script. The team's identity is
+//    registered in English and appears that way on signage and publications;
+//    translating it would produce a second, unrecognised name.
+//  - Times use Western digits, which is the norm for Iraqi Arabic web copy.
+//  - `guideIntroActive` keeps the `{name}` placeholder — `fill()` substitutes a
+//    topic name, so the token must survive verbatim.
+const ar: PartialDictionary = {
+  brand: {
+    tagline: "جراحة الرأس والعنق، بقيادة الخبرة.",
+    location: "برج الصحة الذكي · السليمانية، كردستان",
+  },
+  nav: {
+    home: "الرئيسية",
+    about: "من نحن",
+    topics: "المحتوى",
+    library: "المكتبة",
+    webinars: "الندوات الإلكترونية",
+    events: "الفعاليات",
+    research: "البحوث",
+    team: "فريقنا",
+    contact: "اتصل بنا",
+    signIn: "تسجيل الدخول",
+    register: "إنشاء حساب",
+    skipToContent: "تخطي إلى المحتوى",
+    languageLabel: "اللغة",
+    menu: "القائمة",
+    close: "إغلاق",
+  },
+  cta: {
+    exploreLibrary: "تصفّح المكتبة",
+    viewAll: "عرض الكل",
+    learnMore: "اعرف المزيد",
+  },
+  topics: {
+    kicker: "المواضيع",
+    title: "تصفّح حسب الموضوع",
+    intro:
+      "أربعة مسارات جراحية متخصّصة لدراسة منهجية في جراحة الرأس والعنق.",
+    exploreGroup: "استكشف الموضوع",
+    guideKicker: "دليل تشريحي",
+    guideTitle: "ابدأ من المنطقة",
+    guideIntro:
+      "اختر منطقة مميّزة أو إحدى بطاقات المواضيع للانتقال من الرأس والعنق ككل إلى عرض جراحي مركّز.",
+    guideIntroActive:
+      "التركيز على {name}. تصفّح المحتوى المنشور حسب الموضوع أو الصيغة.",
+    chooseRegion:
+      "اختر منطقة في الأعلى وستظهر مجالات التركيز الخاصة بها هنا.",
+    mapReset: "العودة إلى الرأس والعنق كاملاً",
+    focusAreas: "مجالات التركيز",
+    conditions: "الحالات المرضية",
+    conditionCases: "الحالات",
+    caseVideoLabel: "فيديو الحالة",
+    caseReadLabel: "دراسة حالة",
+    minRead: "دقيقة قراءة",
+    caseEmptyTitle: "لا يوجد محتوى منشور بعد",
+    caseEmptyBody:
+      "سيظهر هنا المحتوى المنشور الخاص بهذا الموضوع.",
+    collectionKicker: "مجموعة تعليمية",
+    collectionTitle: "مجموعة تعليمية",
+    collectionBody:
+      "تظهر هنا مقاطع العمليات الجراحية ومراجعات التصوير والمناقشات المنشورة.",
+    backToTopics: "جميع المواضيع",
+    otherTopics: "واصل الاستكشاف",
+  },
+  footer: {
+    rights: "جميع الحقوق محفوظة.",
+    quickLinks: "روابط سريعة",
+    contactUs: "اتصل بنا",
+    blurb:
+      "منصّة أكاديمية متخصّصة في تعليم جراحة الرأس والعنق. خبرة متعمّقة، ونتائج أفضل.",
+    privacy: "سياسة الخصوصية",
+    terms: "شروط الاستخدام",
+    hours: "السبت – الخميس، 9:00 – 17:00",
+  },
+  common: {
+    loading: "جارٍ التحميل",
+    comingSoon: "قريباً",
+  },
+};
 
-const DICTIONARIES: Record<Locale, PartialDictionary> = { en, ar, ckb };
+const DICTIONARIES: Record<Locale, PartialDictionary> = { en, ar };
 
 /**
  * Returns a dictionary for the locale with English filled in behind it, so a
