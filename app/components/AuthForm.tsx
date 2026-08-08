@@ -5,11 +5,12 @@ import { FormEvent, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconEye, IconEyeOff, IconLock, IconMail, IconUser } from "./icons";
 import SignUpWizard from "./SignUpWizard";
+import type { Dictionary } from "../lib/dictionaries";
 
 type Mode = "sign-in" | "sign-up";
 
-export default function AuthForm({ mode, locale }: { mode: Mode; locale: string }) {
-  return mode === "sign-up" ? <SignUpWizard locale={locale} /> : <SignInForm locale={locale} />;
+export default function AuthForm({ mode, locale, t, signUpT }: { mode: Mode; locale: string; t: Dictionary["auth"]; signUpT: Dictionary["signUp"] }) {
+  return mode === "sign-up" ? <SignUpWizard locale={locale} t={signUpT} /> : <SignInForm locale={locale} t={t} />;
 }
 
 export async function signInWithGoogle(locale: string) {
@@ -21,7 +22,7 @@ export async function signInWithGoogle(locale: string) {
   if (error) throw error;
 }
 
-function SignInForm({ locale }: { locale: string }) {
+function SignInForm({ locale, t }: { locale: string; t: Dictionary["auth"] }) {
   const isSignUp = false;
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ function SignInForm({ locale }: { locale: string }) {
     try {
       await signInWithGoogle(locale);
     } catch (error) {
-      const text = error instanceof Error ? error.message : "We could not start Google sign-in. Please try again.";
+      const text = error instanceof Error ? error.message : t.googleError;
       setMessage({ type: "error", text });
       setGoogleLoading(false);
     }
@@ -48,11 +49,11 @@ function SignInForm({ locale }: { locale: string }) {
     const fullName = String(form.get("fullName") ?? "").trim();
 
     if (isSignUp && !fullName) {
-      setMessage({ type: "error", text: "Please enter your full name." });
+      setMessage({ type: "error", text: t.fullNameError });
       return;
     }
     if (password.length < 8) {
-      setMessage({ type: "error", text: "Use a password with at least 8 characters." });
+      setMessage({ type: "error", text: t.passwordLengthError });
       return;
     }
 
@@ -66,17 +67,17 @@ function SignInForm({ locale }: { locale: string }) {
 
       if (result.error) throw result.error;
       if (isSignUp && !result.data.session) {
-        setMessage({ type: "success", text: "Check your inbox to confirm your account, then return to sign in." });
+        setMessage({ type: "success", text: t.confirmationSuccess });
         return;
       }
       window.location.assign(`/${locale}/profile`);
     } catch (error) {
-      const text = error instanceof Error ? error.message : "We could not complete that request. Please try again.";
+      const text = error instanceof Error ? error.message : t.requestError;
       const unconfigured = /configuration is missing/i.test(text);
       setMessage({
         type: "error",
         text: unconfigured
-          ? "Email sign-in is not available here yet. Continue with Google to access your learning profile."
+          ? t.unavailable
           : text,
       });
     } finally {
@@ -87,51 +88,51 @@ function SignInForm({ locale }: { locale: string }) {
   return (
     <div className="auth-card">
       <div className="auth-card-head">
-        <span className="auth-kicker">{isSignUp ? "New member" : "Member access"}</span>
-        <h1>{isSignUp ? "Build your learning space." : "Welcome back."}</h1>
+        <span className="auth-kicker">{isSignUp ? t.newMember : t.memberAccess}</span>
+        <h1>{isSignUp ? t.buildSpace : t.welcomeBack}</h1>
         <p>
           {isSignUp
-            ? "Keep your surgical learning organised in one thoughtful, private space."
-            : "Continue where your learning left off, with your saved cases close at hand."}
+            ? t.signUpIntro
+            : t.signInIntro}
         </p>
       </div>
 
       <button className="auth-provider" type="button" onClick={handleGoogle} disabled={googleLoading}>
         <span className="auth-provider-mark auth-provider-google" aria-hidden="true">G</span>
-        <span>{googleLoading ? "Redirecting…" : "Continue with Google"}</span>
+        <span>{googleLoading ? t.redirecting : t.continueGoogle}</span>
         <IconArrowRight size={18} />
       </button>
 
-      <div className="auth-divider"><span>or use your email</span></div>
+      <div className="auth-divider"><span>{t.emailDivider}</span></div>
 
       <form className="auth-form" noValidate onSubmit={handleSubmit}>
         {isSignUp && (
           <div className="form-field">
-            <label htmlFor="fullName">Full name <span aria-hidden="true">*</span></label>
-            <div className="field-control"><IconUser size={18} /><input id="fullName" name="fullName" autoComplete="name" placeholder="Dr. Alex Morgan" required /></div>
+            <label htmlFor="fullName">{t.fullName} <span aria-hidden="true">*</span></label>
+            <div className="field-control"><IconUser size={18} /><input id="fullName" name="fullName" autoComplete="name" placeholder={t.fullNamePlaceholder} required /></div>
           </div>
         )}
         <div className="form-field">
-          <label htmlFor="email">Email address <span aria-hidden="true">*</span></label>
-          <div className="field-control"><IconMail size={18} /><input id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></div>
+          <label htmlFor="email">{t.emailAddress} <span aria-hidden="true">*</span></label>
+          <div className="field-control"><IconMail size={18} /><input id="email" name="email" type="email" autoComplete="email" placeholder={t.emailPlaceholder} required /></div>
         </div>
         <div className="form-field">
-          <div className="field-label-row"><label htmlFor="password">Password <span aria-hidden="true">*</span></label>{!isSignUp && <Link href={`/${locale}/forget-password`}>Forgot password?</Link>}</div>
-          <div className="field-control"><IconLock size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSignUp ? "new-password" : "current-password"} placeholder="At least 8 characters" minLength={8} required /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}</button></div>
-          {isSignUp && <small>Use 8 or more characters to protect your account.</small>}
+          <div className="field-label-row"><label htmlFor="password">{t.password} <span aria-hidden="true">*</span></label>{!isSignUp && <Link href={`/${locale}/forget-password`}>{t.forgotPassword}</Link>}</div>
+          <div className="field-control"><IconLock size={18} /><input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={isSignUp ? "new-password" : "current-password"} placeholder={t.passwordPlaceholder} minLength={8} required /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? t.hidePassword : t.showPassword}>{showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}</button></div>
+          {isSignUp && <small>{t.passwordHelp}</small>}
         </div>
 
         {message && <p className={`form-message is-${message.type}`} role={message.type === "error" ? "alert" : "status"}>{message.type === "success" && <IconCheck size={17} />}{message.text}</p>}
 
         <button className="btn btn-primary auth-submit" type="submit" disabled={loading}>
-          {loading ? "Please wait…" : isSignUp ? "Create your account" : "Sign in"}
+          {loading ? t.pleaseWait : isSignUp ? t.createAccount : t.signIn}
           {!loading && <IconArrowRight size={18} />}
         </button>
       </form>
 
       <p className="auth-switch">
-        {isSignUp ? "Already have an account?" : "New to Smart Surgical Team?"} {" "}
-        <Link href={`/${locale}/${isSignUp ? "sign-in" : "sign-up"}`}>{isSignUp ? "Sign in" : "Create an account"}</Link>
+        {isSignUp ? t.existingAccount : t.newToTeam} {" "}
+        <Link href={`/${locale}/${isSignUp ? "sign-in" : "sign-up"}`}>{isSignUp ? t.signIn : t.createAnAccount}</Link>
       </p>
     </div>
   );
