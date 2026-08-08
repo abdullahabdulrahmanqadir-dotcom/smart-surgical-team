@@ -232,10 +232,9 @@ test("events hub and its two initial records are available in every locale", asy
     const hub = await fetchPath(`/${locale}/events`);
     assert.equal(hub.status, 200);
     const html = await hub.text();
-    assert.match(html, /Second Middle East Thyroid Summit/);
-    assert.match(html, /First Middle East Thyroid Summit/);
-    // Event titles are content and stay English in both locales; the "past event"
-    // badge is UI chrome and must follow the active locale.
+    assert.match(html, locale === "ar" ? /القمة الثانية للغدة الدرقية في الشرق الأوسط/ : /Second Middle East Thyroid Summit/);
+    assert.match(html, locale === "ar" ? /القمة الأولى للغدة الدرقية في الشرق الأوسط/ : /First Middle East Thyroid Summit/);
+    // The built-in fallback records and their UI chrome follow the active locale.
     assert.match(html, locale === "ar" ? /فعالية سابقة/ : /Past event/);
     assert.match(html, new RegExp(`href="/${locale}/events/second-middle-east-thyroid-summit"`));
 

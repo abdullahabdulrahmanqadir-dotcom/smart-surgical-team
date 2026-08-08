@@ -6,15 +6,16 @@ import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import { IconArrowRight, IconCalendar, IconCheck, IconFile, IconGlobe, IconPin, IconUsers } from "../../../components/icons";
-import { eventDateRange, getPublicEvent } from "../../../lib/events";
+import { eventDateRange, getPublicEvent, localizeFallbackEvent } from "../../../lib/events";
 import { fill, getDictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await params;
   if (!isLocale(locale)) notFound();
-  const event = await getPublicEvent(slug); if (!event) notFound();
   const active: Locale = locale; const dict = getDictionary(active);
+  const sourceEvent = await getPublicEvent(slug); if (!sourceEvent) notFound();
+  const event = localizeFallbackEvent(sourceEvent, dict.eventFallback);
   return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><main id="main-content">
     <section className="event-detail-hero">{event.image && <div className="event-detail-image"><img src={event.image} alt=""/></div>}<div className="event-detail-hero-inner"><nav className="event-breadcrumb" aria-label={dict.events.breadcrumb}><Link href={localePath(active, "events")}>{dict.events.events}</Link><span>/</span><b>{event.shortTitle}</b></nav><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? dict.events.pastEvent : dict.events.upcoming}</span><span>{event.type}</span><span>{event.format === "in-person" ? dict.events.inPerson : event.format === "hybrid" ? dict.events.hybrid : dict.events.online}</span></div><h1>{event.title}</h1><p>{event.summary}</p><div className="event-detail-facts"><span><IconCalendar size={19}/>{eventDateRange(event, active)}</span><span><IconPin size={19}/>{event.location}</span></div>{event.status === "upcoming" && <a className="btn btn-primary btn-lg" href={event.officialUrl} target="_blank" rel="noreferrer">{dict.events.visitOfficialSite} <IconArrowRight size={18}/></a>}</div></section>
     <section className="event-detail-content"><article><span className="section-kicker">{dict.events.officialProgramme}</span><h2>{event.title}</h2><p>{dict.events.programmeIntro}</p><ul className="event-highlights">{event.highlights.map((highlight) => <li key={highlight}><IconCheck size={18}/>{highlight}</li>)}</ul></article><aside className="event-action-panel"><span className="section-kicker">{dict.events.officialSummit}</span><h2>{dict.events.planVisit}</h2><p>{dict.events.visitIntro}</p><a href={event.officialUrl} target="_blank" rel="noreferrer"><IconGlobe size={17}/>{dict.events.eventWebsite} <IconArrowRight size={16}/></a>{event.programmeUrl && <a href={event.programmeUrl} target="_blank" rel="noreferrer"><IconFile size={17}/>{dict.events.viewProgramme} <IconArrowRight size={16}/></a>}{event.facultyUrl && <a href={event.facultyUrl} target="_blank" rel="noreferrer"><IconUsers size={17}/>{dict.events.viewFaculty} <IconArrowRight size={16}/></a>}{event.registrationUrl && <a className="btn btn-primary" href={event.registrationUrl} target="_blank" rel="noreferrer">{dict.events.registerMet} <IconArrowRight size={17}/></a>}</aside></section>

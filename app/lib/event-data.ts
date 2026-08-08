@@ -1,3 +1,5 @@
+import type { Dictionary } from "./dictionaries";
+
 /**
  * Event shapes, the built-in event records and the date formatters.
  *
@@ -11,6 +13,7 @@ export type EventStatus = "upcoming" | "past";
 export type EventFormat = "in-person" | "hybrid" | "online";
 
 export type TeamEvent = {
+  fallbackKey?: "secondMet" | "firstMet";
   slug: string;
   title: string;
   shortTitle: string;
@@ -33,6 +36,7 @@ export type TeamEvent = {
 
 export const EVENTS: TeamEvent[] = [
   {
+    fallbackKey: "secondMet",
     slug: "second-middle-east-thyroid-summit",
     title: "Second Middle East Thyroid Summit",
     shortTitle: "2nd MET Summit",
@@ -64,6 +68,7 @@ export const EVENTS: TeamEvent[] = [
     ],
   },
   {
+    fallbackKey: "firstMet",
     slug: "first-met-summit-2024",
     title: "First Middle East Thyroid Summit",
     shortTitle: "1st MET Summit",
@@ -84,6 +89,25 @@ export const EVENTS: TeamEvent[] = [
 
 export function getEvent(slug: string) {
   return EVENTS.find((event) => event.slug === slug);
+}
+
+export function localizeFallbackEvent(event: TeamEvent, t: Dictionary["eventFallback"]): TeamEvent {
+  if (event.fallbackKey === "secondMet") return {
+    ...event,
+    title: t.secondTitle, shortTitle: t.secondShortTitle, topic: t.secondTopic, location: t.secondLocation, summary: t.secondSummary,
+    highlights: [t.secondHighlightOne, t.secondHighlightTwo, t.secondHighlightThree, t.secondHighlightFour],
+    selectedFaculty: event.selectedFaculty.map((faculty, index) => ({
+      ...faculty,
+      specialty: [t.abdulwahidSpecialty, t.sosaSpecialty, t.kyungSpecialty, t.tolleySpecialty][index] ?? faculty.specialty,
+      country: [t.iraq, t.usa, t.korea, t.uk][index] ?? faculty.country,
+    })),
+  };
+  if (event.fallbackKey === "firstMet") return {
+    ...event,
+    title: t.firstTitle, shortTitle: t.firstShortTitle, topic: t.firstTopic, location: t.firstLocation, summary: t.firstSummary,
+    highlights: [t.firstHighlightOne, t.firstHighlightTwo, t.firstHighlightThree],
+  };
+  return event;
 }
 
 

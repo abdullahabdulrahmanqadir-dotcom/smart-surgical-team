@@ -19,11 +19,9 @@ import {
 import { isLocale, localePath, type Locale } from "../lib/i18n";
 import { fill, getDictionary, type Dictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
-import { getPublicEvents, eventDateRange } from "../lib/events";
-import { TEAM_GROUPS } from "../lib/team";
+import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/events";
+import { getLocalizedTeamGroups } from "../lib/team";
 import { getResearches } from "../lib/research";
-
-const featuredTeam = TEAM_GROUPS[0].members.slice(0, 3);
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
     and nothing shifts when the events arrive. */
@@ -56,8 +54,8 @@ function UpcomingEventsPanel({ locale, t, badge, children }: { locale: Locale; t
   );
 }
 
-async function UpcomingEvents({ locale, t }: { locale: Locale; t: Dictionary["home"] }) {
-  const events = await getPublicEvents();
+async function UpcomingEvents({ locale, t, eventT }: { locale: Locale; t: Dictionary["home"]; eventT: Dictionary["eventFallback"] }) {
+  const events = (await getPublicEvents()).map((event) => localizeFallbackEvent(event, eventT));
   const upcoming = events.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
@@ -92,6 +90,7 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
+  const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
   const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
   const benefits = [dict.home.benefitAccess, dict.home.benefitWeekly, dict.home.benefitSave];
   const research = await getResearches();
@@ -286,7 +285,7 @@ export default async function Home({
               this database read: the panel arrives with placeholder rows and
               fills in when the events resolve. */}
           <Suspense fallback={<UpcomingEventsPanel locale={active} t={dict.home} />}>
-            <UpcomingEvents locale={active} t={dict.home} />
+            <UpcomingEvents locale={active} t={dict.home} eventT={dict.eventFallback} />
           </Suspense>
           </div>
         </section>
