@@ -81,7 +81,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const content = await getContent(id);
   if (!content) {
     const memberContent = await getContentForMember(id);
-    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} /></main><SiteFooter locale={active} dict={dict} /></>;
+    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} t={dict.memberContent} mediaT={dict.media} caseSummaryT={dict.caseSummary} /></main><SiteFooter locale={active} dict={dict} /></>;
     notFound();
   }
   const home = localePath(active);
@@ -106,10 +106,10 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
       <nav className="content-breadcrumb" aria-label={dict.library.breadcrumb}><Link href={localePath(active, "topics")}>{dict.library.content}</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b>{content.title}</b></nav>
-      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} /></div>
+      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} t={dict.saveCase} /></div>
 
       <div className="content-grid">
-        <section className="content-main"><ContentPlayer content={content} />
+        <section className="content-main"><ContentPlayer content={content} t={dict.media} />
           {mainImage ? <figure className="content-hero-image"><LazyImage src={mainImage.publicUrl} alt={mainImage.altText ?? content.title} />{mainImage.caption ? <figcaption>{mainImage.caption}</figcaption> : null}</figure> : null}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.resources}</span><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
@@ -126,7 +126,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
         <aside className="content-aside">
           <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? dict.library.contributor : dict.library.contributors}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <LazyImage className="presenter-avatar presenter-photo" src={portrait} alt={fill(dict.library.portraitOf, { name: contributor.name })} /> :<span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">{dict.library.viewTeam} <IconArrowRight size={15} /></Link></section>
           <section className="details-card"><span className="aside-label">{dict.library.contentDetails}</span><dl><div><dt>{dict.library.format}</dt><dd>{typeLabel}</dd></div><div><dt>{dict.library.topic}</dt><dd>{content.topic}</dd></div><div><dt>{dict.library.level}</dt><dd>{content.level}</dd></div></dl></section>
-          <ImageGallery images={galleryImages} />
+          <ImageGallery images={galleryImages} t={dict.media} />
         </aside>
       </div>
 

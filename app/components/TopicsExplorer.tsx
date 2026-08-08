@@ -160,7 +160,7 @@ export default function TopicsExplorer({
         // filtering by any of its other subtopics made the item disappear.
         const matchingSubTopics = activeGroup.subTopics.filter((topic) => item.topics.some(({ slug }) => slug === topic.slug));
         const matchingSubTopic = matchingSubTopics[0];
-        const date = item.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : "Recently added";
+        const date = item.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(item.publishedAt)) : t.recentlyAdded;
         return {
           ...item,
           subTopic: matchingSubTopic?.name ?? activeGroup.name,
@@ -170,7 +170,7 @@ export default function TopicsExplorer({
           hasVideo: item.kind === "video" || item.kind === "webinar_recording",
         };
       });
-  }, [activeGroup, casesByTopic, locale]);
+  }, [activeGroup, casesByTopic, locale, t.recentlyAdded]);
   const availableYears = useMemo(() => [...new Set(libraryCases.flatMap((item) => item.publishedAt ? [item.publishedAt.slice(0, 4)] : []))].sort((a, b) => b.localeCompare(a)), [libraryCases]);
 
   const filteredCases = useMemo(() => libraryCases.filter((item) => {
@@ -225,8 +225,8 @@ export default function TopicsExplorer({
     const group = groups.find((candidate) => initialLatestCase.topics.some(({ slug }) => slug === candidate.slug || candidate.subTopics.some((topic) => topic.slug === slug)));
     if (!group) return null;
     const subTopic = group.subTopics.find((topic) => initialLatestCase.topics.some(({ slug }) => slug === topic.slug));
-    return { ...initialLatestCase, subTopic: subTopic?.name ?? group.name, subTopicNames: [subTopic?.name ?? group.name], imageIcon: subTopic?.imageIcon ?? group.imageIcon, date: initialLatestCase.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(initialLatestCase.publishedAt)) : "Recently added", hasVideo: initialLatestCase.kind === "video" || initialLatestCase.kind === "webinar_recording" };
-  }, [groups, initialLatestCase, locale]);
+    return { ...initialLatestCase, subTopic: subTopic?.name ?? group.name, subTopicNames: [subTopic?.name ?? group.name], imageIcon: subTopic?.imageIcon ?? group.imageIcon, date: initialLatestCase.publishedAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(initialLatestCase.publishedAt)) : t.recentlyAdded, hasVideo: initialLatestCase.kind === "video" || initialLatestCase.kind === "webinar_recording" };
+  }, [groups, initialLatestCase, locale, t.recentlyAdded]);
   const latestGroup = latestCase ? groups.find((group) => latestCase.topics.some(({ slug }) => slug === group.slug || group.subTopics.some((topic) => topic.slug === slug))) : null;
 
   return (
@@ -234,7 +234,7 @@ export default function TopicsExplorer({
       <div className="content-browser-hero">
         <div className="content-browser-hero-copy">
           <p className="section-kicker">{t.kicker}</p>
-          <h2 id="content-browser-heading">Learn through the anatomy.</h2>
+          <h2 id="content-browser-heading">{t.learnThroughAnatomy}</h2>
           <p>{activeGroup ? fill(t.guideIntroActive, { name: activeGroup.name }) : t.guideIntro}</p>
         </div>
         <div className="content-browser-map-wrap">
@@ -249,7 +249,7 @@ export default function TopicsExplorer({
         </div>
       </div>
 
-      <nav className="content-topic-switcher" aria-label="Surgical topics">
+      <nav className="content-topic-switcher" aria-label={t.surgicalTopics}>
         {groups.map((group, index) => {
           const isActive = group.slug === activeGroup?.slug;
           return (
@@ -275,71 +275,71 @@ export default function TopicsExplorer({
           <h2>{t.guideTitle}</h2>
           <p>{t.chooseRegion}</p>
         </div>
-        {latestCase && latestGroup ? <section className="latest-case-section" aria-labelledby="latest-case-heading"><div className="latest-case-heading"><h2 id="latest-case-heading">Latest case</h2></div><LatestCaseCard item={latestCase} icon={latestGroup.icon} t={t} locale={locale}/></section> : null}
+        {latestCase && latestGroup ? <section className="latest-case-section" aria-labelledby="latest-case-heading"><div className="latest-case-heading"><h2 id="latest-case-heading">{t.latestCase}</h2></div><LatestCaseCard item={latestCase} icon={latestGroup.icon} t={t} locale={locale}/></section> : null}
         </>
       ) : (
       <>
       <div className="content-library-heading">
         <div>
           <p className="section-kicker">{activeGroup.name}</p>
-          <h2>Content library</h2>
+          <h2>{t.contentLibrary}</h2>
           <p>{activeGroup.intro}</p>
         </div>
         <span className="content-results" aria-live="polite">
-          {isLoading ? "Loading…" : `${filteredCases.length} ${filteredCases.length === 1 ? "item" : "items"}`}
+          {isLoading ? t.loadingItems : fill(filteredCases.length === 1 ? t.itemCount : t.itemCountPlural, { count: filteredCases.length })}
         </span>
       </div>
 
-      <div className="content-filters" aria-label="Filter case library">
-        <span className="content-filter-label">Filter by</span>
+      <div className="content-filters" aria-label={t.filterLibrary}>
+        <span className="content-filter-label">{t.filterBy}</span>
         <label className="content-search">
           <IconSearch size={17} />
-          <span className="visually-hidden">Search content</span>
+          <span className="visually-hidden">{t.searchContent}</span>
           <input
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search content"
+            placeholder={t.searchContent}
           />
         </label>
         <label className="content-select">
-          <span className="visually-hidden">Subtopic</span>
+          <span className="visually-hidden">{t.subtopic}</span>
           <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
-            <option value="all">All subtopics</option>
+            <option value="all">{t.allSubtopics}</option>
             {activeGroup.subTopics.map((topic) => <option value={topic.name} key={topic.slug}>{topic.name}</option>)}
           </select>
           <IconChevronDown size={16} />
         </label>
         <label className="content-select">
-          <span className="visually-hidden">Publication year</span>
+          <span className="visually-hidden">{t.publicationYear}</span>
           <select value={year} onChange={(event) => setYear(event.target.value)}>
-            <option value="all">Any time</option>
+            <option value="all">{t.anyTime}</option>
             {availableYears.map((value) => <option value={value} key={value}>{value}</option>)}
           </select>
           <IconChevronDown size={16} />
         </label>
         <label className="content-select">
-          <span className="visually-hidden">Content format</span>
+          <span className="visually-hidden">{t.contentFormat}</span>
           <select value={format} onChange={(event) => setFormat(event.target.value)}>
-            <option value="all">All formats</option>
-            <option value="video">Video lessons</option>
-            <option value="article">Articles & resources</option>
+            <option value="all">{t.allFormats}</option>
+            <option value="video">{t.videoLessons}</option>
+            <option value="article">{t.articlesResources}</option>
           </select>
           <IconChevronDown size={16} />
         </label>
-        {filtersAreActive ? <button className="content-clear-filters" type="button" onClick={clearFilters}>Clear all</button> : null}
+        {filtersAreActive ? <button className="content-clear-filters" type="button" onClick={clearFilters}>{t.clearAll}</button> : null}
       </div>
 
       {isLoading ? (
-        <div className="content-case-grid" role="status" aria-label={`Loading ${activeGroup.name} content`}>
+        <div className="content-case-grid" role="status" aria-label={fill(t.loadingTopicContent, { name: activeGroup.name })}>
           {[0, 1, 2].map((index) => <CaseCardSkeleton key={index} />)}
         </div>
       ) : loadFailed ? (
         <div className="content-empty">
           <IconFile size={22} />
           <div>
-            <h3>This topic could not be loaded.</h3>
-            <p>Check your connection, then <button type="button" className="text-link" onClick={() => void loadTopic(activeGroup.slug)}>try again</button>.</p>
+            <h3>{t.loadErrorTitle}</h3>
+            <p>{t.loadErrorIntro} <button type="button" className="text-link" onClick={() => void loadTopic(activeGroup.slug)}>{t.tryAgain}</button>.</p>
           </div>
         </div>
       ) : filteredCases.length > 0 ? (
@@ -349,7 +349,7 @@ export default function TopicsExplorer({
       ) : (
         <div className="content-empty">
           <IconFile size={22} />
-          <div><h3>No content matches this search.</h3><p>Try another phrase, or clear the filters to see every published item.</p></div>
+          <div><h3>{t.noMatchesTitle}</h3><p>{t.noMatchesBody}</p></div>
         </div>
       )}
       </>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Dictionary } from "../lib/dictionaries";
 
 const videoUrl = "https://www.youtube-nocookie.com/embed/gUKXoL-zXdM?playsinline=1&rel=0&enablejsapi=1";
 const autoplayVideoUrl = `${videoUrl}&autoplay=1`;
 
-export default function IntroductionVideo() {
+export default function IntroductionVideo({ t }: { t: Dictionary["introduction"] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLIFrameElement>(null);
   const [shouldAutoplay, setShouldAutoplay] = useState(false);
@@ -61,7 +62,7 @@ export default function IntroductionVideo() {
         key={shouldAutoplay ? "autoplay" : "idle"}
         ref={playerRef}
         src={shouldAutoplay ? autoplayVideoUrl : videoUrl}
-        title="Meet the Smart Health Tower Thyroid Clinic"
+        title={t.videoTitle}
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

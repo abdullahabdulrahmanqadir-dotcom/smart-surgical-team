@@ -128,7 +128,7 @@ export default async function Home({
               </div>
             </div>
 
-            <AnatomyHero />
+            <AnatomyHero t={dict.anatomyHero} />
             {/* <div className="hero-visual" aria-hidden="true">
               <div className="hero-glow" />
               <div className="hero-grid-dots" />
@@ -247,7 +247,7 @@ export default async function Home({
 
           {/* The stage carries the gutter so the player lines up with every
               other section instead of bleeding past them. */}
-          <div className="introduction-stage"><IntroductionVideo /></div>
+          <div className="introduction-stage"><IntroductionVideo t={dict.introduction} /></div>
         </section>
 
         {/* ---------------- Expert team + upcoming events ---------------- */}
@@ -320,7 +320,7 @@ export default async function Home({
                 ))}
               </ul>
             </div>
-            <JoinCtaLink locale={active} />
+            <JoinCtaLink locale={active} t={dict.joinCta} />
           </div>
         </section>
       </main>
