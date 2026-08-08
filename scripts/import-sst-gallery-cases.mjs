@@ -21,7 +21,7 @@ const cases = [
     slug: "left-parotid-av-malformation-in-a-32-year-old-male",
     title: "Left Parotid AV Malformation in a 32-Year-Old Male",
     date: "2026-07-15T09:00:00.000Z",
-    topic: "parotid",
+    topic: "vascular-malformations",
     videoUrl: "https://youtu.be/RY6VOAO5B8s",
     summary: "A 32-year-old male with a four-year left preauricular swelling and pulsatile tinnitus was found to have a parotid arteriovenous malformation.",
     media: ["hani-XLARFc8jmWN7CBYF.jpg", "134a8979-eYojVnABMpSv5AWo.JPG", "134a8983-P6b9q2xda3ePBMHM.JPG", "134a9105-hQ23lhYuufByAHl8.JPG", "134a9073-ZOr80O0gSPEImFtv.JPG"],
@@ -37,7 +37,7 @@ const cases = [
     slug: "recurrent-multifocal-pleomorphic-adenoma-of-the-right-parotid-gland-in-a-37-year-old-male",
     title: "Recurrent Multifocal Pleomorphic Adenoma of the Right Parotid Gland in a 37-Year-Old Male",
     date: "2025-12-02T00:00:00.000Z",
-    topic: "parotid",
+    topic: "pleomorphic-adenoma",
     videoUrl: "https://youtu.be/PmAP7FSg3oY",
     summary: "A recurrent multifocal right parotid pleomorphic adenoma was managed with total parotidectomy while preserving the facial nerve.",
     media: ["photo_5258212857613061675_y-ouszlzczsNNzSIKw.jpg", "134a6544-dl12ddc7AK4bQKqx.JPG", "134a6543-1zk3ZeYnadh2IZNQ.JPG", "134a6542-eOZug5NUDwAZh1YZ.JPG", "134a6563-EwahId4qIxxvkAi3.JPG"],
@@ -85,7 +85,7 @@ const cases = [
     slug: "right-submandibular-sialolithiasis-with-non-specific-sialadenitis-copy-copy",
     title: "Right Submandibular Sialolithiasis with Non-Specific Sialadenitis",
     date: "2025-11-10T00:00:00.000Z",
-    topic: "submandibular",
+    topic: "sialolithiasis-sialadenitis",
     videoUrl: "https://youtu.be/LoeSC5Vmubo",
     summary: "A 48-year-old man with chronic right submandibular swelling had obstructive sialadenitis from a hilar stone and underwent gland excision.",
     media: ["6b78a1a2-711b-4138-bd57-8ed4fd2fb976-bWCTTgWaV8zEXT1M.jpg", "134a4284-NsIiIXZd1ceoKrdR.JPG", "134a4283-fqtBT0u9eGxt49R0.JPG", "134a4304-IBBcSzxNjmIrMTm0.JPG"],
@@ -126,12 +126,16 @@ async function uploadMedia(caseItem) {
   return records;
 }
 
-const { data: topics, error: topicError } = await supabase.from("topics").select("id,slug");
+const { data: topics, error: topicError } = await supabase.from("topics").select("id,slug,parent_id");
 if (topicError) throw topicError;
 
 for (const caseItem of cases) {
-  const topicId = topics.find((topic) => topic.slug === caseItem.topic)?.id;
-  if (!topicId) throw new Error(`Topic ${caseItem.topic} does not exist.`);
+  const topic = topics.find((candidate) => candidate.slug === caseItem.topic);
+  if (!topic) throw new Error(`Topic ${caseItem.topic} does not exist.`);
+  // Cases are filed under their sub-topic and its parent, the same pairing
+  // migration 0012 applies, so both the group tabs and the sub-topic filter
+  // match the imported case.
+  const topicIds = [topic.id, topic.parent_id].filter(Boolean);
   const media = await uploadMedia(caseItem);
   const payload = {
     title: caseItem.title, slug: caseItem.slug, summary: caseItem.summary, kind: "video", video_url: caseItem.videoUrl, status: "published", access_level: "public",
@@ -148,7 +152,7 @@ for (const caseItem of cases) {
     const { error: removeError } = await supabase.from(table).delete().eq("content_id", saved.id);
     if (removeError) throw removeError;
   }
-  const { error: topicInsertError } = await supabase.from("content_topics").insert({ content_id: saved.id, topic_id: topicId });
+  const { error: topicInsertError } = await supabase.from("content_topics").insert(topicIds.map((topic_id) => ({ content_id: saved.id, topic_id })));
   if (topicInsertError) throw topicInsertError;
   const { error: mediaInsertError } = await supabase.from("content_media").insert(media.map((item) => ({ ...item, content_id: saved.id })));
   if (mediaInsertError) throw mediaInsertError;
