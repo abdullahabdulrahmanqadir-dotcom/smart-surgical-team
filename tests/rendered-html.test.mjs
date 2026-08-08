@@ -31,6 +31,21 @@ test("negotiates locale from Accept-Language, falling back to English", async ()
   assert.match(unsupported.headers.get("location") ?? "", /\/en$/);
 });
 
+test("retired Kurdish URLs redirect onto their English equivalent", async () => {
+  // Without an explicit rule these fall through to locale negotiation, which
+  // reads "ckb" as a path segment and produces /en/ckb/… — a 404 for every
+  // bookmark and indexed link the locale left behind.
+  for (const [from, to] of [
+    ["/ckb", "/en"],
+    ["/ckb/topics", "/en/topics"],
+    ["/ckb/topics/thyroid-parathyroid", "/en/topics/thyroid-parathyroid"],
+  ]) {
+    const response = await fetchPath(from);
+    assert.equal(response.status, 308, `${from} should redirect permanently`);
+    assert.match(response.headers.get("location") ?? "", new RegExp(`${to}$`), `${from} -> ${to}`);
+  }
+});
+
 test("server-renders the English home page", async () => {
   const response = await fetchPath("/en");
   assert.equal(response.status, 200);
