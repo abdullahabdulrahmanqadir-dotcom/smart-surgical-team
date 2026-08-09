@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import LazyImage from "./LazyImage";
+import { fill, type Dictionary } from "../lib/dictionaries";
 
 type Image = { id: string; publicUrl: string; altText?: string; caption?: string };
 
@@ -12,7 +13,7 @@ const FIT_ZOOM = 1;
 /** Untransformed layout box of the image, measured relative to the canvas. */
 type FitBox = { width: number; height: number; centreX: number; centreY: number };
 
-export default function ImageGallery({ images, label = "Case images" }: { images: Image[]; label?: string }) {
+export default function ImageGallery({ images, label, t }: { images: Image[]; label?: string; t: Dictionary["media"] }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(FIT_ZOOM);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -223,22 +224,22 @@ export default function ImageGallery({ images, label = "Case images" }: { images
   };
 
   return <section className="case-image-gallery" aria-labelledby="case-images-title">
-    <span className="aside-label" id="case-images-title">{label}</span>
+    <span className="aside-label" id="case-images-title">{label ?? t.caseImages}</span>
     <div className="case-image-thumbnails">{images.map((image, index) =>
-      <button key={image.id} type="button" onClick={() => open(index)} aria-label={`Open image ${index + 1} of ${images.length}`}>
-        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? "Case image"} />
-        <span className="case-image-thumb-badge">Open image</span>
+      <button key={image.id} type="button" onClick={() => open(index)} aria-label={fill(t.openImage, { index: index + 1, count: images.length })}>
+        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? t.caseImage} />
+        <span className="case-image-thumb-badge">{t.openImageBadge}</span>
       </button>)}
     </div>
-    {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || "Image viewer"}>
+    {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || t.imageViewer}>
       <div className="image-lightbox-bar">
-        <p className="image-lightbox-title">{active.caption || active.altText || "Case image"}{images.length > 1 ? <span> · {(openIndex ?? 0) + 1} / {images.length}</span> : null}</p>
+        <p className="image-lightbox-title">{active.caption || active.altText || t.caseImage}{images.length > 1 ? <span> · {(openIndex ?? 0) + 1} / {images.length}</span> : null}</p>
         <div className="image-lightbox-tools">
-          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom - 0.4); }} disabled={zoom <= MIN_ZOOM} aria-label="Zoom out">−</button>
-          <button type="button" className="image-lightbox-level" onClick={resetView} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
-          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom + 0.4); }} disabled={zoom >= MAX_ZOOM} aria-label="Zoom in">+</button>
-          <a href={active.publicUrl} target="_blank" rel="noreferrer" aria-label="Open original image in a new tab">Original</a>
-          <button type="button" className="image-lightbox-close" onClick={close} aria-label="Close image viewer">×</button>
+          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom - 0.4); }} disabled={zoom <= MIN_ZOOM} aria-label={t.zoomOut}>−</button>
+          <button type="button" className="image-lightbox-level" onClick={resetView} aria-label={t.resetZoom}>{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => { setAnimate(true); applyZoom(zoom + 0.4); }} disabled={zoom >= MAX_ZOOM} aria-label={t.zoomIn}>+</button>
+          <a href={active.publicUrl} target="_blank" rel="noreferrer" aria-label={t.openOriginal}>{t.original}</a>
+          <button type="button" className="image-lightbox-close" onClick={close} aria-label={t.closeViewer}>×</button>
         </div>
       </div>
       <div
@@ -251,13 +252,13 @@ export default function ImageGallery({ images, label = "Case images" }: { images
         onDoubleClick={(event) => { setAnimate(true); if (zoomed) resetView(); else applyZoom(2.5, { x: event.clientX, y: event.clientY }); }}
         onClick={(event) => { if (event.target === event.currentTarget && !zoomed) close(); }}
       >
-        {imageLoaded ? null : <span className="image-lightbox-loading" role="status" aria-label="Loading image"><span className="image-lightbox-spinner" aria-hidden="true" /></span>}
+        {imageLoaded ? null : <span className="image-lightbox-loading" role="status" aria-label={t.loadingImage}><span className="image-lightbox-spinner" aria-hidden="true" /></span>}
         <img
           ref={imageRef}
           key={active.id}
           draggable={false}
           src={active.publicUrl}
-          alt={active.altText ?? "Case image"}
+          alt={active.altText ?? t.caseImage}
           onLoad={() => { setImageLoaded(true); measure(); }}
           onError={() => setImageLoaded(true)}
           style={{
@@ -268,9 +269,9 @@ export default function ImageGallery({ images, label = "Case images" }: { images
         />
       </div>
       {images.length > 1 ? <>
-        <button type="button" className="image-lightbox-step is-prev" onClick={() => step(-1)} aria-label="Previous image">‹</button>
-        <button type="button" className="image-lightbox-step is-next" onClick={() => step(1)} aria-label="Next image">›</button>
-        <div className="image-lightbox-filmstrip" role="tablist" aria-label="Choose image">
+        <button type="button" className="image-lightbox-step is-prev" onClick={() => step(-1)} aria-label={t.previousImage}>‹</button>
+        <button type="button" className="image-lightbox-step is-next" onClick={() => step(1)} aria-label={t.nextImage}>›</button>
+        <div className="image-lightbox-filmstrip" role="tablist" aria-label={t.chooseImage}>
           {images.map((image, index) =>
             <button
               key={image.id}
@@ -279,7 +280,7 @@ export default function ImageGallery({ images, label = "Case images" }: { images
               aria-selected={index === openIndex}
               className={index === openIndex ? "is-current" : undefined}
               onClick={() => { setOpenIndex(index); resetView(); }}
-              aria-label={`Image ${index + 1}`}
+              aria-label={fill(t.imageNumber, { index: index + 1 })}
             ><img src={image.publicUrl} alt="" loading="lazy"/></button>)}
         </div>
       </> : null}

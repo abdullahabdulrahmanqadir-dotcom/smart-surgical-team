@@ -23,12 +23,27 @@ test("negotiates locale from Accept-Language, falling back to English", async ()
   const arabic = await fetchPath("/", { "accept-language": "ar-IQ,ar;q=0.9" });
   assert.match(arabic.headers.get("location") ?? "", /\/ar$/);
 
-  // Sorani is requested as ckb but arrives as ku/ku-IQ from some clients.
+  // Kurdish is no longer offered; those clients fall back to English.
   const kurdish = await fetchPath("/", { "accept-language": "ku-IQ,ku;q=0.8" });
-  assert.match(kurdish.headers.get("location") ?? "", /\/ckb$/);
+  assert.match(kurdish.headers.get("location") ?? "", /\/en$/);
 
   const unsupported = await fetchPath("/", { "accept-language": "fr-FR,fr;q=0.9" });
   assert.match(unsupported.headers.get("location") ?? "", /\/en$/);
+});
+
+test("retired Kurdish URLs redirect onto their English equivalent", async () => {
+  // Without an explicit rule these fall through to locale negotiation, which
+  // reads "ckb" as a path segment and produces /en/ckb/… — a 404 for every
+  // bookmark and indexed link the locale left behind.
+  for (const [from, to] of [
+    ["/ckb", "/en"],
+    ["/ckb/topics", "/en/topics"],
+    ["/ckb/topics/thyroid-parathyroid", "/en/topics/thyroid-parathyroid"],
+  ]) {
+    const response = await fetchPath(from);
+    assert.equal(response.status, 308, `${from} should redirect permanently`);
+    assert.match(response.headers.get("location") ?? "", new RegExp(`${to}$`), `${from} -> ${to}`);
+  }
 });
 
 test("server-renders the English home page", async () => {
@@ -70,14 +85,10 @@ test("serves both RTL locales with the correct direction and language", async ()
   const arabic = await fetchPath("/ar");
   assert.equal(arabic.status, 200);
   assert.match(await arabic.text(), /<html[^>]+lang="ar"[^>]*dir="rtl"/i);
-
-  const kurdish = await fetchPath("/ckb");
-  assert.equal(kurdish.status, 200);
-  assert.match(await kurdish.text(), /<html[^>]+lang="ckb-Arab"[^>]*dir="rtl"/i);
 });
 
 test("renders exactly one shared footer, locale-correct and free of dropped copy", async () => {
-  for (const locale of ["en", "ar", "ckb"]) {
+  for (const locale of ["en", "ar"]) {
     const html = await (await fetchPath(`/${locale}`)).text();
 
     // The footer was extracted out of the home page into SiteFooter. A second
@@ -88,8 +99,8 @@ test("renders exactly one shared footer, locale-correct and free of dropped copy
     // The brief rules out a join-focused CTA.
     assert.doesNotMatch(html, /Join free/i, `${locale} must not offer "Join free"`);
 
-    // The pre-i18n design hardcoded a Sorani column onto every page; the
-    // locale switcher replaces it.
+    // The pre-i18n design hardcoded a Kurdish column onto every page; the
+    // locale switcher replaced it, and Kurdish is no longer a locale at all.
     assert.doesNotMatch(html, /footer-kr/, `${locale} must not carry the old Kurdish column`);
 
     // Links must stay inside the active locale.
@@ -97,10 +108,10 @@ test("renders exactly one shared footer, locale-correct and free of dropped copy
   }
 });
 
-test("every locale offers a switcher linking to all three languages", async () => {
-  for (const locale of ["en", "ar", "ckb"]) {
+test("every locale offers a switcher linking to both languages", async () => {
+  for (const locale of ["en", "ar"]) {
     const html = await (await fetchPath(`/${locale}`)).text();
-    for (const target of ["/en", "/ar", "/ckb"]) {
+    for (const target of ["/en", "/ar"]) {
       assert.match(html, new RegExp(`href="${target}"`), `${locale} should link to ${target}`);
     }
   }
@@ -129,7 +140,7 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
 });
 
 test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {
-  for (const locale of ["en", "ar", "ckb"]) {
+  for (const locale of ["en", "ar"]) {
     const response = await fetchPath(`/${locale}/topics`);
     assert.equal(response.status, 200);
     const html = await response.text();
@@ -163,8 +174,19 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
       4,
       `${locale} renders a labelled callout per region`,
     );
-    for (const label of ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"]) {
-      assert.match(html, new RegExp(`content-map-tag[^>]*>${label}<`), `${locale} labels ${label}`);
+    const labels = locale === "ar"
+      ? [
+          "الغدة الدرقية وجارات الدرقية (Thyroid &amp; Parathyroid)",
+          "الغدد اللعابية (Salivary Glands)",
+          "جراحة العنق والجهاز اللمفاوي (Neck &amp; Lymphatic Surgery)",
+          "الجلد والأنسجة الرخوة (Skin &amp; Soft Tissue)",
+        ]
+      : ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"];
+    for (const label of labels) {
+      assert.ok(
+        html.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`),
+        `${locale} labels ${label}`,
+      );
     }
     assert.doesNotMatch(html, /\b\d+ lessons\b/i);
     assert.doesNotMatch(html, />Parathyroid · Thyroid<|>Oral Cavity · Larynx</);
@@ -180,7 +202,7 @@ test("every topic detail route renders its searchable admin-managed content libr
     ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions"],
   ];
 
-  for (const locale of ["en", "ar", "ckb"]) {
+  for (const locale of ["en", "ar"]) {
     for (const [slug, heading, condition] of routes) {
       const response = await fetchPath(`/${locale}/topics/${slug}`);
       assert.equal(response.status, 200, `${locale}/${slug} should resolve`);
@@ -221,19 +243,20 @@ test("unpublished topic groups are not reachable on the public site", async () =
 });
 
 test("events hub and its two initial records are available in every locale", async () => {
-  for (const locale of ["en", "ar", "ckb"]) {
+  for (const locale of ["en", "ar"]) {
     const hub = await fetchPath(`/${locale}/events`);
     assert.equal(hub.status, 200);
     const html = await hub.text();
-    assert.match(html, /Second Middle East Thyroid Summit/);
-    assert.match(html, /First Middle East Thyroid Summit/);
-    assert.match(html, /Past event/);
+    assert.match(html, locale === "ar" ? /القمة الثانية للغدة الدرقية في الشرق الأوسط/ : /Second Middle East Thyroid Summit/);
+    assert.match(html, locale === "ar" ? /القمة الأولى للغدة الدرقية في الشرق الأوسط/ : /First Middle East Thyroid Summit/);
+    // The built-in fallback records and their UI chrome follow the active locale.
+    assert.match(html, locale === "ar" ? /فعالية سابقة/ : /Past event/);
     assert.match(html, new RegExp(`href="/${locale}/events/second-middle-east-thyroid-summit"`));
 
     const detail = await fetchPath(`/${locale}/events/second-middle-east-thyroid-summit`);
     assert.equal(detail.status, 200);
     const detailHtml = await detail.text();
-    assert.match(detailHtml, /Register on MET site/);
+    assert.match(detailHtml, locale === "ar" ? /التسجيل عبر موقع القمة/ : /Register on MET site/);
     assert.match(detailHtml, /mets\.smarthealth\.group\/register/);
     assert.doesNotMatch(detailHtml, /\$100|\$75|\$30/);
   }

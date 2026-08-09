@@ -98,15 +98,15 @@ export default function SiteHeader({
   const adminPath = localePath(locale, "admin");
   const adminLink = member && isStaff ? (
     <Link className="btn btn-ghost header-admin" href={adminPath}>
-      Admin
+      {dict.header.admin}
     </Link>
   ) : null;
   const accountAction = member ? (
     <>
       {adminLink}
-      <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={`Open ${member.name}'s profile`}>
+      <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={dict.header.openProfile.replace("{name}", member.name)}>
         <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-        <span>Profile</span>
+        <span>{dict.header.profile}</span>
       </Link>
     </>
   ) : (
@@ -132,7 +132,7 @@ export default function SiteHeader({
           <span className="brand-name">{dict.brand.name}</span>
         </Link>
 
-        <nav className="primary-nav" aria-label="Main">
+        <nav className="primary-nav" aria-label={dict.header.mainNavigation}>
           {navLinks.map(([label, href]) => (
             <Link key={label} href={href}>
               {label}
@@ -147,8 +147,8 @@ export default function SiteHeader({
             type="button"
             className="icon-button theme-toggle"
             onClick={toggleTheme}
-            aria-label="Switch colour mode"
-            title="Switch colour mode"
+            aria-label={dict.header.switchColourMode}
+            title={dict.header.switchColourMode}
           >
             <IconMoon className="theme-icon-light" />
             <IconSun className="theme-icon-dark" />
@@ -182,10 +182,10 @@ export default function SiteHeader({
         <div className="mobile-nav-actions">
           {member ? (
             <>
-              {isStaff && <Link className="btn btn-ghost" href={adminPath} onClick={() => setMenuOpen(false)}>Admin</Link>}
+              {isStaff && <Link className="btn btn-ghost" href={adminPath} onClick={() => setMenuOpen(false)}>{dict.header.admin}</Link>}
               <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
                 <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-                <span>Profile</span>
+                <span>{dict.header.profile}</span>
               </Link>
             </>
           ) : <><Link className="btn btn-ghost" href={localePath(locale, "sign-in")} onClick={() => setMenuOpen(false)}>{dict.nav.signIn}</Link><Link className="btn btn-primary header-signup" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link></>}

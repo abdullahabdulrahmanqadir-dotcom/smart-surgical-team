@@ -12,16 +12,17 @@ import ImageGallery from "../../../components/ImageGallery";
 import BackToPrevious from "../../../components/BackToPrevious";
 import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
 import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
-import { getDictionary } from "../../../lib/dictionaries";
+import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 import { TEAM_GROUPS } from "../../../lib/team";
+import TranslatableContent from "../../../components/TranslatableContent";
 
 const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
 
-function RelatedSkeleton() {
+function RelatedSkeleton({ t }: { t: Dictionary["library"] }) {
   return (
-    <div className="related-grid" role="status" aria-label="Loading related content">
+    <div className="related-grid" role="status" aria-label={t.loadingRelated}>
       {[0, 1, 2].map((index) => (
         <div className="related-card is-skeleton" key={index} aria-hidden="true">
           <div className="related-art"><span className="skeleton-block" /></div>
@@ -35,7 +36,7 @@ function RelatedSkeleton() {
 }
 
 /** Streamed separately from the case itself so the article never waits on it. */
-async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: Locale; contentId: string; topicSlug: string; kind: ContentKind }) {
+async function RelatedContent({ locale, t, contentId, topicSlug, kind }: { locale: Locale; t: Dictionary["library"]; contentId: string; topicSlug: string; kind: ContentKind }) {
   const allContent = await getLibraryContent();
   const related = allContent.filter((item) => item.id !== contentId && (item.topicSlug === topicSlug || item.kind === kind)).slice(0, 3);
   if (!related.length) return <div className="related-grid" />;
@@ -52,7 +53,7 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
             </div>
             <span className="related-topic">{item.topic}</span>
             <h3>{item.title}</h3>
-            <p><IconClock size={14} /> {item.kind === "webinar_recording" ? "Recorded webinar" : "Video lesson"}</p>
+            <p><IconClock size={14} /> {item.kind === "webinar_recording" ? t.recordedWebinar : t.videoLesson}</p>
           </Link>
         );
       })}
@@ -60,9 +61,12 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
   );
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const content = await getContent((await params).id);
-  return content ? { title: `${content.title} | Smart Surgical Team`, description: content.summary } : { title: "Content not found | Smart Surgical Team" };
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; id: string }> }): Promise<Metadata> {
+  const { locale, id } = await params;
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
+  const content = await getContent(id);
+  return content ? { title: `${content.title} | ${dict.brand.name}`, description: content.summary } : { title: `${dict.library.contentNotFound} | ${dict.brand.name}` };
 }
 
 export default async function ContentPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
@@ -78,12 +82,12 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const content = await getContent(id);
   if (!content) {
     const memberContent = await getContentForMember(id);
-    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} /></main><SiteFooter locale={active} dict={dict} /></>;
+    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} t={dict.memberContent} mediaT={dict.media} caseSummaryT={dict.caseSummary} /></main><SiteFooter locale={active} dict={dict} /></>;
     notFound();
   }
   const home = localePath(active);
-  const typeLabel = content.kind === "webinar_recording" ? "Recorded webinar" : content.kind === "poster" ? "E-poster" : content.kind === "case_article" ? "Case article" : "Operative video";
-  const summarySections = resolveCaseSections(content);
+  const typeLabel = content.kind === "webinar_recording" ? dict.library.recordedWebinar : content.kind === "poster" ? dict.library.ePoster : content.kind === "case_article" ? dict.library.caseArticle : dict.library.operativeVideo;
+  const summarySections = resolveCaseSections(content, dict.caseSummary);
   const documents = content.media?.filter((item) => item.kind === "document") ?? [];
   const images = content.media?.filter((item) => item.kind === "image") ?? [];
   // With no video, the case still deserves a lead visual. The image chosen as
@@ -102,37 +106,50 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
-      <nav className="content-breadcrumb" aria-label="Breadcrumb"><Link href={localePath(active, "topics")}>Content</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b>{content.title}</b></nav>
-      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} /></div>
+      <nav className="content-breadcrumb" aria-label={dict.library.breadcrumb}><Link href={localePath(active, "topics")}>{dict.library.content}</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b>{content.title}</b></nav>
+      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} t={dict.saveCase} /></div>
 
       <div className="content-grid">
-        <section className="content-main"><ContentPlayer content={content} />
+        <section className="content-main"><ContentPlayer content={content} t={dict.media} />
           {mainImage ? <figure className="content-hero-image"><LazyImage src={mainImage.publicUrl} alt={mainImage.altText ?? content.title} />{mainImage.caption ? <figcaption>{mainImage.caption}</figcaption> : null}</figure> : null}
-          {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">Resources</span><h2 id="content-downloads-title">Downloads</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || "Download document"}</a></li>)}</ul></section> : null}
+          {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.resources}</span><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
-            <div className="section-mini-head"><div><span className="section-kicker">Overview</span><h2 id="case-summary-title">Case details</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
+            <div className="section-mini-head"><div><span className="section-kicker">{dict.library.overview}</span><h2 id="case-summary-title">{dict.library.caseDetails}</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
-              <dl className="case-summary-list">
-                {summarySections.map(({ key, label, body }) => <div key={key}><dt>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
-              </dl>
+              // The <dt> headings are translated UI; only the <dd> bodies are
+              // English database prose, so the wrapper marks those alone.
+              <TranslatableContent
+                locale={active}
+                labels={{
+                  translate: dict.library.translateCase,
+                  translating: dict.library.translatingCase,
+                  downloading: dict.library.downloadingModel,
+                  showOriginal: dict.library.showOriginalCase,
+                  failed: dict.library.translateFailed,
+                }}
+              >
+                <dl className="case-summary-list">
+                  {summarySections.map(({ key, label, body }) => <div key={key}><dt translate="no" lang={active}>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
+                </dl>
+              </TranslatableContent>
             ) : (
-              <div className="case-summary-empty"><IconFile size={20} /><div><b>Case detail is not published yet.</b><span>Presentation, imaging, procedure, histopathology and outcome appear here once the team has reviewed and de-identified them.</span></div></div>
+              <div className="case-summary-empty"><IconFile size={20} /><div><b>{dict.library.caseEmptyTitle}</b><span>{dict.library.caseEmptyBody}</span></div></div>
             )}
           </section>
         </section>
         <aside className="content-aside">
-          <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? "Contributor" : "Contributors"}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <LazyImage className="presenter-avatar presenter-photo" src={portrait} alt={`Portrait of ${contributor.name}`} /> :<span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">View team <IconArrowRight size={15} /></Link></section>
-          <section className="details-card"><span className="aside-label">Content details</span><dl><div><dt>Format</dt><dd>{typeLabel}</dd></div><div><dt>Topic</dt><dd>{content.topic}</dd></div><div><dt>Level</dt><dd>{content.level}</dd></div></dl></section>
-          <ImageGallery images={galleryImages} />
+          <section className="presenter-card"><span className="aside-label">{contributors.length === 1 ? dict.library.contributor : dict.library.contributors}</span><div className="presenter-list">{contributors.map((contributor) => { const portrait = contributor.photoUrl || staffPortraits.get(contributor.name); return <div className="presenter-identity" key={contributor.name}>{portrait ? <LazyImage className="presenter-avatar presenter-photo" src={portrait} alt={fill(dict.library.portraitOf, { name: contributor.name })} /> :<span className="presenter-avatar" aria-hidden="true">{contributor.initials}</span>}<div><h2>{contributor.name}</h2><p>{contributor.role}</p></div></div>; })}</div><Link href={localePath(active, "about")} className="text-link presenter-team-link">{dict.library.viewTeam} <IconArrowRight size={15} /></Link></section>
+          <section className="details-card"><span className="aside-label">{dict.library.contentDetails}</span><dl><div><dt>{dict.library.format}</dt><dd>{typeLabel}</dd></div><div><dt>{dict.library.topic}</dt><dd>{content.topic}</dd></div><div><dt>{dict.library.level}</dt><dd>{content.level}</dd></div></dl></section>
+          <ImageGallery images={galleryImages} t={dict.media} />
         </aside>
       </div>
 
-      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">Keep learning</span><h2 id="related-title">Related content</h2></div><Link className="text-link" href={`${home}#library`}>View library <IconArrowRight size={16} /></Link></div>
+      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.keepLearning}</span><h2 id="related-title">{dict.library.relatedContent}</h2></div><Link className="text-link" href={`${home}#library`}>{dict.library.viewLibrary} <IconArrowRight size={16} /></Link></div>
         {/* Suggestions are worth showing but not worth delaying the case for.
             The reader gets the article as soon as it is ready; the rail fills
             in behind placeholder cards a moment later. */}
-        <Suspense fallback={<RelatedSkeleton />}>
-          <RelatedContent locale={active} contentId={content.id} topicSlug={content.topicSlug} kind={content.kind} />
+        <Suspense fallback={<RelatedSkeleton t={dict.library} />}>
+          <RelatedContent locale={active} t={dict.library} contentId={content.id} topicSlug={content.topicSlug} kind={content.kind} />
         </Suspense>
       </section>
     </main>

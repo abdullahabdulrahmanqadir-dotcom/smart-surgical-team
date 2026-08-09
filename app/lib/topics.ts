@@ -77,3 +77,20 @@ export function getPublicTopicGroup(slug: string): TopicGroup | undefined {
 
 export const PUBLIC_TOPIC_GROUPS = TOPIC_GROUPS.filter((group) => group.visible !== false);
 export const FEATURED_TOPICS = PUBLIC_TOPIC_GROUPS.filter((group) => group.featured);
+
+/** Localizes the display copy without mutating the database-aligned taxonomy. */
+export function localizeTopicGroups(
+  groups: TopicGroup[],
+  taxonomy: Record<string, string>,
+): TopicGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    name: taxonomy[group.slug] ?? group.name,
+    blurb: taxonomy[`${group.slug}-blurb`] ?? group.blurb,
+    intro: taxonomy[`${group.slug}-intro`] ?? group.intro,
+    subTopics: group.subTopics.map((topic) => ({
+      ...topic,
+      name: taxonomy[topic.slug] ?? topic.name,
+    })),
+  }));
+}

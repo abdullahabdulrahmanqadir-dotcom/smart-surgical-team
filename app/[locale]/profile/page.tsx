@@ -12,5 +12,5 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
   const active: Locale = locale;
   const dict = getDictionary(active);
 
-  return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><ScrollMotion /><main id="main-content" className="profile-page"><MemberProfile locale={active} initialMember={null}/></main><SiteFooter locale={active} dict={dict}/></>;
+  return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><ScrollMotion /><main id="main-content" className="profile-page"><MemberProfile locale={active} initialMember={null} t={dict.profile}/></main><SiteFooter locale={active} dict={dict}/></>;
 }

@@ -6,13 +6,13 @@ import SiteHeader from "../../../components/SiteHeader";
 import ResearchContributors from "../../../components/ResearchContributors";
 import ImageGallery from "../../../components/ImageGallery";
 import { IconArrowRight, IconCalendar } from "../../../components/icons";
-import { getDictionary } from "../../../lib/dictionaries";
+import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getResearchById } from "../../../lib/research";
 
-function readableDate(value: string, locale: Locale) {
+function readableDate(value: string, locale: Locale, t: Dictionary["research"]) {
   const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.valueOf()) ? value || "Publication date unavailable" : new Intl.DateTimeFormat(locale === "ckb" ? "ku" : locale, { year: "numeric", month: "long", day: "numeric" }).format(date);
+  return Number.isNaN(date.valueOf()) ? value || t.publicationDateUnavailable : new Intl.DateTimeFormat(locale, { year: "numeric", month: "long", day: "numeric" }).format(date);
 }
 
 // Abstracts edited in the admin rich editor arrive as sanitised HTML; older
@@ -35,10 +35,13 @@ function contributorsFor(paper: { authors: string; contributors?: { name: string
   return paper.authors.split(/,|\band\b/i).map((name) => name.trim()).filter((name) => name && !/^colleagues$/i.test(name)).map((name) => ({ name }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const paper = await getResearchById((await params).id);
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; id: string }> }): Promise<Metadata> {
+  const { locale, id } = await params;
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
+  const paper = await getResearchById(id);
   const summary = paper?.abstract ? paper.abstract.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
-  return paper ? { title: `${paper.title} | Smart Surgical Team`, description: summary || `Read ${paper.title}.` } : { title: "Research not found | Smart Surgical Team" };
+  return paper ? { title: `${paper.title} | ${dict.brand.name}`, description: summary || fill(dict.research.readDescription, { title: paper.title }) } : { title: `${dict.research.notFound} | ${dict.brand.name}` };
 }
 
 export default async function ResearchDetailPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
@@ -58,11 +61,11 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
     <main id="main-content" className="research-detail-page">
-      <nav className="research-breadcrumb" aria-label="Breadcrumb"><Link href={localePath(active, "research")}>Research</Link><span>/</span><b>{paper.title}</b></nav>
+      <nav className="research-breadcrumb" aria-label={dict.research.breadcrumb}><Link href={localePath(active, "research")}>{dict.research.research}</Link><span>/</span><b>{paper.title}</b></nav>
       <header className="research-detail-hero"><div className="research-detail-heading"><span className="section-kicker">{paper.category} · {paper.year}</span><h1>{paper.title}</h1></div></header>
       <div className="research-detail-grid">
-        <article className="research-detail-main"><ResearchContributors contributors={contributors}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">Research summary</span><h2 id="abstract-title">Abstract</h2><div className="research-detail-abstract">{paper.abstract && isHtml(paper.abstract) ? <div dangerouslySetInnerHTML={{ __html: paper.abstract }}/> : abstractParagraphs(paper.abstract || "The abstract is available on the publisher’s website.").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></section></article>
-        <aside className="research-detail-aside">{researchImages.length > 0 && <ImageGallery images={researchImages} label="Research images"/>}<section className="research-metadata"><span className="aside-label">Publication details</span><dl><div><dt>Type</dt><dd>{paper.category}</dd></div><div><dt>Published</dt><dd><IconCalendar size={16}/>{readableDate(paper.date, active)}</dd></div></dl><a className="btn btn-primary research-paper-link" href={paper.link} target="_blank" rel="noreferrer">Open paper <IconArrowRight size={17}/></a></section><Link className="research-back-link" href={localePath(active, "research")}><IconArrowRight size={16}/>Back to all research</Link></aside>
+        <article className="research-detail-main"><ResearchContributors contributors={contributors} t={dict.research}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">{dict.research.summaryKicker}</span><h2 id="abstract-title">{dict.research.abstract}</h2><div className="research-detail-abstract">{paper.abstract && isHtml(paper.abstract) ? <div dangerouslySetInnerHTML={{ __html: paper.abstract }}/> : abstractParagraphs(paper.abstract || dict.research.abstractFallback).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div></section></article>
+        <aside className="research-detail-aside">{researchImages.length > 0 && <ImageGallery images={researchImages} label={dict.research.images} t={dict.media}/>}<section className="research-metadata"><span className="aside-label">{dict.research.publicationDetails}</span><dl><div><dt>{dict.research.type}</dt><dd>{paper.category}</dd></div><div><dt>{dict.research.published}</dt><dd><IconCalendar size={16}/>{readableDate(paper.date, active, dict.research)}</dd></div></dl><a className="btn btn-primary research-paper-link" href={paper.link} target="_blank" rel="noreferrer">{dict.research.openPaper} <IconArrowRight size={17}/></a></section><Link className="research-back-link" href={localePath(active, "research")}><IconArrowRight size={16}/>{dict.research.backToResearch}</Link></aside>
       </div>
     </main>
     <SiteFooter locale={active} dict={dict}/>

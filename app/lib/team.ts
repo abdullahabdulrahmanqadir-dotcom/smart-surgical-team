@@ -1,3 +1,5 @@
+import type { Dictionary } from "./dictionaries";
+
 export type TeamMember = {
   name: string;
   credentials: string;
@@ -57,3 +59,44 @@ export const TEAM_GROUPS: TeamGroup[] = [
     ],
   },
 ];
+
+export function getLocalizedTeamGroups(t: Dictionary["team"]): TeamGroup[] {
+  const copyFor = (name: string): Pick<TeamMember, "role" | "credentials"> => {
+    switch (name) {
+      case "Prof. Abdulwahid M. Salih": return { role: t.profAbdulwahidRole, credentials: t.profAbdulwahidCredentials };
+      case "Yadgar A. Saeed": return { role: t.yadgarRole, credentials: t.yadgarCredentials };
+      case "Aso S. Muhialdeen": return { role: t.asoRole, credentials: t.asoCredentials };
+      case "Hardi M. Zahir": return { role: t.hardiRole, credentials: t.hardiCredentials };
+      case "Karzan M. Salih": return { role: t.karzanRole, credentials: t.karzanCredentials };
+      case "Imad S. Sedeeq": return { role: t.imadRole, credentials: t.imadCredentials };
+      case "Aras J. Qaradaxy": return { role: t.arasRole, credentials: t.arasCredentials };
+      case "Ari M. Abdullah": return { role: t.ariRole, credentials: t.ariCredentials };
+      case "Shaho F. Ahmed": return { role: t.shahoRole, credentials: t.shahoCredentials };
+      case "Shko H. Hassan": return { role: t.shkoRole, credentials: t.shkoCredentials };
+      case "Abdullah A. Qadr": return { role: t.abdullahQadrRole, credentials: t.abdullahQadrCredentials };
+      case "Saeed H. Ali": return { role: t.saeedRole, credentials: t.saeedCredentials };
+      case "Muhammad H. Ali": return { role: t.muhammadRole, credentials: t.muhammadCredentials };
+      case "Osama A. Ali": return { role: t.osamaRole, credentials: t.osamaCredentials };
+      case "Shallaw A. Nasradin": return { role: t.shallawRole, credentials: t.shallawCredentials };
+      case "Kaihan A. Najar": return { role: t.kaihanRole, credentials: t.kaihanCredentials };
+      case "Mohammed L. Ahmad": return { role: t.mohammedRole, credentials: t.mohammedCredentials };
+      case "Ahmad L. Ali": return { role: t.ahmadRole, credentials: t.ahmadCredentials };
+      case "Abdullah O. Hassan": return { role: t.abdullahHassanRole, credentials: t.abdullahHassanCredentials };
+      default: {
+        const member = TEAM_GROUPS.flatMap((group) => group.members).find((candidate) => candidate.name === name);
+        return { role: member?.role ?? "", credentials: member?.credentials ?? "" };
+      }
+    }
+  };
+  const groupCopy = [
+    { title: t.surgicalTitle },
+    { title: t.specialistTitle, intro: t.specialistIntro },
+    { title: t.researchTitle, intro: t.researchIntro },
+    { title: t.doctorsTitle, intro: t.doctorsIntro },
+  ];
+  return TEAM_GROUPS.map((group, index) => ({
+    ...group,
+    ...groupCopy[index],
+    members: group.members.map((member) => ({ ...member, ...copyFor(member.name) })),
+  }));
+}

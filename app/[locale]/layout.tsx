@@ -57,8 +57,7 @@ export async function generateMetadata({
     requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
 
   const title = `${dict.brand.name} | ${dict.brand.tagline}`;
-  const description =
-    "A trusted learning platform for head and neck surgery, created by Smart Surgical Team in Sulaymaniah.";
+  const description = dict.metadata.description;
 
   return {
     metadataBase: new URL(`${protocol}://${host}`),
@@ -121,7 +120,14 @@ export default async function LocaleLayout({
           }}
         />
       </head>
-      <body className="antialiased">{children}</body>
+      {/* On /ar the interface is already translated, so a browser page-translate
+          would re-translate correct Arabic into worse Arabic. `translate` is
+          inherited, so switching it off here makes "no" the default and lets the
+          English database content opt back in with translate="yes" (see
+          TranslatableContent). English pages stay fully translatable. */}
+      <body className="antialiased" translate={locale === "ar" ? "no" : undefined}>
+        {children}
+      </body>
     </html>
   );
 }

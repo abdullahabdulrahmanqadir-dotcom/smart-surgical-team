@@ -1,14 +1,14 @@
-// Locale configuration. All three locales are URL-prefixed (/en, /ar, /ckb) so
-// no language is privileged over the others.
+// Locale configuration. Both locales are URL-prefixed (/en, /ar) so no
+// language is privileged over the other.
 
-export const LOCALES = ["en", "ar", "ckb"] as const;
+export const LOCALES = ["en", "ar"] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = "en";
 
 type LocaleMeta = {
-  /** Written direction. Both Arabic and Sorani Kurdish are RTL. */
+  /** Written direction. Arabic is RTL. */
   dir: "ltr" | "rtl";
   /** Name shown in the language switcher, always in that language itself. */
   label: string;
@@ -21,7 +21,6 @@ type LocaleMeta = {
 export const LOCALE_META: Record<Locale, LocaleMeta> = {
   en: { dir: "ltr", label: "English", short: "EN", htmlLang: "en" },
   ar: { dir: "rtl", label: "العربية", short: "ع", htmlLang: "ar" },
-  ckb: { dir: "rtl", label: "کوردی", short: "کو", htmlLang: "ckb-Arab" },
 };
 
 export function isLocale(value: string | undefined): value is Locale {
@@ -50,8 +49,6 @@ export function detectLocale(acceptLanguage: string | null): Locale {
     .sort((a, b) => b.q - a.q);
 
   for (const { tag } of ranked) {
-    // Sorani is requested as ckb, but also arrives as ku / ku-IQ in practice.
-    if (tag.startsWith("ckb") || tag.startsWith("ku")) return "ckb";
     if (tag.startsWith("ar")) return "ar";
     if (tag.startsWith("en")) return "en";
   }

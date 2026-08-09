@@ -17,34 +17,21 @@ import {
   IconSparkle,
 } from "../components/icons";
 import { isLocale, localePath, type Locale } from "../lib/i18n";
-import { getDictionary } from "../lib/dictionaries";
+import { fill, getDictionary, type Dictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
-import { getPublicEvents, eventDateRange } from "../lib/events";
-import { TEAM_GROUPS } from "../lib/team";
+import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/events";
+import { getLocalizedTeamGroups } from "../lib/team";
 import { getResearches } from "../lib/research";
-
-const credentials = [
-  "Smart Health Tower",
-  "Head & Neck department",
-];
-
-const featuredTeam = TEAM_GROUPS[0].members.slice(0, 3);
-
-const benefits = [
-  "Free account, immediate access",
-  "New lecture every week",
-  "Save cases for your next study session",
-];
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
     and nothing shifts when the events arrive. */
-function UpcomingEventsPanel({ locale, badge, children }: { locale: Locale; badge?: string; children?: React.ReactNode }) {
+function UpcomingEventsPanel({ locale, t, badge, children }: { locale: Locale; t: Dictionary["home"]; badge?: string; children?: React.ReactNode }) {
   return (
     <article className="panel" id="events">
       <div className="panel-heading">
         <div>
-          <h2>Upcoming Events</h2>
-          <p className="panel-sub">Live sessions, discussions and learning opportunities.</p>
+          <h2>{t.eventsTitle}</h2>
+          <p className="panel-sub">{t.eventsIntro}</p>
         </div>
         {badge ? <span className="badge">{badge}</span> : <span className="badge is-skeleton"><span className="skeleton-line skeleton-line-xs" /></span>}
       </div>
@@ -60,30 +47,30 @@ function UpcomingEventsPanel({ locale, badge, children }: { locale: Locale; badg
         ))}
       </div>
       <Link className="panel-link" href={localePath(locale, "events")}>
-        View all events
+        {t.viewAllEvents}
         <IconArrowRight size={16} />
       </Link>
     </article>
   );
 }
 
-async function UpcomingEvents({ locale }: { locale: Locale }) {
-  const events = await getPublicEvents();
+async function UpcomingEvents({ locale, t, eventT }: { locale: Locale; t: Dictionary["home"]; eventT: Dictionary["eventFallback"] }) {
+  const events = (await getPublicEvents()).map((event) => localizeFallbackEvent(event, eventT));
   const upcoming = events.filter((event) => event.status === "upcoming").slice(0, 3);
 
   return (
-    <UpcomingEventsPanel locale={locale} badge={`${upcoming.length} upcoming`}>
+    <UpcomingEventsPanel locale={locale} t={t} badge={fill(t.upcomingCount, { count: upcoming.length })}>
       {upcoming.map((event) => (
         <Link href={localePath(locale, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
           <span className="date-chip">
-            <b>{new Intl.DateTimeFormat("en", { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
+            <b>{new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b>
             <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
           </span>
           <span className="webinar-body">
             <h3>{event.title}</h3>
             <p>{event.location}</p>
             <small>
-              <IconClock size={13} /> {eventDateRange(event)}
+              <IconClock size={13} /> {eventDateRange(event, locale)}
             </small>
           </span>
           <span className="row-action" aria-hidden="true">
@@ -103,6 +90,9 @@ export default async function Home({
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
+  const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
+  const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
+  const benefits = [dict.home.benefitAccess, dict.home.benefitWeekly, dict.home.benefitSave];
   const research = await getResearches();
   const latestResearch = research[0];
   // Abstracts can be rich HTML; the card excerpt wants clean text.
@@ -124,21 +114,20 @@ export default async function Home({
             <div className="hero-copy">
               <p className="eyebrow">
                 <IconSparkle size={15} />
-                Smart Health Tower · Sulaymaniah, Kurdistan
+                {dict.brand.location}
               </p>
               <h1>
-                Head &amp; Neck Surgery,{" "}
-                <span className="headline-accent">Guided by Expertise.</span>
+                {dict.brand.tagline}
               </h1>
               <div className="hero-actions">
                 <Link className="btn btn-primary btn-lg" href={localePath(active, "topics")}>
-                  Explore the Library
+                  {dict.cta.exploreLibrary}
                   <IconArrowRight size={18} />
                 </Link>
               </div>
             </div>
 
-            <AnatomyHero />
+            <AnatomyHero t={dict.anatomyHero} />
             {/* <div className="hero-visual" aria-hidden="true">
               <div className="hero-glow" />
               <div className="hero-grid-dots" />
@@ -184,7 +173,7 @@ export default async function Home({
           </div>
 
           <div className="credential-strip">
-            <p>Built with clinicians from</p>
+            <p>{dict.home.builtWith}</p>
             <ul>
               {credentials.map((name) => (
                 <li key={name}>{name}</li>
@@ -197,14 +186,14 @@ export default async function Home({
         <section className="section section-topics" id="topics" aria-labelledby="topics-heading">
           <div className="section-head">
             <div>
-              <span className="section-kicker">Curriculum</span>
-              <h2 id="topics-heading">Browse by Topic</h2>
+              <span className="section-kicker">{dict.home.curriculum}</span>
+              <h2 id="topics-heading">{dict.topics.title}</h2>
               <p className="section-sub">
-                Four highlighted surgical areas from the complete head and neck curriculum.
+                {dict.home.topicsIntro}
               </p>
             </div>
             <Link className="text-link" href={localePath(active, "topics")}>
-              View all topics
+              {dict.home.viewAllTopics}
               <IconArrowRight size={16} />
             </Link>
           </div>
@@ -220,8 +209,8 @@ export default async function Home({
                   <span className={`topic-glyph${topic.imageIcon ? " topic-glyph-image" : ""}`}>
                     <TopicGlyph icon={topic.icon} imageIcon={topic.imageIcon} size={64} />
                   </span>
-                  <b>{topic.name}</b>
-                  <p>{topic.blurb}</p>
+                  <b>{dict.taxonomy[topic.slug as keyof typeof dict.taxonomy] ?? topic.name}</b>
+                  <p>{dict.taxonomy[`${topic.slug}-blurb` as keyof typeof dict.taxonomy] ?? topic.blurb}</p>
                   <span className="topic-foot">
                     <small>{dict.topics.exploreGroup}</small>
                     <span className="topic-go" aria-hidden="true">
@@ -235,10 +224,10 @@ export default async function Home({
         </section>
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
-          <div className="research-preview-head"><div><span className="section-kicker">From our research desk</span><h2 id="research-preview-heading">Evidence, shared.</h2><p>Published clinical research from the Smart Health Tower community.</p></div><Link className="text-link" href={localePath(active, "research")}>Explore all research <IconArrowRight size={16}/></Link></div>
+          <div className="research-preview-head"><div><span className="section-kicker">{dict.home.researchKicker}</span><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media">{latestResearch.imageUrl ? <img src={latestResearch.imageUrl} alt="" loading="lazy"/> : <span className="research-preview-placeholder"><IconFile size={40}/></span>}<span className="research-preview-badge">{latestResearch.category}</span></div>
-            <div className="research-preview-body"><span className="research-preview-kicker">Latest publication · {latestResearch.year}</span><h3>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">Read research <IconArrowRight size={16}/></span></div>
+            <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span><h3>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
           </Link>
         </section>}
 
@@ -246,19 +235,18 @@ export default async function Home({
         <section className="section section-muted section-introduction" id="introduction" aria-labelledby="introduction-heading">
           <div className="section-head">
             <div>
-              <span className="section-kicker">Introducing the clinic</span>
-              <h2 id="introduction-heading">Meet Smart Surgical Team</h2>
+              <span className="section-kicker">{dict.home.introductionKicker}</span>
+              <h2 id="introduction-heading">{dict.home.introductionTitle}</h2>
               <p className="section-sub">
-                A short tour of the clinic, the team and the care pathway behind every case we
-                publish.
+                {dict.home.introductionIntro}
               </p>
             </div>
-            <span className="badge badge-accent">Clinic overview</span>
+            <span className="badge badge-accent">{dict.home.clinicOverview}</span>
           </div>
 
           {/* The stage carries the gutter so the player lines up with every
               other section instead of bleeding past them. */}
-          <div className="introduction-stage"><IntroductionVideo /></div>
+          <div className="introduction-stage"><IntroductionVideo t={dict.introduction} /></div>
         </section>
 
         {/* ---------------- Expert team + upcoming events ---------------- */}
@@ -267,15 +255,15 @@ export default async function Home({
           <article className="panel team-feature-panel" id="team" aria-labelledby="team-heading">
             <div className="panel-heading">
               <div>
-                <h2 id="team-heading">Our Expert Team</h2>
-                <p className="panel-sub">Practising head, neck and thyroid surgeons leading clinical care and education.</p>
+                <h2 id="team-heading">{dict.home.teamTitle}</h2>
+                <p className="panel-sub">{dict.home.teamIntro}</p>
               </div>
-              <span className="badge">{featuredTeam.length} featured</span>
+              <span className="badge">{fill(dict.home.featuredCount, { count: featuredTeam.length })}</span>
             </div>
             <div className="team-feature-list">
               {featuredTeam.map((member) => (
                 <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
-                  <span className="team-feature-portrait"><img src={member.portrait} alt={`Portrait of ${member.name}`} width={96} height={96} loading="lazy" decoding="async"/></span>
+                  <span className="team-feature-portrait"><img src={member.portrait} alt={fill(dict.home.portraitOf, { name: member.name })} width={96} height={96} loading="lazy" decoding="async"/></span>
                   <span className="team-feature-body">
                     <h3>{member.name}</h3>
                     <p>{member.role}</p>
@@ -288,7 +276,7 @@ export default async function Home({
               ))}
             </div>
             <Link className="panel-link" href={localePath(active, "about")}>
-              Meet the full team
+              {dict.home.meetFullTeam}
               <IconArrowRight size={16} />
             </Link>
           </article>
@@ -296,8 +284,8 @@ export default async function Home({
           {/* The rest of the homepage is static and no longer waits behind
               this database read: the panel arrives with placeholder rows and
               fills in when the events resolve. */}
-          <Suspense fallback={<UpcomingEventsPanel locale={active} />}>
-            <UpcomingEvents locale={active} />
+          <Suspense fallback={<UpcomingEventsPanel locale={active} t={dict.home} />}>
+            <UpcomingEvents locale={active} t={dict.home} eventT={dict.eventFallback} />
           </Suspense>
           </div>
         </section>
@@ -310,25 +298,8 @@ export default async function Home({
                 <IconGlobe size={22} />
               </span>
               <div>
-                <h2 id="vision-heading">Our Vision</h2>
-                <p>
-                  To be the leading global platform for head and neck surgical education —
-                  empowering surgeons and improving patient outcomes through knowledge,
-                  collaboration and innovation.
-                </p>
-              </div>
-            </div>
-            <span className="vision-divider" aria-hidden="true" />
-            <div className="vision-block vision-kr" dir="rtl" lang="ckb">
-              <span className="vision-icon">
-                <IconGlobe size={22} />
-              </span>
-              <div>
-                <h2>دیدگای ئێمە</h2>
-                <p>
-                  ببینە پلاتفۆرمی پێشەنگی پەروەردەی نەشتەرگەری سەر و گەردن، بە بەهێزکردنی نەشتەرگەران
-                  و بەشداریکردن لە باشترکردنی ئەنجامەکانی چارەسەری نەخۆشەکان.
-                </p>
+                <h2 id="vision-heading">{dict.home.visionTitle}</h2>
+                <p>{dict.home.visionBody}</p>
               </div>
             </div>
           </div>
@@ -338,11 +309,8 @@ export default async function Home({
         <section className="cta-band" id="join">
           <div className="cta-inner">
             <div>
-              <h2>Start learning with the team today</h2>
-              <p>
-                Create a free account to unlock the full library, join live webinars and track your
-                progress across every subspecialty track.
-              </p>
+              <h2>{dict.home.joinTitle}</h2>
+              <p>{dict.home.joinBody}</p>
               <ul className="cta-benefits">
                 {benefits.map((benefit) => (
                   <li key={benefit}>
@@ -351,7 +319,7 @@ export default async function Home({
                 ))}
               </ul>
             </div>
-            <JoinCtaLink locale={active} />
+            <JoinCtaLink locale={active} t={dict.joinCta} />
           </div>
         </section>
       </main>

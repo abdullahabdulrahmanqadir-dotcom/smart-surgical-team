@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconCheck } from "./icons";
+import type { Dictionary } from "../lib/dictionaries";
 
 type SavedCase = {
   slug: string;
@@ -24,7 +25,7 @@ function savedCasesFrom(value: unknown): SavedCase[] {
   });
 }
 
-export default function SaveCaseButton({ locale, item }: { locale: string; item: SavedCase }) {
+export default function SaveCaseButton({ locale, item, t }: { locale: string; item: SavedCase; t: Dictionary["saveCase"] }) {
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -59,11 +60,11 @@ export default function SaveCaseButton({ locale, item }: { locale: string; item:
       setIsSaved(!isSaved);
       window.dispatchEvent(new CustomEvent("sst-saved-cases-changed", { detail: nextSavedCases }));
     } catch {
-      setMessage(isSaved ? "We couldn't remove this case. Please try again." : "We couldn't save this case. Please try again.");
+      setMessage(isSaved ? t.removeError : t.saveError);
     } finally {
       setSaving(false);
     }
   }
 
-  return <div className="save-case-control"><button className={`save-button${isSaved ? " is-saved" : ""}`} type="button" onClick={toggleSavedCase} disabled={saving} aria-live="polite"><span>{isSaved ? <IconCheck size={18} /> : "+"}</span>{saving ? "Saving..." : isSaved ? "Remove from saved" : "Save for later"}</button>{message && <p role="alert">{message}</p>}</div>;
+  return <div className="save-case-control"><button className={`save-button${isSaved ? " is-saved" : ""}`} type="button" onClick={toggleSavedCase} disabled={saving} aria-live="polite"><span>{isSaved ? <IconCheck size={18} /> : "+"}</span>{saving ? t.saving : isSaved ? t.remove : t.save}</button>{message && <p role="alert">{message}</p>}</div>;
 }

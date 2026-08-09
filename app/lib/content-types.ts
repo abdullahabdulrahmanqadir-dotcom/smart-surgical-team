@@ -43,7 +43,10 @@ export const CASE_SECTION_KEYS = CASE_SUMMARY_FIELDS.map((field) => field.key) a
 // `caseSections` wins when the item has been saved since custom sections
 // existed; anything older is rendered from the five legacy columns under their
 // original headings. Empty sections never reach the page.
-export function resolveCaseSections(record: { caseSections?: CaseSection[]; caseSummary?: CaseSummary }): CaseSection[] {
+export function resolveCaseSections(
+  record: { caseSections?: CaseSection[]; caseSummary?: CaseSummary },
+  labels?: Partial<Record<keyof CaseSummary, string>>,
+): CaseSection[] {
   const stored = record.caseSections;
   if (stored?.length) {
     return stored
@@ -52,7 +55,7 @@ export function resolveCaseSections(record: { caseSections?: CaseSection[]; case
   }
   return CASE_SUMMARY_FIELDS.flatMap(({ key, label }) => {
     const body = record.caseSummary?.[key]?.trim();
-    return body ? [{ key, label, body }] : [];
+    return body ? [{ key, label: labels?.[key] ?? label, body }] : [];
   });
 }
 
