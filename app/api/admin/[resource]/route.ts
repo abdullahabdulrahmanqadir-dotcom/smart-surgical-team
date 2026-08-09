@@ -129,6 +129,7 @@ export async function POST(request: Request, context: RouteContext) {
   if (resource === "content") {
     const title = text(body.title);
     if (!title) return apiError("A title is required.");
+    if (text(body.kind) === "poster" && !text(body.poster_url)) return apiError("A poster image is required.");
     const slug = slugify(text(body.slug) || title);
     if (!slug) return apiError("Add a usable title or URL slug.");
     // An unrecognised status must not publish clinical material by accident; a
@@ -137,6 +138,9 @@ export async function POST(request: Request, context: RouteContext) {
     // Re-editing a published item must not reshuffle it to the top of the
     // public library, so an existing publication date is preserved.
     const existingId = idValue(body.id);
+    const priorPosterKey = existingId
+      ? storageKeyFromUrl((await client.from("content_items").select("poster_url").eq("id", existingId).maybeSingle()).data?.poster_url)
+      : "";
     let publishedAt: string | null = null;
     if (status === "published") {
       const previous = existingId ? await client.from("content_items").select("published_at").eq("id", existingId).maybeSingle() : null;
@@ -228,6 +232,8 @@ export async function POST(request: Request, context: RouteContext) {
       if (inserted.error) return apiError(`Saved the item, but could not update ${table.replace("content_", "")}: ${inserted.error.message}`, 500);
     }
     await deleteFromStorage(removedMediaKeys);
+    const nextPosterKey = storageKeyFromUrl(body.poster_url);
+    if (priorPosterKey && priorPosterKey !== nextPosterKey) await deleteFromStorage([priorPosterKey]);
     // Saving against a database without migration 0010 keeps the five built-in
     // sections (they have their own columns) but silently drops renamed
     // headings and added sections. Say so rather than report a clean save.
@@ -343,8 +349,11 @@ export async function DELETE(request: Request, context: RouteContext) {
   // events/contributor portraits are cleaned too; pasted external URLs are not.
   let storageKeys: string[] = [];
   if (resource === "content") {
-    const { data } = await client.from("content_media").select("storage_path").eq("content_id", id);
-    storageKeys = (data ?? []).map((row) => text(row.storage_path));
+    const [media, row] = await Promise.all([
+      client.from("content_media").select("storage_path").eq("content_id", id),
+      client.from("content_items").select("poster_url").eq("id", id).maybeSingle(),
+    ]);
+    storageKeys = [...(media.data ?? []).map((entry) => text(entry.storage_path)), storageKeyFromUrl(row.data?.poster_url)];
   } else if (resource === "research") {
     const [gallery, row] = await Promise.all([
       client.from("research_media").select("storage_path").eq("research_id", id),

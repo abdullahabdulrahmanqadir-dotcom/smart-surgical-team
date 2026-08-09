@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { BrandMark, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
+import { BrandMark, IconChevronDown, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
@@ -39,7 +39,10 @@ export default function SiteHeader({
   const navLinks: [string, string][] = [
     [dict.nav.topics, localePath(locale, "topics")],
     [dict.nav.research, localePath(locale, "research")],
+    [dict.nav.posters, localePath(locale, "posters")],
     [dict.nav.events, localePath(locale, "events")],
+  ];
+  const aboutLinks: [string, string][] = [
     [dict.nav.about, localePath(locale, "about")],
     [dict.nav.contact, localePath(locale, "contact")],
   ];
@@ -106,7 +109,6 @@ export default function SiteHeader({
       {adminLink}
       <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={dict.header.openProfile.replace("{name}", member.name)}>
         <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-        <span>{dict.header.profile}</span>
       </Link>
     </>
   ) : (
@@ -138,6 +140,12 @@ export default function SiteHeader({
               {label}
             </Link>
           ))}
+          <details className="primary-nav-more">
+            <summary>{dict.nav.aboutMenu}<IconChevronDown size={15}/></summary>
+            <div className="primary-nav-dropdown">
+              {aboutLinks.map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+            </div>
+          </details>
         </nav>
 
         <div className="header-actions">
@@ -175,6 +183,12 @@ export default function SiteHeader({
             {label}
           </Link>
         ))}
+        <details className="mobile-nav-more">
+          <summary>{dict.nav.aboutMenu}<IconChevronDown size={16}/></summary>
+          <div className="mobile-nav-submenu">
+            {aboutLinks.map(([label, href]) => <Link key={label} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
+          </div>
+        </details>
         <div className="mobile-language">
           <span>{dict.nav.languageLabel}</span>
           <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />

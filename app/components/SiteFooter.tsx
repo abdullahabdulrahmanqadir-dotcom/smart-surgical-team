@@ -31,7 +31,6 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             <BrandMark size={54} />
             <span className="brand-name">{dict.brand.name}</span>
           </Link>
-          <p>{dict.footer.blurb}</p>
           <SocialLinks className="socials" t={dict.social} />
         </div>
 
@@ -39,6 +38,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           <h3>{dict.footer.quickLinks}</h3>
           <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
           <Link href={localePath(locale, "research")}>{dict.nav.research}</Link>
+          <Link href={localePath(locale, "posters")}>{dict.nav.posters}</Link>
           <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
           <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
           <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>

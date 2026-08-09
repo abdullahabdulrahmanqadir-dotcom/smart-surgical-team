@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
 
-type Section = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "research";
+type Section = "overview" | "content" | "posters" | "topics" | "events" | "contributors" | "people" | "research";
 type Access = "checking" | "signed_out" | "denied" | "unavailable" | "ready";
 const ADMIN_REQUEST_TIMEOUT_MS = 12_000;
 class RequestError extends Error {
@@ -58,6 +58,7 @@ async function readResponse(response: Response): Promise<RecordItem> {
 
 const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "overview", label: "Overview", icon: IconLayers }, { id: "content", label: "Content", icon: IconFile },
+  { id: "posters", label: "Posters", icon: IconFile },
   { id: "research", label: "Research", icon: IconFile },
   { id: "topics", label: "Topics", icon: IconLayers }, { id: "events", label: "Events & webinars", icon: IconPlus },
   { id: "contributors", label: "Contributors", icon: IconUsers }, { id: "people", label: "People & roles", icon: IconUser },
@@ -523,7 +524,8 @@ export default function AdminWorkspace() {
     const abortFromCaller = () => controller.abort();
     init?.signal?.addEventListener("abort", abortFromCaller, { once: true });
     try {
-      const response = await fetch(`/api/admin/${resource}`, { ...init, signal: controller.signal, headers: { ...headers, ...(init?.headers ?? {}) } });
+      const apiResource = resource === "posters" ? "content" : resource;
+      const response = await fetch(`/api/admin/${apiResource}`, { ...init, signal: controller.signal, headers: { ...headers, ...(init?.headers ?? {}) } });
       const result = await readResponse(response);
       if (!response.ok) throw new RequestError(errorMessage(result.error, "Something went wrong."), response.status);
       return result;
@@ -552,11 +554,14 @@ export default function AdminWorkspace() {
       if (!current()) return;
       if (resource === "overview") { setIdentity(asRecord(result.identity)); setMetrics(asRecord(result.metrics)); setAccess("ready"); }
       else {
-        setItems(asRecords(result.data));
-        if (resource === "content") {
+        const rows = asRecords(result.data);
+        setItems(resource === "posters" ? rows.filter((item) => item.kind === "poster") : resource === "content" ? rows.filter((item) => item.kind !== "poster") : rows);
+        if (resource === "content" || resource === "posters") {
           setCaseSectionsStorable(asRecord(result.capabilities).caseSections !== false);
-          // Independent lookups: fetched together rather than back to back.
-          const [topicResult, contributorResult] = await Promise.all([request("topics"), request("contributors")]);
+          // Poster records use contributors but do not belong to a surgical topic.
+          const [topicResult, contributorResult] = resource === "content"
+            ? await Promise.all([request("topics"), request("contributors")])
+            : [{ data: [] }, await request("contributors")];
           if (!current()) return;
           setTopics(asRecords(topicResult.data)); setContributors(asRecords(contributorResult.data));
         }
@@ -615,6 +620,7 @@ export default function AdminWorkspace() {
         return String(b.updated_at ?? b.created_at ?? "").localeCompare(String(a.updated_at ?? a.created_at ?? ""));
       });
     }
+    if (active === "posters") return searched.sort((a, b) => String(b.published_at ?? b.created_at ?? "").localeCompare(String(a.published_at ?? a.created_at ?? "")));
     if (active !== "content") return searched;
     const childIds = new Set(topics.filter((topic) => String(topic.parent_id ?? "") === contentFilters.major).map((topic) => String(topic.id)));
     const dateOf = (value: unknown) => typeof value === "string" ? value.slice(0, 10) : "";
@@ -629,6 +635,7 @@ export default function AdminWorkspace() {
   }, [active, contentFilters, researchFilters, items, search, searchable, topics]);
   function startNew() {
     if (active === "content") setEditing(emptyContent());
+    else if (active === "posters") setEditing({ kind: "poster", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical poster", poster_url: "", contributor_ids: [], case_sections: [{ key: "overview", label: "Overview", body: "" }, { key: "findings", label: "Key findings", body: "" }] });
     else if (active === "research") setEditing({ title: "", authors: "", abstract: "", journal: "", category: "Paper", status: "published", published_date: "", link: "", cover_image_url: "", research_media: [] });
     else if (active === "topics") setEditing({ name: "", slug: "", description: "", sort_order: 0 });
     else if (active === "events") setEditing({ title: "", slug: "", event_type: "Webinar", format: "online", status: "published" });
@@ -637,7 +644,8 @@ export default function AdminWorkspace() {
   }
   async function save(value: RecordItem): Promise<boolean> {
     try {
-      const result = await request(active, { method: "POST", body: JSON.stringify(value) });
+      const payload = active === "posters" ? { ...value, kind: "poster", access_level: "public" } : value;
+      const result = await request(active, { method: "POST", body: JSON.stringify(payload) });
       const warning = typeof result.warning === "string" ? result.warning : "";
       setNotice(warning || "Saved. The public site will reflect published changes without a code release."); setNoticeTone(warning ? "warn" : "ok");
       setEditing(null); await load();
@@ -646,7 +654,7 @@ export default function AdminWorkspace() {
   }
   async function remove(item: RecordItem) {
     if (!window.confirm(`Delete a&S${String(item.title ?? item.name ?? item.display_name ?? "this item")}a? This cannot be undone.`)) return;
-    try { const headers = await authHeaders(); const response = await fetch(`/api/admin/${active}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); setNoticeTone("warn"); }
+    try { const headers = await authHeaders(); const apiResource = active === "posters" ? "content" : active; const response = await fetch(`/api/admin/${apiResource}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); setNoticeTone("warn"); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
@@ -654,7 +662,9 @@ export default function AdminWorkspace() {
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We could not verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{["content", "research", "topics", "events", "contributors"].includes(active) && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {active === "content" ? "content" : active === "research" ? "research" : active === "events" ? "event" : active.slice(0, -1)}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} caseSectionsStorable={caseSectionsStorable} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  const canCreate = ["content", "posters", "research", "topics", "events", "contributors"].includes(active);
+  const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : active === "events" ? "event" : active.slice(0, -1);
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} contributors={contributors} caseSectionsStorable={caseSectionsStorable} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
 function Overview({ metrics, setActive }: { metrics: RecordItem; setActive: (section: Section) => void }) {
@@ -709,6 +719,13 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     previewUrls.current.push(preview);
     setForm((current) => ({ ...current, cover_image_url: preview, cover_file: file }));
   }
+  function pickPoster(file: File) {
+    if (file.size > MAX_UPLOAD_BYTES) { setUploadError("Choose a poster image no larger than 10 MB."); return; }
+    setUploadError("");
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.push(preview);
+    setForm((current) => ({ ...current, poster_url: preview, poster_file: file }));
+  }
   // Typing a URL by hand (or clearing the cover) discards any pending file so
   // the typed value wins.
   const setCoverUrl = (url: string) => setForm((current) => ({ ...current, cover_image_url: url, cover_file: undefined }));
@@ -730,7 +747,7 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     const token = await accessToken();
     const body = new FormData();
     body.append("file", file);
-    if (section === "research") { body.append("topicSlug", "research"); } else { const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); }
+    if (section === "research" || section === "posters") { body.append("topicSlug", section); } else { const topicId = (form.topic_ids as string[] | undefined)?.[0]; const topicSlug = topics.find((topic) => String(topic.id) === topicId)?.slug; if (typeof topicSlug === "string") body.append("topicSlug", topicSlug); }
     if (typeof form.title === "string") body.append("caseSlug", form.title);
     const response = await fetch("/api/admin/upload", { method: "POST", headers: { Authorization: `Bearer ${token ?? ""}` }, body });
     const result = await readResponse(response);
@@ -760,7 +777,7 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     setUploading(true); setUploadError("");
     // One step per file still to upload, plus the record write itself.
     const pending = [...((form.content_media as Media[]) ?? []), ...((form.research_media as Media[]) ?? [])].filter((item) => item.file && !item.storage_path).length
-      + (form.cover_file instanceof File ? 1 : 0);
+      + (form.cover_file instanceof File ? 1 : 0) + (form.poster_file instanceof File ? 1 : 0);
     const total = pending + 1;
     let done = 0;
     const step = (label: string) => { done += 1; setProgress({ done, total, label }); };
@@ -770,6 +787,8 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
       const researchMedia = await commitList((form.research_media as Media[]) ?? [], (name) => step(`Uploaded ${name}`));
       let coverImageUrl = String(form.cover_image_url ?? "");
       if (form.cover_file instanceof File) { coverImageUrl = (await sendToStorage(form.cover_file)).publicUrl; step("Uploaded the cover image"); }
+      let posterUrl = String(form.poster_url ?? "");
+      if (form.poster_file instanceof File) { posterUrl = (await sendToStorage(form.poster_file)).publicUrl; step("Uploaded the poster image"); }
       // A thumbnail chosen from a pending image referenced its temporary id;
       // repoint it at the real storage path now that the image is uploaded.
       let thumbnailPath = form.thumbnail_media_path;
@@ -779,13 +798,20 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
       setProgress({ done, total, label: "Writing to the database..." });
       // A rejected save keeps the editor open, so the bar must not be left
       // sitting at "Saved" over a record that never landed.
-      const saved = await onSave({ ...form, ...legacyCaseColumns(section, form), cover_image_url: coverImageUrl, cover_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
+      const saved = await onSave({ ...form, ...legacyCaseColumns(section, form), cover_image_url: coverImageUrl, cover_file: undefined, poster_url: posterUrl, poster_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
       if (saved === false) setProgress(null); else step("Saved");
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Could not upload the attached files.");
       setProgress(null);
     } finally { setUploading(false); }
   }
+  if (section === "posters") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit poster" : "New poster"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
+    <Field label="Poster title" value={form.title} onChange={(value) => set("title", value)} required/>
+    <Field label="Card summary" hint="A short introduction shown beside the featured poster and on archive cards." type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/>
+    <div className="admin-field-grid"><Field label="Study label" hint="e.g. 5-patient cohort study · 2020–2025" value={form.level} onChange={(value) => set("level", value)}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive']]}/></div>
+    <ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/>
+    <CaseFields title="Written poster details" intro="Write the supporting text readers should see on the poster detail page. Rename, reorder or add sections as needed." sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/>
+  </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} onChange={(url) => setForm((current) => ({ ...current, poster_url: url, poster_file: undefined }))} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;
   if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section><CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
@@ -886,7 +912,7 @@ function CaseJsonImport({ topics, onApply }: { topics: RecordItem[]; onApply: (p
 // be reordered or removed, and new ones (an MDT outcome, a second follow-up
 // note) can be appended. Each section gets the same rich-text editor, so the
 // added ones behave exactly like the built-in five.
-function CaseFields({ sections, setSections, storable = true }: { sections: CaseSection[]; setSections: (sections: CaseSection[]) => void; storable?: boolean }) {
+function CaseFields({ sections, setSections, storable = true, title = "Structured case record", intro = "Every section is optional. Rename any heading to suit the case, reorder them, or add your own. Add only reviewed, de-identified material." }: { sections: CaseSection[]; setSections: (sections: CaseSection[]) => void; storable?: boolean; title?: string; intro?: string }) {
   const update = (index: number, patch: Partial<CaseSection>) => setSections(sections.map((section, position) => position === index ? { ...section, ...patch } : section));
   function add() {
     // Keys must stay unique: they are how a section is identified across a
@@ -895,8 +921,8 @@ function CaseFields({ sections, setSections, storable = true }: { sections: Case
     setSections([...sections, { key, label: "", body: "" }]);
   }
   return <section className="admin-case-fields">
-    <h2>Structured case record</h2>
-    <p>Every section is optional. Rename any heading to suit the case, reorder them, or add your own. Add only reviewed, de-identified material.</p>
+    <h2>{title}</h2>
+    <p>{intro}</p>
     {!storable && <p className="admin-blocked" role="alert"><b>Renamed headings and added sections will not be saved yet.</b> The database is missing the <code>case_sections</code> column: run <code>supabase/migrations/0010_case_sections.sql</code> in the Supabase SQL editor, then reload this page. The five standard sections below save normally in the meantime.</p>}
     {sections.map((section, index) => <div className="admin-case-section" key={section.key}>
       <div className="admin-case-section-head">
@@ -961,6 +987,15 @@ function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value
     {error && <p className="admin-upload-error" role="alert">{error}</p>}
     <Field label="Or image URL" type="url" value={value} onChange={onChange}/>
     {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove cover</button>}
+  </section>;
+}
+function PosterImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
+  return <section className="admin-media admin-cover-picker"><h2>Poster image</h2><p>This is the poster itself. It appears in the featured layout, archive card and detail page. Maximum 10 MB.</p>
+    {value && <div className="admin-cover-preview"><img src={value} alt="Poster preview"/></div>}
+    <label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onPick(file); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose poster image"}</label>
+    {error && <p className="admin-upload-error" role="alert">{error}</p>}
+    <Field label="Or image URL" type="url" value={value} onChange={onChange}/>
+    {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove poster image</button>}
   </section>;
 }
 function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itema~s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <label key={key}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}</section>; }

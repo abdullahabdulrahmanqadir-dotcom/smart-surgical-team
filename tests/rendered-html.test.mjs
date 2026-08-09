@@ -81,6 +81,36 @@ test("renders the complete staff directory with its local portraits", async () =
   }
 });
 
+test("renders the bilingual clinical poster archive", async () => {
+  for (const [locale, heading] of [["en", "Clinical posters"], ["ar", "ملصقات سريرية"]]) {
+    const response = await fetchPath(`/${locale}/posters`);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
+    assert.match(main, new RegExp(heading));
+    assert.match(main, /emc-salivary-glands-cohort\.jpg/);
+    assert.match(main, /2020[–-]2025/);
+    assert.match(html, new RegExp(`href="/${locale}/posters"`));
+    assert.doesNotMatch(main, /class="posters-hero"/);
+    assert.match(main, new RegExp(`href="/${locale}/posters/epithelial-myoepithelial-carcinoma-salivary-glands"`));
+    assert.match(main, new RegExp(`href="/${locale}/posters/example-thyroid-outcomes-poster"`));
+    assert.match(main, /class="poster-card"/);
+    assert.doesNotMatch(main, /Open each poster at full resolution/);
+    assert.doesNotMatch(main, /POSTER COLLECTION/);
+  }
+});
+
+test("opens a poster detail page with its image and written sections", async () => {
+  const response = await fetchPath("/en/posters/epithelial-myoepithelial-carcinoma-salivary-glands");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Rare Insights: Epithelial-Myoepithelial Carcinoma/);
+  assert.match(html, /Study overview/);
+  assert.match(html, /Key findings/);
+  assert.match(html, /emc-salivary-glands-cohort\.jpg/);
+  assert.match(html, /Back to all posters/);
+});
+
 test("serves both RTL locales with the correct direction and language", async () => {
   const arabic = await fetchPath("/ar");
   assert.equal(arabic.status, 200);
