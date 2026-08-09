@@ -13,7 +13,7 @@ const FIT_ZOOM = 1;
 /** Untransformed layout box of the image, measured relative to the canvas. */
 type FitBox = { width: number; height: number; centreX: number; centreY: number };
 
-export default function ImageGallery({ images, label, t }: { images: Image[]; label?: string; t: Dictionary["media"] }) {
+export default function ImageGallery({ images, label, t, presentation = "gallery" }: { images: Image[]; label?: string; t: Dictionary["media"]; presentation?: "gallery" | "poster" }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(FIT_ZOOM);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -223,11 +223,13 @@ export default function ImageGallery({ images, label, t }: { images: Image[]; la
     }
   };
 
-  return <section className="case-image-gallery" aria-labelledby="case-images-title">
-    <span className="aside-label" id="case-images-title">{label ?? t.caseImages}</span>
+  const isPoster = presentation === "poster";
+
+  return <section className={`case-image-gallery${isPoster ? " poster-image-viewer" : ""}`} aria-labelledby={isPoster ? undefined : "case-images-title"} aria-label={isPoster ? (label ?? t.imageViewer) : undefined}>
+    {isPoster ? null : <span className="aside-label" id="case-images-title">{label ?? t.caseImages}</span>}
     <div className="case-image-thumbnails">{images.map((image, index) =>
       <button key={image.id} type="button" onClick={() => open(index)} aria-label={fill(t.openImage, { index: index + 1, count: images.length })}>
-        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? t.caseImage} />
+        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? t.caseImage} eager={isPoster} />
         <span className="case-image-thumb-badge">{t.openImageBadge}</span>
       </button>)}
     </div>

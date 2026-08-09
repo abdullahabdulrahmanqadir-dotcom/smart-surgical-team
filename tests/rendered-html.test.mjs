@@ -109,6 +109,9 @@ test("opens a poster detail page with its image and written sections", async () 
   assert.match(html, /Key findings/);
   assert.match(html, /emc-salivary-glands-cohort\.jpg/);
   assert.match(html, /Back to all posters/);
+  assert.match(html, /poster-image-viewer/);
+  assert.doesNotMatch(html, /class="btn btn-outline poster-original"/);
+  assert.doesNotMatch(html, /target="_blank"[^>]*aria-label="Open full-resolution poster"/);
 });
 
 test("serves both RTL locales with the correct direction and language", async () => {

@@ -724,7 +724,17 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     setUploadError("");
     const preview = URL.createObjectURL(file);
     previewUrls.current.push(preview);
-    setForm((current) => ({ ...current, poster_url: preview, poster_file: file }));
+    setForm((current) => ({ ...current, poster_url: preview, poster_file: file, poster_image_removed: false }));
+  }
+  function removePosterImage() {
+    const currentUrl = String(form.poster_url ?? "");
+    setForm((current) => ({
+      ...current,
+      poster_url: "",
+      poster_file: undefined,
+      poster_image_removed: Boolean(currentUrl),
+      status: current.status === "published" ? "draft" : current.status,
+    }));
   }
   // Typing a URL by hand (or clearing the cover) discards any pending file so
   // the typed value wins.
@@ -811,7 +821,7 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     <div className="admin-field-grid"><Field label="Study label" hint="e.g. 5-patient cohort study · 2020–2025" value={form.level} onChange={(value) => set("level", value)}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive']]}/></div>
     <ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/>
     <CaseFields title="Written poster details" intro="Write the supporting text readers should see on the poster detail page. Rename, reorder or add sections as needed." sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/>
-  </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} onChange={(url) => setForm((current) => ({ ...current, poster_url: url, poster_file: undefined }))} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;
+  </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} removed={Boolean(form.poster_image_removed)} onRemove={removePosterImage} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;
   if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section><CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
@@ -989,12 +999,16 @@ function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value
     {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove cover</button>}
   </section>;
 }
-function PosterImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
+function PosterImagePicker({ value, removed, onRemove, onPick, uploading, error }: { value: string; removed: boolean; onRemove: () => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const storedInR2 = value.startsWith("/api/media/");
   return <section className="admin-media admin-cover-picker"><h2>Poster image</h2><p>This is the poster itself. It uploads to the site&apos;s R2 media bucket when you save, then appears in the featured layout, archive card and detail page. Maximum 10 MB.</p>
     {value && <div className="admin-cover-preview"><img src={value} alt="Poster preview"/></div>}
     <label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onPick(file); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose poster image"}</label>
     {error && <p className="admin-upload-error" role="alert">{error}</p>}
-    {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove poster image</button>}
+    {value && !confirmingRemoval && <button type="button" className="admin-delete" onClick={() => setConfirmingRemoval(true)}>Delete image from poster and R2</button>}
+    {value && confirmingRemoval && <div className="admin-removal-confirm" role="alert"><p>{storedInR2 ? "Saving this change will unpublish the poster and permanently delete its image from R2." : "Saving this change will unpublish the poster and remove its image reference."}</p><div><button type="button" onClick={() => setConfirmingRemoval(false)}>Cancel</button><button type="button" className="admin-delete" onClick={() => { onRemove(); setConfirmingRemoval(false); }}>Mark image for deletion</button></div></div>}
+    {removed && <p className="admin-removal-notice" role="status">Image marked for removal. Save to unpublish the poster and delete its stored R2 file. Cancel to keep it.</p>}
   </section>;
 }
 function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itema~s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <label key={key}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}</section>; }

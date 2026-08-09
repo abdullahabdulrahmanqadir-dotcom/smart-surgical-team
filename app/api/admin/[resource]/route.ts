@@ -151,13 +151,16 @@ export async function POST(request: Request, context: RouteContext) {
   if (resource === "content") {
     const title = text(body.title);
     if (!title) return apiError("A title is required.");
+    // An unrecognised status must not publish clinical material by accident; a
+    // malformed save parks the item as a draft instead.
+    const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
     const existingId = idValue(body.id);
     const posterUrl = text(body.poster_url);
     const priorPoster = existingId
       ? await client.from("content_items").select("poster_url").eq("id", existingId).maybeSingle()
       : null;
     const priorPosterUrl = text(priorPoster?.data?.poster_url);
-    if (text(body.kind) === "poster" && !posterUrl) return apiError("A poster image is required.");
+    if (text(body.kind) === "poster" && status === "published" && !posterUrl) return apiError("A published poster requires an image. Add one or save it as a draft.");
     // New and replacement poster images must be uploaded through the R2 route.
     // Existing legacy static images may remain unchanged until an editor
     // replaces them, preventing an old record from becoming uneditable.
@@ -170,9 +173,6 @@ export async function POST(request: Request, context: RouteContext) {
     }
     const slug = slugify(text(body.slug) || title);
     if (!slug) return apiError("Add a usable title or URL slug.");
-    // An unrecognised status must not publish clinical material by accident; a
-    // malformed save parks the item as a draft instead.
-    const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
     // Re-editing a published item must not reshuffle it to the top of the
     // public library, so an existing publication date is preserved.
     const priorPosterKey = storageKeyFromUrl(priorPosterUrl);
