@@ -990,11 +990,10 @@ function CoverImagePicker({ value, onChange, onPick, uploading, error }: { value
   </section>;
 }
 function PosterImagePicker({ value, onChange, onPick, uploading, error }: { value: string; onChange: (url: string) => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
-  return <section className="admin-media admin-cover-picker"><h2>Poster image</h2><p>This is the poster itself. It appears in the featured layout, archive card and detail page. Maximum 10 MB.</p>
+  return <section className="admin-media admin-cover-picker"><h2>Poster image</h2><p>This is the poster itself. It uploads to the site&apos;s R2 media bucket when you save, then appears in the featured layout, archive card and detail page. Maximum 10 MB.</p>
     {value && <div className="admin-cover-preview"><img src={value} alt="Poster preview"/></div>}
     <label className="admin-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onPick(file); event.target.value = ""; }}/><IconPlus size={18}/>{uploading ? "Saving..." : "Choose poster image"}</label>
     {error && <p className="admin-upload-error" role="alert">{error}</p>}
-    <Field label="Or image URL" type="url" value={value} onChange={onChange}/>
     {value && <button type="button" className="admin-delete" onClick={() => onChange("")}>Remove poster image</button>}
   </section>;
 }

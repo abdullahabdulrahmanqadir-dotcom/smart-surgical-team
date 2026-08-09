@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
+import { revalidateTag } from "next/cache";
 import { apiError, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
+import { CACHE_TAGS, type PublicCacheTag } from "../../../lib/cache-tags";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
@@ -42,6 +44,26 @@ async function deleteFromStorage(keys: unknown[]) {
   const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
   if (!unique.length) return;
   try { await env.MEDIA_BUCKET.delete(unique); } catch (error) { console.error("R2 cleanup failed:", error); }
+}
+
+function cacheTagsFor(resource: Resource): PublicCacheTag[] {
+  if (resource === "content" || resource === "topics" || resource === "contributors") return [CACHE_TAGS.content];
+  if (resource === "events") return [CACHE_TAGS.events];
+  if (resource === "research") return [CACHE_TAGS.research];
+  return [];
+}
+
+/** Public reads are stored by vinext in VINEXT_CACHE (Cloudflare KV). Expire
+    the affected tag after a successful Supabase write so a newly published or
+    edited poster is visible immediately instead of waiting for the 60s TTL. */
+async function invalidatePublicCache(resource: Resource) {
+  try {
+    await Promise.all(cacheTagsFor(resource).map((tag) => revalidateTag(tag, { expire: 0 })));
+  } catch (error) {
+    // The database remains the source of truth. If KV is temporarily
+    // unavailable, the normal short TTL still heals the public read.
+    console.error("Public cache invalidation failed:", error);
+  }
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -129,7 +151,23 @@ export async function POST(request: Request, context: RouteContext) {
   if (resource === "content") {
     const title = text(body.title);
     if (!title) return apiError("A title is required.");
-    if (text(body.kind) === "poster" && !text(body.poster_url)) return apiError("A poster image is required.");
+    const existingId = idValue(body.id);
+    const posterUrl = text(body.poster_url);
+    const priorPoster = existingId
+      ? await client.from("content_items").select("poster_url").eq("id", existingId).maybeSingle()
+      : null;
+    const priorPosterUrl = text(priorPoster?.data?.poster_url);
+    if (text(body.kind) === "poster" && !posterUrl) return apiError("A poster image is required.");
+    // New and replacement poster images must be uploaded through the R2 route.
+    // Existing legacy static images may remain unchanged until an editor
+    // replaces them, preventing an old record from becoming uneditable.
+    if (text(body.kind) === "poster" && !storageKeyFromUrl(posterUrl) && posterUrl !== priorPosterUrl) {
+      return apiError("Choose a poster image file so it can be stored in the R2 media bucket.");
+    }
+    const posterStorageKey = storageKeyFromUrl(posterUrl);
+    if (text(body.kind) === "poster" && posterStorageKey && !await env.MEDIA_BUCKET.head(posterStorageKey)) {
+      return apiError("The poster image was not found in the R2 media bucket. Choose the file again and save.");
+    }
     const slug = slugify(text(body.slug) || title);
     if (!slug) return apiError("Add a usable title or URL slug.");
     // An unrecognised status must not publish clinical material by accident; a
@@ -137,10 +175,7 @@ export async function POST(request: Request, context: RouteContext) {
     const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
     // Re-editing a published item must not reshuffle it to the top of the
     // public library, so an existing publication date is preserved.
-    const existingId = idValue(body.id);
-    const priorPosterKey = existingId
-      ? storageKeyFromUrl((await client.from("content_items").select("poster_url").eq("id", existingId).maybeSingle()).data?.poster_url)
-      : "";
+    const priorPosterKey = storageKeyFromUrl(priorPosterUrl);
     let publishedAt: string | null = null;
     if (status === "published") {
       const previous = existingId ? await client.from("content_items").select("published_at").eq("id", existingId).maybeSingle() : null;
@@ -238,6 +273,7 @@ export async function POST(request: Request, context: RouteContext) {
     // sections (they have their own columns) but silently drops renamed
     // headings and added sections. Say so rather than report a clean save.
     const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
+    await invalidatePublicCache(resource);
     return Response.json({ data: saved, warning: sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
   }
 
@@ -291,6 +327,7 @@ export async function POST(request: Request, context: RouteContext) {
     const newCoverKey = storageKeyFromUrl(payload.cover_image_url);
     const removedCoverKeys = priorCoverKey && priorCoverKey !== newCoverKey ? [priorCoverKey] : [];
     await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
+    await invalidatePublicCache(resource);
     return Response.json({ data: saved });
   }
 
@@ -299,7 +336,9 @@ export async function POST(request: Request, context: RouteContext) {
     if (!name) return apiError("A topic name is required.");
     const payload = { name, slug: slugify(text(body.slug) || name), parent_id: optionalText(body.parent_id), description: optionalText(body.description), sort_order: Number(body.sort_order) || 0 };
     const { data, error } = idValue(body.id) ? await client.from("topics").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("topics").insert(payload).select("id").single();
-    return error ? apiError(error.message, 500) : Response.json({ data });
+    if (error) return apiError(error.message, 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
   }
 
   if (resource === "events") {
@@ -308,7 +347,9 @@ export async function POST(request: Request, context: RouteContext) {
     const highlights = typeof body.highlights === "string" ? body.highlights.split("\n").map((line) => line.trim()).filter(Boolean) : Array.isArray(body.highlights) ? body.highlights : [];
     const payload = { title, slug: slugify(text(body.slug) || title), summary: optionalText(body.summary), event_type: optionalText(body.event_type) ?? "Event", topic: optionalText(body.topic), format: optionalText(body.format) ?? "in-person", status: ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "published", starts_at: date(body.starts_at), ends_at: date(body.ends_at), location: optionalText(body.location), image_url: optionalText(body.image_url), official_url: optionalText(body.official_url), registration_url: optionalText(body.registration_url), programme_url: optionalText(body.programme_url), faculty_url: optionalText(body.faculty_url), highlights, updated_at: new Date().toISOString() };
     const { data, error } = idValue(body.id) ? await client.from("events").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("events").insert(payload).select("id").single();
-    return error ? apiError(error.message, 500) : Response.json({ data });
+    if (error) return apiError(error.message, 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
   }
 
   if (resource === "contributors") {
@@ -316,7 +357,9 @@ export async function POST(request: Request, context: RouteContext) {
     if (!display_name) return apiError("A contributor name is required.");
     const payload = { display_name, credentials: optionalText(body.credentials), biography: safeRichText(body.biography), photo_url: optionalText(body.photo_url), role_title: optionalText(body.role_title), group_name: optionalText(body.group_name), sort_order: Number(body.sort_order) || 0, published: body.published !== false, updated_at: new Date().toISOString() };
     const { data, error } = idValue(body.id) ? await client.from("contributors").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("contributors").insert(payload).select("id").single();
-    return error ? apiError(error.message, 500) : Response.json({ data });
+    if (error) return apiError(error.message, 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
   }
 
   const role = text(body.role);
@@ -371,5 +414,6 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { error } = await client.from(table).delete().eq("id", id);
   if (error) return apiError(error.message, 500);
   await deleteFromStorage(storageKeys);
+  await invalidatePublicCache(resource);
   return Response.json({ ok: true });
 }

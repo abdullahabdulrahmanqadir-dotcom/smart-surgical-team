@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { CACHE_TAGS } from "./cache-tags";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
 import { TEAM_GROUPS } from "./team";
 
@@ -66,7 +67,7 @@ function canUseDatabase() {
 }
 
 const REVALIDATE_SECONDS = 60;
-const RESEARCH_CACHE_TAG = "published-research";
+export const RESEARCH_CACHE_TAG = CACHE_TAGS.research;
 
 type ResearchRow = {
   id: number; title: string; authors: string | null; abstract: string | null;

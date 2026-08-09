@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { CACHE_TAGS } from "./cache-tags";
 import { EVENTS, type TeamEvent } from "./event-data";
 
 /**
@@ -16,7 +17,7 @@ export * from "./event-data";
 
 function canUseEventsDatabase() { return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY); }
 
-export const EVENTS_CACHE_TAG = "published-events";
+export const EVENTS_CACHE_TAG = CACHE_TAGS.events;
 
 async function fetchPublicEvents(): Promise<TeamEvent[]> {
   if (!canUseEventsDatabase()) return EVENTS;

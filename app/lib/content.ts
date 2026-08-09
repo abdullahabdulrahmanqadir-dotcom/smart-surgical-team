@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { CACHE_TAGS } from "./cache-tags";
 import type { CaseSection, ContentCard, ContentKind, ContentRecord } from "./content-types";
 
 /**
@@ -124,7 +125,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 /** Published rows change only when an editor saves, so a short shared cache
     keeps almost every visitor off the database entirely. */
 const REVALIDATE_SECONDS = 60;
-export const CONTENT_CACHE_TAG = "published-content";
+export const CONTENT_CACHE_TAG = CACHE_TAGS.content;
 
 function mapBase(row: ContentBaseRow, thumbnailUrl: string | undefined): ContentCard {
   const topics = toArray(row.content_topics)
