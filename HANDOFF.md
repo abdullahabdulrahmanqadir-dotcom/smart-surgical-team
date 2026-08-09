@@ -70,8 +70,8 @@ scaffold that came with it. The app's data layer is Supabase.
   English until approved translations are supplied.
 - Light/dark themes, reduced-motion handling, skip link, responsive header and
   shared footer
-- Newsreader/Inter for Latin text; Noto Kufi Arabic/Noto Naskh Arabic for Arabic
-  and Sorani
+- Newsreader/Inter for Latin text; Noto Kufi Arabic for all Arabic (headings,
+  body, and Arabic strings inside English pages)
 
 ### Current Topics experience
 
@@ -299,8 +299,7 @@ ungated commits (palette refresh, language-menu restyle, case search/filters).
   correct `dir`/`lang` (`rtl`, `ckb-Arab`), four topic selectors, three filters,
   five case cards, correct topic pre-selected on deep links.
 - **RTL typography** — zero elements with non-normal `letter-spacing` across all
-  headings/links/buttons; Noto Kufi Arabic for headings, Noto Naskh Arabic for
-  body. No horizontal overflow in any locale.
+  headings/links/buttons; Noto Kufi Arabic for headings and body alike. No horizontal overflow in any locale.
 - **Case library** — search filters 5→2 on `goiter`; a no-match query shows the
   honest "No cases match this search" empty state; format filter returns the one
   case study; `Clear all` appears only when a filter is active and resets search

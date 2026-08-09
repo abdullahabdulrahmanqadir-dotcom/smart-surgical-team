@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Newsreader, Inter, Noto_Kufi_Arabic, Noto_Naskh_Arabic } from "next/font/google";
+import { Newsreader, Inter, Noto_Kufi_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import "../globals.css";
 
 // Type locked 2026-07-26 — see assets/design-system/smart-surgical-team/MASTER.md.
-// Latin faces carry headings/body in English; the Noto pair covers Arabic and
-// Sorani Kurdish. All four are self-hosted at build time by next/font.
+// Latin faces carry headings/body in English. Arabic uses ONE face everywhere —
+// display and body, RTL pages and Arabic strings inside LTR pages (the language
+// menu) — so the script never changes shape between contexts. All three are
+// self-hosted at build time by next/font.
 const newsreader = Newsreader({
   variable: "--font-display",
   subsets: ["latin"],
@@ -24,25 +26,13 @@ const inter = Inter({
 });
 
 const notoKufi = Noto_Kufi_Arabic({
-  variable: "--font-display-arabic",
+  variable: "--font-arabic",
   subsets: ["arabic"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const notoNaskh = Noto_Naskh_Arabic({
-  variable: "--font-body-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600"],
-  display: "swap",
-});
-
-const FONT_VARIABLES = [
-  newsreader.variable,
-  inter.variable,
-  notoKufi.variable,
-  notoNaskh.variable,
-].join(" ");
+const FONT_VARIABLES = [newsreader.variable, inter.variable, notoKufi.variable].join(" ");
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));

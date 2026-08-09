@@ -115,14 +115,19 @@
 /* ============================================================
    Typography — locked 2026-07-26
    Latin: Newsreader (display) over Inter (body).
-   Arabic script: Noto Kufi Arabic over Noto Naskh Arabic.
-   The RTL locales swap the stacks via [dir="rtl"] so one stylesheet serves all
-   three languages.
+   Arabic script: Noto Kufi Arabic — one face for everything, display and body
+   alike, so the script never changes shape between a heading, a paragraph and
+   the "العربية" entry in the language menu.
+   The RTL locale swaps the stacks via [dir="rtl"]; the Arabic face also sits in
+   the LTR stacks as a fallback so stray Arabic on an English page picks it up
+   instead of a random system face.
    ============================================================ */
 
 :root {
-  --font-display-stack: var(--font-display), Georgia, "Times New Roman", serif;
-  --font-body-stack: var(--font-body), "Segoe UI", system-ui, sans-serif;
+  --font-arabic-stack: var(--font-arabic), "Segoe UI", system-ui, sans-serif;
+  --font-display-stack: var(--font-display), var(--font-arabic), Georgia,
+    "Times New Roman", serif;
+  --font-body-stack: var(--font-body), var(--font-arabic), "Segoe UI", system-ui, sans-serif;
 
   /* Tracking is a token, not a literal, so the RTL override below corrects
      every heading and label at once. Arabic script joins its letters, so any
@@ -137,8 +142,8 @@
 }
 
 [dir="rtl"] {
-  --font-display-stack: var(--font-display-arabic), "Segoe UI", system-ui, sans-serif;
-  --font-body-stack: var(--font-body-arabic), "Segoe UI", system-ui, sans-serif;
+  --font-display-stack: var(--font-arabic-stack);
+  --font-body-stack: var(--font-arabic-stack);
 
   --tracking-tight: 0;
   --tracking-tighter: 0;
@@ -146,6 +151,17 @@
   --tracking-body: 0;
   --tracking-label: 0;
   --tracking-label-wide: 0;
+}
+
+/* Arabic strings that live inside an LTR document — the language menu is the
+   one place this happens — must use the same Arabic face as the Arabic site.
+   `.language-dropdown a` sets a font-family of its own, so that selector is
+   named explicitly to out-specify it. */
+[lang="ar"],
+.language-dropdown a[lang="ar"] {
+  font-family: var(--font-arabic-stack);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 /* ============================================================

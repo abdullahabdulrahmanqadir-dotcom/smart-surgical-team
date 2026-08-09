@@ -37,8 +37,11 @@ reserved for conversion, so it keeps its impact.
 
 | Role | Latin | Arabic script (ar + ckb) |
 |------|-------|--------------------------|
-| Headings | Newsreader (serif, 400/600) | Noto Kufi Arabic (400/700) |
-| Body | Inter (400/500) | Noto Naskh Arabic (400/600) |
+| Headings | Newsreader (serif, 400/600) | Noto Kufi Arabic (600/700) |
+| Body | Inter (400/500) | Noto Kufi Arabic (400/500) |
+
+Arabic uses a single face in both roles (revised 2026-08-09): the script keeps one
+shape everywhere, including Arabic labels rendered inside English pages.
 
 Register: modern serif headings over a clean sans body — editorial and institutional
 rather than start-up. Loaded via `next/font/google`, self-hosted at build time; no

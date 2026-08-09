@@ -13,8 +13,14 @@ const localBindingConfig = {
     // developing, and anything uploaded from the Admin lands in a local cache
     // that the deployed site can never read — while its row in Supabase, which
     // is always the shared instance, points at a key that does not exist.
-    // Requires `wrangler login`.
-    { binding: "MEDIA_BUCKET", bucket_name: "smart-media", remote: true },
+    // Requires `wrangler login`. Set SST_LOCAL_R2=1 to fall back to an empty
+    // local Miniflare bucket — every image 404s, but the dev server starts
+    // without a Cloudflare account that can open an edge-preview session.
+    {
+      binding: "MEDIA_BUCKET",
+      bucket_name: "smart-media",
+      remote: process.env.SST_LOCAL_R2 !== "1",
+    },
   ],
 };
 
