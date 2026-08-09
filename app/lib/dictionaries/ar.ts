@@ -2,7 +2,7 @@ import type { Dictionary } from "./index";
 
 // Modern Standard Arabic, clinical/academic register. The brand remains Latin.
 export const ar: Dictionary = {
-  brand: { name: "Smart Surgical Team", short: "SST", tagline: "جراحة الرأس والعنق، بقيادة الخبرة.", location: "برج الصحة الذكي · السليمانية، كردستان" },
+  brand: { name: "Smart Surgical Team", short: "SST", tagline: "جراحة الرأس والعنق، بقيادة الخبرة.", location: "برج الصحة Smart · السليمانية، كردستان" },
   nav: { home: "الرئيسية", about: "من نحن", topics: "المحتوى", library: "المكتبة", webinars: "الندوات الإلكترونية", events: "الفعاليات", research: "البحوث", team: "فريقنا", contact: "اتصل بنا", signIn: "تسجيل الدخول", register: "إنشاء حساب", skipToContent: "تخطي إلى المحتوى", languageLabel: "اللغة", menu: "القائمة", close: "إغلاق" },
   cta: { exploreLibrary: "تصفّح المكتبة", viewAll: "عرض الكل", learnMore: "اعرف المزيد" },
   topics: {
@@ -60,7 +60,7 @@ export const ar: Dictionary = {
     mainNavigation: "التنقّل الرئيسي", switchColourMode: "تبديل نمط الألوان",
   },
   footer: { rights: "جميع الحقوق محفوظة.", quickLinks: "روابط سريعة", contactUs: "اتصل بنا", blurb: "منصّة أكاديمية متخصّصة في تعليم جراحة الرأس والعنق. خبرة متعمّقة، ونتائج أفضل.", privacy: "سياسة الخصوصية", terms: "شروط الاستخدام", hours: "السبت – الخميس، 9:00 – 17:00", address: "شارع ماجد باغ الرئيسي، بجوار الحرم القديم لجامعة السليمانية، مدام ميتران، السليمانية، العراق" },
-  social: { ariaLabel: "حسابات برج الصحة الذكي على وسائل التواصل الاجتماعي" },
+  social: { ariaLabel: "حسابات برج الصحة Smart على وسائل التواصل الاجتماعي" },
   caseSummary: {
     presentation: "العرض السريري", imaging: "التصوير والاستقصاءات", procedure: "الإجراء الجراحي",
     histopathology: "علم الأمراض النسيجي", outcome: "النتيجة والمتابعة",
@@ -71,14 +71,14 @@ export const ar: Dictionary = {
   },
   home: {
     builtWith: "بالتعاون مع أطباء من",
-    credentialTower: "برج الصحة الذكي",
+    credentialTower: "برج الصحة Smart",
     credentialDepartment: "قسم جراحة الرأس والعنق",
     curriculum: "المنهج التعليمي",
     topicsIntro: "أربعة مجالات جراحية مختارة من المنهج المتكامل لجراحة الرأس والعنق.",
     viewAllTopics: "عرض جميع المواضيع",
     researchKicker: "من مكتبنا البحثي",
     researchTitle: "أدلّة علمية نتشاركها.",
-    researchIntro: "بحوث سريرية منشورة من مجتمع برج الصحة الذكي.",
+    researchIntro: "بحوث سريرية منشورة من مجتمع برج الصحة Smart.",
     exploreResearch: "استكشف جميع البحوث",
     latestPublication: "أحدث منشور · {year}",
     readResearch: "اقرأ البحث",
@@ -140,24 +140,24 @@ export const ar: Dictionary = {
   contact: {
     eyebrow: "تواصل مع Smart Surgical Team",
     title: "تعرّف إلى موقع فريقنا.",
-    intro: "زُر برج الصحة الذكي أو استخدم بيانات التواصل أدناه للاتصال بـ Smart Surgical Team.",
+    intro: "زُر برج الصحة Smart أو استخدم بيانات التواصل أدناه للاتصال بـ Smart Surgical Team.",
     directDetails: "بيانات التواصل المباشر",
     detailsTitle: "بياناتنا.",
-    detailsBody: "البريد الإلكتروني هو أسرع وسيلة للاستفسارات العامة، كما نرحّب بزيارتكم في برج الصحة الذكي.",
+    detailsBody: "البريد الإلكتروني هو أسرع وسيلة للاستفسارات العامة، كما نرحّب بزيارتكم في برج الصحة Smart.",
     email: "البريد الإلكتروني",
     location: "الموقع",
     hours: "ساعات العمل",
     hoursValue: "من السبت إلى الخميس",
     online: "عبر الإنترنت",
-    followTower: "تابع برج الصحة الذكي",
+    followTower: "تابع برج الصحة Smart",
     visitUs: "زُرنا",
-    towerTitle: "برج الصحة الذكي.",
+    towerTitle: "برج الصحة Smart.",
     visitBody: "يقع فريقنا بجوار الحرم القديم لجامعة السليمانية، ويسهل الوصول إليه عند الحاجة إلى زيارة شخصية.",
     getDirections: "الحصول على الاتجاهات",
     shortAddress: "شارع ماجد باغ الرئيسي · السليمانية، العراق",
     mapKicker: "على الخريطة",
     mapTitle: "موقعنا.",
-    mapFrameTitle: "خريطة توضّح موقع برج الصحة الذكي في السليمانية",
+    mapFrameTitle: "خريطة توضّح موقع برج الصحة Smart في السليمانية",
   },
   events: {
     breadcrumb: "مسار التنقّل",
@@ -250,7 +250,7 @@ export const ar: Dictionary = {
   saveCase: { removeError: "تعذّرت إزالة هذه الحالة. يُرجى المحاولة مرة أخرى.", saveError: "تعذّر حفظ هذه الحالة. يُرجى المحاولة مرة أخرى.", saving: "جارٍ الحفظ...", remove: "إزالة من المحفوظات", save: "الحفظ لوقت لاحق" },
   anatomyHero: { label: "رسم توضيحي للغدة الدرقية والرغامى وأوعية العنق.", interact: "تفاعل", done: "تم" },
   joinCta: { profile: "فتح ملفك الشخصي", createAccount: "إنشاء حساب مجاني" },
-  introduction: { videoTitle: "تعرّف إلى عيادة الغدة الدرقية في برج الصحة الذكي" },
+  introduction: { videoTitle: "تعرّف إلى عيادة الغدة الدرقية في برج الصحة Smart" },
   account: {
     signInEyebrow: "عضوية Smart Surgical Team", signInTitle: "طريقة أكثر هدوءاً وفائدة لمواصلة التعلّم.", signInBody: "اجمع المواضيع والحالات الجراحية التي تستحق المراجعة في مساحة خاصة مصممة بما يلائم ممارستك.",
     signInBulletOne: "احفظ الحالات لمراجعتك القادمة", signInBulletTwo: "احتفظ بالمواضيع المختارة في مكان واحد", signInBulletThree: "استلم تحديثات منتقاة من الفريق فقط",
@@ -304,9 +304,9 @@ export const ar: Dictionary = {
     saeedRole: "طبيب", saeedCredentials: "M.B.Ch.B.", muhammadRole: "طبيب", muhammadCredentials: "M.B.Ch.B.", osamaRole: "طبيب", osamaCredentials: "S.H.O.", shallawRole: "طبيب", shallawCredentials: "S.H.O.", kaihanRole: "طبيب", kaihanCredentials: "M.B.Ch.B.", mohammedRole: "طبيب", mohammedCredentials: "M.B.Ch.B.", ahmadRole: "طبيب", ahmadCredentials: "M.B.Ch.B.", abdullahHassanRole: "طبيب", abdullahHassanCredentials: "S.H.O.",
   },
   eventFallback: {
-    secondTitle: "القمة الثانية للغدة الدرقية في الشرق الأوسط (Second Middle East Thyroid Summit)", secondShortTitle: "قمة MET الثانية", secondTopic: "جراحة الغدة الدرقية والغدد الصماء (Thyroid & Endocrine Surgery)", secondLocation: "برج الصحة الذكي، السليمانية، العراق", secondSummary: "قمة إقليمية لمدة يومين تجمع اختصاصيي أمراض الغدة الدرقية ورعاية السرطان للتبادل العلمي والتعليم العملي والتعاون متعدد التخصصات.", secondHighlightOne: "جلسات علمية بقيادة الخبراء", secondHighlightTwo: "عروض جراحية مباشرة", secondHighlightThree: "ورش عمل تطبيقية", secondHighlightFour: "محاكاة اجتماعات فريق الأورام (Tumour Board)",
+    secondTitle: "القمة الثانية للغدة الدرقية في الشرق الأوسط (Second Middle East Thyroid Summit)", secondShortTitle: "قمة MET الثانية", secondTopic: "جراحة الغدة الدرقية والغدد الصماء (Thyroid & Endocrine Surgery)", secondLocation: "برج الصحة Smart، السليمانية، العراق", secondSummary: "قمة إقليمية لمدة يومين تجمع اختصاصيي أمراض الغدة الدرقية ورعاية السرطان للتبادل العلمي والتعليم العملي والتعاون متعدد التخصصات.", secondHighlightOne: "جلسات علمية بقيادة الخبراء", secondHighlightTwo: "عروض جراحية مباشرة", secondHighlightThree: "ورش عمل تطبيقية", secondHighlightFour: "محاكاة اجتماعات فريق الأورام (Tumour Board)",
     abdulwahidSpecialty: "جرّاح الرأس والعنق والثدي (Head, Neck & Breast Surgeon)", iraq: "العراق", sosaSpecialty: "جرّاحة الغدد الصماء (Endocrine Surgeon)", usa: "الولايات المتحدة الأمريكية", kyungSpecialty: "اختصاصي الأنف والأذن والحنجرة وجرّاح الرأس والعنق (Otolaryngologist - Head and Neck Surgeon)", korea: "جمهورية كوريا", tolleySpecialty: "اختصاصي الأنف والأذن والحنجرة وجرّاح الرأس والعنق (Otolaryngologist - Head and Neck Surgeon)", uk: "المملكة المتحدة",
-    firstTitle: "القمة الأولى للغدة الدرقية في الشرق الأوسط (First Middle East Thyroid Summit)", firstShortTitle: "قمة MET الأولى", firstTopic: "جراحة الغدة الدرقية والرأس والعنق (Thyroid & Head & Neck Surgery)", firstLocation: "برج الصحة الذكي، السليمانية، العراق", firstSummary: "جمعت القمة الافتتاحية للغدة الدرقية في الشرق الأوسط اختصاصيين إقليميين ودوليين لتبادل مستجدات جراحة الغدة الدرقية والرأس والعنق.", firstHighlightOne: "برنامج علمي", firstHighlightTwo: "تعاون دولي", firstHighlightThree: "تسجيلات عند الطلب",
+    firstTitle: "القمة الأولى للغدة الدرقية في الشرق الأوسط (First Middle East Thyroid Summit)", firstShortTitle: "قمة MET الأولى", firstTopic: "جراحة الغدة الدرقية والرأس والعنق (Thyroid & Head & Neck Surgery)", firstLocation: "برج الصحة Smart، السليمانية، العراق", firstSummary: "جمعت القمة الافتتاحية للغدة الدرقية في الشرق الأوسط اختصاصيين إقليميين ودوليين لتبادل مستجدات جراحة الغدة الدرقية والرأس والعنق.", firstHighlightOne: "برنامج علمي", firstHighlightTwo: "تعاون دولي", firstHighlightThree: "تسجيلات عند الطلب",
   },
   common: { loading: "جارٍ التحميل", comingSoon: "قريباً" },
 };

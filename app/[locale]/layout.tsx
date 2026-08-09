@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Newsreader, Inter, Noto_Kufi_Arabic } from "next/font/google";
+import { Newsreader, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import "../globals.css";
 
-// Type locked 2026-07-26 — see assets/design-system/smart-surgical-team/MASTER.md.
-// Latin faces carry headings/body in English. Arabic uses ONE face everywhere —
-// display and body, RTL pages and Arabic strings inside LTR pages (the language
-// menu) — so the script never changes shape between contexts. All three are
-// self-hosted at build time by next/font.
+// Type revised 2026-08-09 — see assets/design-system/smart-surgical-team/MASTER.md.
+// The Arabic pair is chosen to echo the Latin pair's register rather than being
+// an unrelated default: Noto Naskh Arabic (calligraphic, serif-adjacent) stands
+// in for Newsreader's editorial warmth, IBM Plex Sans Arabic (clean humanist
+// sans) for Inter's body register. Both apply to RTL pages and to Arabic
+// strings inside LTR pages (the language menu). All four are self-hosted at
+// build time by next/font.
 const newsreader = Newsreader({
   variable: "--font-display",
   subsets: ["latin"],
@@ -25,14 +27,26 @@ const inter = Inter({
   display: "swap",
 });
 
-const notoKufi = Noto_Kufi_Arabic({
-  variable: "--font-arabic",
+const notoNaskh = Noto_Naskh_Arabic({
+  variable: "--font-display-arabic",
   subsets: ["arabic"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const FONT_VARIABLES = [newsreader.variable, inter.variable, notoKufi.variable].join(" ");
+const plexArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-body-arabic",
+  subsets: ["arabic"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+});
+
+const FONT_VARIABLES = [
+  newsreader.variable,
+  inter.variable,
+  notoNaskh.variable,
+  plexArabic.variable,
+].join(" ");
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
