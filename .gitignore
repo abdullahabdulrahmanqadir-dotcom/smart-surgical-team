@@ -53,3 +53,8 @@ tsconfig.tsbuildinfo
 .playwright-mcp/
 local-host.log
 local-host.error.log
+
+# local working directories (agent worktrees, scratch data, run logs)
+/.claude/
+/scratch/
+/.logs/
