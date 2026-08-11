@@ -3401,6 +3401,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .admin-case-section-tools button:hover:not(:disabled), .admin-media-tools button:hover:not(:disabled) { background:#e4efec; }
 .admin-case-section-tools button:disabled, .admin-media-tools button:disabled { opacity:.35; cursor:default; }
 .admin-case-section-tools .admin-delete, .admin-media-tools button:last-child { color:#a04c42; }
+/* Armed state for the two-click remove/delete: the second click is the
+   confirmation, so it has to read as clearly different from the resting
+   button. Not scoped to case sections — the record list uses it too. */
+.admin-delete.is-confirming { border-color:#a04c42; background:#a04c42; color:#fff; font-weight:750; }
 .admin-add-section { display:flex; align-items:center; justify-content:center; gap:.4rem; min-height:40px; border:1px dashed #81aaa6; border-radius:8px; background:transparent; color:#176c68; font:inherit; font-size:13px; font-weight:650; cursor:pointer; }
 .admin-add-section:hover { background:#eaf3f1; }
 
