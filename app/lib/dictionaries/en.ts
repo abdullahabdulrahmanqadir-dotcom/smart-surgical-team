@@ -1,7 +1,7 @@
 // English is the source of truth. Arabic falls back to English per-key.
 export const en = {
   brand: { name: "Smart Surgical Team", short: "SST", tagline: "Head & Neck Surgery, Guided by Expertise.", location: "Smart Health Tower · Sulaymaniah, Kurdistan" },
-  nav: { home: "Home", about: "About us", aboutMenu: "About", topics: "Content", library: "Library", webinars: "Webinars", events: "Events", research: "Research", posters: "Posters", team: "Our Team", contact: "Contact", signIn: "Sign in", register: "Register", skipToContent: "Skip to content", languageLabel: "Language", menu: "Menu", close: "Close" },
+  nav: { home: "Home", about: "About us", publications: "Publications", aboutMenu: "About", topics: "Content", library: "Library", webinars: "Webinars", events: "Events", research: "Research", posters: "Posters", team: "Our Team", contact: "Contact", signIn: "Sign in", register: "Register", skipToContent: "Skip to content", languageLabel: "Language", menu: "Menu", close: "Close" },
   cta: { exploreLibrary: "Explore the Library", viewAll: "View all", learnMore: "Learn more" },
   topics: {
     kicker: "Topics", title: "Browse by Topic", intro: "Four focused surgical tracks for structured study across head and neck surgery.",

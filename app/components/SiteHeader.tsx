@@ -15,6 +15,40 @@ type HeaderUser = { id?: string; email?: string; user_metadata?: Record<string, 
 // only: /admin re-checks the role on the server before showing anything.
 const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"];
 
+// One dropdown, used by both the desktop bar and the mobile sheet. `open` is
+// controlled so that choosing a link closes it; the functional update stops a
+// menu that is closing from clearing a different one that just opened.
+function NavMenu({ id, label, links, menuClass, dropdownClass, iconSize, openMenu, setOpenMenu, onNavigate }: {
+  id: string;
+  label: string;
+  links: [string, string][];
+  menuClass: string;
+  dropdownClass: string;
+  iconSize: number;
+  openMenu: string | null;
+  setOpenMenu: (update: (current: string | null) => string | null) => void;
+  onNavigate?: () => void;
+}) {
+  return (
+    <details
+      className={menuClass}
+      data-nav-menu
+      open={openMenu === id}
+      onToggle={(event) => {
+        const isOpen = event.currentTarget.open;
+        setOpenMenu((current) => (isOpen ? id : current === id ? null : current));
+      }}
+    >
+      <summary>{label}<IconChevronDown size={iconSize}/></summary>
+      <div className={dropdownClass}>
+        {links.map(([text, href]) => (
+          <Link key={text} href={href} onClick={() => { setOpenMenu(() => null); onNavigate?.(); }}>{text}</Link>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 function memberFromUser(user: HeaderUser): HeaderMember | null {
   if (!user?.email) return null;
   return { name: String(user.user_metadata?.full_name ?? user.email), email: user.email };
@@ -28,6 +62,10 @@ export default function SiteHeader({
   dict: Dictionary;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // A <details> menu stays open across a client-side navigation, so choosing an
+  // item left the dropdown hanging open over the new page. Driving `open` from
+  // state lets a chosen link close it, and keeps one menu open at a time.
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [member, setMember] = useState<HeaderMember | null>(null);
   const [isStaff, setIsStaff] = useState(false);
 
@@ -36,10 +74,14 @@ export default function SiteHeader({
   // Unbuilt Phase 1 pages still point to their home-page sections. Topics is a
   // real route now, and all paths remain useful when the header is rendered on
   // a nested page.
-  const navLinks: [string, string][] = [
+  // Content, Research and Posters are all published output, so they sit
+  // together under one menu rather than spending three slots in the bar.
+  const publicationLinks: [string, string][] = [
     [dict.nav.topics, localePath(locale, "topics")],
     [dict.nav.research, localePath(locale, "research")],
     [dict.nav.posters, localePath(locale, "posters")],
+  ];
+  const navLinks: [string, string][] = [
     [dict.nav.events, localePath(locale, "events")],
   ];
   const aboutLinks: [string, string][] = [
@@ -51,6 +93,24 @@ export default function SiteHeader({
     document.body.classList.toggle("nav-open", menuOpen);
     return () => document.body.classList.remove("nav-open");
   }, [menuOpen]);
+
+  // Clicking anywhere else, or pressing Escape, dismisses an open menu — the
+  // same expectation any dropdown sets.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && (target as Element).closest?.("[data-nav-menu]")) return;
+      setOpenMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpenMenu(null); };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openMenu]);
 
   useEffect(() => {
     let active = true;
@@ -135,17 +195,13 @@ export default function SiteHeader({
         </Link>
 
         <nav className="primary-nav" aria-label={dict.header.mainNavigation}>
+          <NavMenu id="publications" label={dict.nav.publications} links={publicationLinks} menuClass="primary-nav-more" dropdownClass="primary-nav-dropdown" iconSize={15} openMenu={openMenu} setOpenMenu={setOpenMenu}/>
           {navLinks.map(([label, href]) => (
             <Link key={label} href={href}>
               {label}
             </Link>
           ))}
-          <details className="primary-nav-more">
-            <summary>{dict.nav.aboutMenu}<IconChevronDown size={15}/></summary>
-            <div className="primary-nav-dropdown">
-              {aboutLinks.map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
-            </div>
-          </details>
+          <NavMenu id="about" label={dict.nav.aboutMenu} links={aboutLinks} menuClass="primary-nav-more" dropdownClass="primary-nav-dropdown" iconSize={15} openMenu={openMenu} setOpenMenu={setOpenMenu}/>
         </nav>
 
         <div className="header-actions">
@@ -178,17 +234,13 @@ export default function SiteHeader({
       </div>
 
       <div className="mobile-nav" id="mobile-nav" hidden={!menuOpen}>
+        <NavMenu id="mobile-publications" label={dict.nav.publications} links={publicationLinks} menuClass="mobile-nav-more" dropdownClass="mobile-nav-submenu" iconSize={16} openMenu={openMenu} setOpenMenu={setOpenMenu} onNavigate={() => setMenuOpen(false)}/>
         {navLinks.map(([label, href]) => (
           <Link key={label} href={href} onClick={() => setMenuOpen(false)}>
             {label}
           </Link>
         ))}
-        <details className="mobile-nav-more">
-          <summary>{dict.nav.aboutMenu}<IconChevronDown size={16}/></summary>
-          <div className="mobile-nav-submenu">
-            {aboutLinks.map(([label, href]) => <Link key={label} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
-          </div>
-        </details>
+        <NavMenu id="mobile-about" label={dict.nav.aboutMenu} links={aboutLinks} menuClass="mobile-nav-more" dropdownClass="mobile-nav-submenu" iconSize={16} openMenu={openMenu} setOpenMenu={setOpenMenu} onNavigate={() => setMenuOpen(false)}/>
         <div className="mobile-language">
           <span>{dict.nav.languageLabel}</span>
           <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />

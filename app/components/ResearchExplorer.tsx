@@ -1,19 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconFile, IconSearch } from "./icons";
 import { localePath, type Locale } from "../lib/i18n";
 import type { Publication } from "../lib/research";
 import type { Dictionary } from "../lib/dictionaries";
 
 const PAGE_SIZE = 9;
+const RESEARCH_VIEW_KEY = "sst-research-view";
 
 export default function ResearchExplorer({ publications, locale, t }: { publications: Publication[]; locale: Locale; t: Dictionary["research"] }) {
   const [query, setQuery] = useState("");
   const [year, setYear] = useState("all");
   const [category, setCategory] = useState("all");
   const [page, setPage] = useState(1);
+  // The page number and filters live in the URL, so opening a paper and coming
+  // back returns to the same page of results rather than resetting to the
+  // first. Reading them after mount (rather than in the initial state) keeps
+  // the server and client markup identical; `restored` stops the sync below
+  // from writing the defaults over the URL before that read happens.
+  // The breadcrumb and "Back to all research" links point at the bare
+  // /research path, so the URL alone cannot carry the reader back to where
+  // they were. The last view is kept for the tab so those links land on it
+  // too; it is deliberately per-tab, so a fresh visit starts clean.
+  const restored = useRef(false);
+  useEffect(() => {
+    let search = window.location.search;
+    if (!search) {
+      try { search = sessionStorage.getItem(RESEARCH_VIEW_KEY) ?? ""; } catch { /* storage unavailable */ }
+    }
+    const params = new URLSearchParams(search);
+    const savedPage = Number(params.get("page"));
+    if (Number.isFinite(savedPage) && savedPage > 1) setPage(savedPage);
+    const savedQuery = params.get("q");
+    if (savedQuery) setQuery(savedQuery);
+    const savedYear = params.get("year");
+    if (savedYear) setYear(savedYear);
+    const savedCategory = params.get("type");
+    if (savedCategory) setCategory(savedCategory);
+    restored.current = true;
+  }, []);
+  useEffect(() => {
+    if (!restored.current) return;
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (year !== "all") params.set("year", year);
+    if (category !== "all") params.set("type", category);
+    if (page > 1) params.set("page", String(page));
+    const search = params.toString();
+    window.history.replaceState(null, "", search ? `?${search}` : window.location.pathname);
+    try { sessionStorage.setItem(RESEARCH_VIEW_KEY, search ? `?${search}` : ""); } catch { /* storage unavailable */ }
+  }, [query, year, category, page]);
   const years = [...new Set(publications.map((paper) => paper.year))].sort((a, b) => b.localeCompare(a));
   const categories = [...new Set(publications.map((paper) => paper.category))].sort();
   const categoryLabel = (value: string) => ({ Publication: t.publication, Article: t.article, "Clinical study": t.clinicalStudy, Review: t.review }[value] ?? value);
