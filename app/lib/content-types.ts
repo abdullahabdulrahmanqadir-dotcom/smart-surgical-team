@@ -92,6 +92,8 @@ export type ContentRecord = ContentCard & {
   presenter: { name: string; role: string; bio: string; initials: string };
   contributors: { name: string; role: string; initials: string; photoUrl?: string }[];
   posterUrl?: string;
+  posterCtaText?: string;
+  posterCtaUrl?: string;
   chapters: ContentChapter[];
   caseSummary?: CaseSummary;
   caseSections?: CaseSection[];

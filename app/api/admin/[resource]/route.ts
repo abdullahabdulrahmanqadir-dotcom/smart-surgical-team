@@ -20,6 +20,11 @@ function text(value: unknown) { return typeof value === "string" ? value.trim() 
 function idValue(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? String(value) : text(value); }
 function optionalText(value: unknown) { const result = text(value); return result || null; }
 function date(value: unknown) { const result = text(value); return result || null; }
+function externalUrl(value: unknown) {
+  const url = text(value);
+  if (!url) return null;
+  try { return ["http:", "https:"].includes(new URL(url).protocol) ? url : null; } catch { return null; }
+}
 
 // Uploaded media lives in R2 under the same key we store as `storage_path`; a
 // cover is kept as its `/api/media/<key>` URL. Map a URL back to its key so a
@@ -39,6 +44,8 @@ function storageKeyFromUrl(value: unknown) {
 // so editors keep working against the five legacy columns in the meantime.
 let caseSectionsColumn = true;
 function missingCaseSections(message: string | undefined) { return Boolean(message) && /case_sections/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
+let posterCtaColumns = true;
+function missingPosterCtaColumns(message: string | undefined) { return Boolean(message) && /poster_cta_(text|url)/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
 
 async function deleteFromStorage(keys: unknown[]) {
   const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
@@ -87,11 +94,15 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   if (resource === "content") {
-    const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+    const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,"
+      + (posterCtaColumns ? "poster_cta_text,poster_cta_url," : "")
+      + "thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
       + (caseSectionsColumn ? "case_sections," : "")
       + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
     const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
     let { data, error } = await read();
+    if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data, error } = await read()); }
+    if (error && posterCtaColumns && missingPosterCtaColumns(error.message)) { posterCtaColumns = false; ({ data, error } = await read()); }
     if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data, error } = await read()); }
     if (error) return apiError(error.message, 500);
     // The workspace needs to know whether custom case sections can be stored at
@@ -156,11 +167,15 @@ export async function POST(request: Request, context: RouteContext) {
     const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
     const existingId = idValue(body.id);
     const posterUrl = text(body.poster_url);
+    const posterCtaText = optionalText(body.poster_cta_text);
+    const posterCtaUrl = externalUrl(body.poster_cta_url);
     const priorPoster = existingId
       ? await client.from("content_items").select("poster_url").eq("id", existingId).maybeSingle()
       : null;
     const priorPosterUrl = text(priorPoster?.data?.poster_url);
     if (text(body.kind) === "poster" && status === "published" && !posterUrl) return apiError("A published poster requires an image. Add one or save it as a draft.");
+    if (text(body.kind) === "poster" && Boolean(posterCtaText) !== Boolean(posterCtaUrl)) return apiError("Add both the optional link text and a valid http(s) URL, or leave both blank.");
+    if (text(body.kind) === "poster" && text(body.poster_cta_url) && !posterCtaUrl) return apiError("The optional reader link must use a valid http:// or https:// URL.");
     // New and replacement poster images must be uploaded through the R2 route.
     // Existing legacy static images may remain unchanged until an editor
     // replaces them, preventing an old record from becoming uneditable.
@@ -202,6 +217,7 @@ export async function POST(request: Request, context: RouteContext) {
       title, slug, summary: optionalText(body.summary), kind: ["webinar_recording", "poster"].includes(text(body.kind)) ? text(body.kind) : optionalText(body.video_url) ? "video" : "case_article",
       status, access_level: text(body.access_level) === "members_only" ? "members_only" : "public", video_url: optionalText(body.video_url),
       poster_url: optionalText(body.poster_url), thumbnail_source: text(body.thumbnail_source) === "image" ? "image" : "youtube",
+      poster_cta_text: text(body.kind) === "poster" ? posterCtaText : null, poster_cta_url: text(body.kind) === "poster" ? posterCtaUrl : null,
       thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
@@ -224,6 +240,7 @@ export async function POST(request: Request, context: RouteContext) {
       // built-ins still save to their own columns and nothing else is lost.
       const row: Record<string, unknown> = { ...item };
       if (!caseSectionsColumn) delete row.case_sections;
+      if (!posterCtaColumns) { delete row.poster_cta_text; delete row.poster_cta_url; }
       return existingId
         ? client.from("content_items").update(row).eq("id", existingId).select("id").single()
         : client.from("content_items").insert(row).select("id").single();
@@ -273,8 +290,9 @@ export async function POST(request: Request, context: RouteContext) {
     // sections (they have their own columns) but silently drops renamed
     // headings and added sections. Say so rather than report a clean save.
     const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
+    const ctaLost = !posterCtaColumns && Boolean(posterCtaText || posterCtaUrl);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved, warning: sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
+    return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
   }
 
   if (resource === "research") {

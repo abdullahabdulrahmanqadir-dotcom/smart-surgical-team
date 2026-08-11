@@ -34,7 +34,7 @@ export default async function PosterDetailPage({ params }: { params: Promise<Par
       <nav className="poster-breadcrumb" aria-label={dict.posters.breadcrumb}><Link href={localePath(active, "posters")}>{dict.nav.posters}</Link><span>/</span><b>{poster.title}</b></nav>
       <header className="poster-detail-heading"><span className="section-kicker">{poster.label}</span><h1>{poster.title}</h1><p>{poster.summary}</p><small>{poster.authors}</small></header>
       <div className="poster-detail-layout">
-        <ImageGallery presentation="poster" images={[{ id: poster.id, publicUrl: poster.imageUrl, altText: poster.imageAlt, caption: poster.title }]} label={dict.posters.openPoster} t={dict.media}/>
+        <div className="poster-display"><ImageGallery presentation="poster" images={[{ id: poster.id, publicUrl: poster.imageUrl, altText: poster.imageAlt, caption: poster.title }]} label={dict.posters.openPoster} t={dict.media}/>{poster.cta ? <a className="poster-resource-link" href={poster.cta.url} target="_blank" rel="noopener noreferrer"><span>{poster.cta.text}</span><IconArrowRight size={17}/></a> : null}</div>
         <article className="poster-written-details">
           <span className="section-kicker">{dict.posters.detailsLabel}</span>
           {poster.sections.length ? poster.sections.map((section) => <section key={section.key}><h2>{section.label}</h2><div className="rich-text" dangerouslySetInnerHTML={{ __html: section.body }}/></section>) : <p>{poster.summary}</p>}

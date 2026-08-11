@@ -12,6 +12,7 @@ export type PosterEntry = {
   label: string;
   publishedAt: string;
   sections: CaseSection[];
+  cta?: { text: string; url: string };
 };
 
 const FALLBACK_POSTER: PosterEntry = {
@@ -69,6 +70,7 @@ function mapPoster(record: ContentRecord): PosterEntry | null {
     label: record.level || "Clinical poster",
     publishedAt: record.publishedAt || "",
     sections: resolveCaseSections(record),
+    cta: record.posterCtaText && record.posterCtaUrl ? { text: record.posterCtaText, url: record.posterCtaUrl } : undefined,
   };
 }
 

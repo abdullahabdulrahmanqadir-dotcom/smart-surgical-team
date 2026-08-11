@@ -635,7 +635,7 @@ export default function AdminWorkspace() {
   }, [active, contentFilters, researchFilters, items, search, searchable, topics]);
   function startNew() {
     if (active === "content") setEditing(emptyContent());
-    else if (active === "posters") setEditing({ kind: "poster", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical poster", poster_url: "", contributor_ids: [], case_sections: [{ key: "overview", label: "Overview", body: "" }, { key: "findings", label: "Key findings", body: "" }] });
+    else if (active === "posters") setEditing({ kind: "poster", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical poster", poster_url: "", poster_cta_text: "", poster_cta_url: "", contributor_ids: [], case_sections: [{ key: "overview", label: "Overview", body: "" }, { key: "findings", label: "Key findings", body: "" }] });
     else if (active === "research") setEditing({ title: "", authors: "", abstract: "", journal: "", category: "Paper", status: "published", published_date: "", link: "", cover_image_url: "", research_media: [] });
     else if (active === "topics") setEditing({ name: "", slug: "", description: "", sort_order: 0 });
     else if (active === "events") setEditing({ title: "", slug: "", event_type: "Webinar", format: "online", status: "published" });
@@ -819,6 +819,7 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     <Field label="Poster title" value={form.title} onChange={(value) => set("title", value)} required/>
     <Field label="Card summary" hint="A short introduction shown beside the featured poster and on archive cards." type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/>
     <div className="admin-field-grid"><Field label="Study label" hint="e.g. 5-patient cohort study · 2020–2025" value={form.level} onChange={(value) => set("level", value)}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive']]}/></div>
+    <section className="admin-optional-link"><h2>Optional reader link</h2><p>Appears directly below the poster image. Add both fields to link readers to the full paper or another resource.</p><Field label="Button text" hint="e.g. Read the full research paper" value={form.poster_cta_text} onChange={(value) => set("poster_cta_text", value)}/><Field label="Link URL" hint="Use a full https:// link." type="url" value={form.poster_cta_url} onChange={(value) => set("poster_cta_url", value)}/></section>
     <ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/>
     <CaseFields title="Written poster details" intro="Write the supporting text readers should see on the poster detail page. Rename, reorder or add sections as needed." sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/>
   </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} removed={Boolean(form.poster_image_removed)} onRemove={removePosterImage} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;

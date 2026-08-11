@@ -58,6 +58,8 @@ type CardRow = ContentBaseRow & {
 
 type FullRow = ContentBaseRow & {
   poster_url: string | null;
+  poster_cta_text?: string | null;
+  poster_cta_url?: string | null;
   case_presentation: string | null;
   case_imaging: string | null;
   case_procedure: string | null;
@@ -87,6 +89,10 @@ const CARD_SELECT = `${BASE_COLUMNS},content_media(storage_path,public_url)`;
 // without it, so cases keep rendering from their legacy columns.
 let caseSectionsColumn = true;
 function missingCaseSections(message: string) { return /case_sections/.test(message) && /does not exist/i.test(message); }
+// Migration 0015 adds these two nullable fields. Keep current poster data
+// readable while a code deployment arrives before its database migration.
+let posterCtaColumns = true;
+function missingPosterCtaColumns(message: string) { return /poster_cta_(text|url)/.test(message) && /does not exist/i.test(message); }
 
 const FULL_SELECT_BASE =
   `${BASE_COLUMNS},poster_url,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome` +
@@ -94,7 +100,11 @@ const FULL_SELECT_BASE =
   ",content_contributors(contributors(display_name,credentials,biography,photo_url))" +
   ",content_chapters(title,position,starts_at_seconds)" +
   ",content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
-const FULL_SELECT = () => caseSectionsColumn ? FULL_SELECT_BASE.replace(",case_outcome", ",case_outcome,case_sections") : FULL_SELECT_BASE;
+const FULL_SELECT = () => {
+  const posterCta = posterCtaColumns ? ",poster_cta_text,poster_cta_url" : "";
+  const sections = caseSectionsColumn ? ",case_sections" : "";
+  return FULL_SELECT_BASE.replace(",poster_url", `,poster_url${posterCta}`).replace(",case_outcome", `,case_outcome${sections}`);
+};
 
 // `case_sections` is free-form JSON as far as the database is concerned, so
 // nothing about its shape can be assumed here. Anything malformed is dropped
@@ -199,6 +209,16 @@ async function fetchRecord(identifier: string, includeMembersOnly: boolean): Pro
       caseSectionsColumn = false;
       ({ data, error } = await run());
     }
+    if (error && posterCtaColumns && missingPosterCtaColumns(error.message)) {
+      console.warn("content_items poster CTA columns are missing — apply migration 0015. Reading posters without the optional link.");
+      posterCtaColumns = false;
+      ({ data, error } = await run());
+    }
+    if (error && caseSectionsColumn && missingCaseSections(error.message)) {
+      console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
+      caseSectionsColumn = false;
+      ({ data, error } = await run());
+    }
     if (error) console.error("published content record query failed:", error.message);
     const row = (data as unknown as FullRow[] | null)?.[0];
     if (error || !row) return null;
@@ -230,6 +250,8 @@ async function fetchRecord(identifier: string, includeMembersOnly: boolean): Pro
       presenter: { name: presenter.name, role: presenter.role, bio: leadContributor?.biography ?? "", initials: presenter.initials },
       contributors,
       posterUrl: row.poster_url ?? undefined,
+      posterCtaText: row.poster_cta_text ?? undefined,
+      posterCtaUrl: row.poster_cta_url ?? undefined,
       chapters,
       caseSummary: {
         presentation: row.case_presentation ?? undefined,
