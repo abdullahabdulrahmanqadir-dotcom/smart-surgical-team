@@ -22,6 +22,21 @@ const localBindingConfig = {
       remote: process.env.SST_LOCAL_R2 !== "1",
     },
   ],
+  kv_namespaces: [
+    // vinext stores its public read-through cache here. Without this binding
+    // `worker/index.ts` never installs the KV cache handler, so every public
+    // page read went to Supabase directly — correct, but a database round trip
+    // per request instead of an edge hit.
+    //
+    // Deliberately *not* `remote`: unlike the media bucket there is nothing to
+    // read back from production, and a dev server writing rendered pages into
+    // the live namespace would serve development output to real visitors. Dev
+    // gets its own empty Miniflare namespace.
+    {
+      binding: "VINEXT_CACHE",
+      id: "54d4983f760742b48fa119ef57a55b5c",
+    },
+  ],
 };
 
 export default defineConfig(async () => {
