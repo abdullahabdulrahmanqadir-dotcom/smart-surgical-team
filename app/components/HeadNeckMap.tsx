@@ -65,27 +65,29 @@ export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, 
 
         <div className="content-map-callouts">
           {ANATOMY_REGIONS.map((item, index) => (
-            <button
-              className={`content-map-callout content-map-callout--${item.side}`}
-              // The button spans dot to tag, so the leader's percentage width
-              // resolves against the stage rather than a zero-width box.
-              style={{
-                left: `${item.side === "left" ? item.x - item.leader : item.x}%`,
-                top: `${item.y}%`,
-                width: `${item.leader}%`,
-                "--float-order": index,
-              } as CSSProperties}
-              type="button"
-              onClick={() => onSelect(item.slug)}
-              tabIndex={region ? -1 : undefined}
-              key={item.slug}
-            >
-              <span className="content-map-dot" aria-hidden="true" />
-              <span className="content-map-leader" aria-hidden="true" />
-              <span className="content-map-tag" aria-hidden="true">{labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label}</span>
-              {/* The visual and accessible labels mirror the topic cards below. */}
-              <span className="visually-hidden">{labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label}</span>
-            </button>
+            (() => {
+              const label = labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label;
+              return <button
+                className={`content-map-callout content-map-callout--${item.side}`}
+                // The button spans dot to tag, so the leader's percentage width
+                // resolves against the stage rather than a zero-width box.
+                style={{
+                  left: `${item.side === "left" ? item.x - item.leader : item.x}%`,
+                  top: `${item.y}%`,
+                  width: `${item.leader}%`,
+                  "--float-order": index,
+                } as CSSProperties}
+                type="button"
+                onClick={() => onSelect(item.slug)}
+                tabIndex={region ? -1 : undefined}
+                key={item.slug}
+              >
+                <span className="content-map-dot" aria-hidden="true" />
+                <span className="content-map-leader" aria-hidden="true" />
+                <span className="content-map-tag" aria-hidden="true">{label}</span>
+                <span className="visually-hidden">{label}</span>
+              </button>;
+            })()
           ))}
         </div>
       </div>

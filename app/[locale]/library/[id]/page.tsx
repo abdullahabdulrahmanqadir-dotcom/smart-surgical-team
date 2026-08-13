@@ -10,7 +10,7 @@ import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
 import BackToPrevious from "../../../components/BackToPrevious";
-import { IconArrowRight, IconClock, IconFile, IconPlay } from "../../../components/icons";
+import { IconArrowRight, IconFile, IconPlay } from "../../../components/icons";
 import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../../lib/i18n";
@@ -36,7 +36,7 @@ function RelatedSkeleton({ t }: { t: Dictionary["library"] }) {
 }
 
 /** Streamed separately from the case itself so the article never waits on it. */
-async function RelatedContent({ locale, t, contentId, topicSlug, kind }: { locale: Locale; t: Dictionary["library"]; contentId: string; topicSlug: string; kind: ContentKind }) {
+async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: Locale; contentId: string; topicSlug: string; kind: ContentKind }) {
   const allContent = await getLibraryContent();
   const related = allContent.filter((item) => item.id !== contentId && (item.topicSlug === topicSlug || item.kind === kind)).slice(0, 3);
   if (!related.length) return <div className="related-grid" />;
@@ -53,7 +53,6 @@ async function RelatedContent({ locale, t, contentId, topicSlug, kind }: { local
             </div>
             <span className="related-topic">{item.topic}</span>
             <h3>{item.title}</h3>
-            <p><IconClock size={14} /> {item.kind === "webinar_recording" ? t.recordedWebinar : t.videoLesson}</p>
           </Link>
         );
       })}
@@ -149,7 +148,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
             The reader gets the article as soon as it is ready; the rail fills
             in behind placeholder cards a moment later. */}
         <Suspense fallback={<RelatedSkeleton t={dict.library} />}>
-          <RelatedContent locale={active} t={dict.library} contentId={content.id} topicSlug={content.topicSlug} kind={content.kind} />
+          <RelatedContent locale={active} contentId={content.id} topicSlug={content.topicSlug} kind={content.kind} />
         </Suspense>
       </section>
     </main>

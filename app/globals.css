@@ -1377,7 +1377,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    off its structure. */
 .content-map-dot { position: absolute; left: 0; top: 0; width: .62rem; height: .62rem; transform: translate(-50%, -50%); border: 2px solid var(--surface); border-radius: 50%; background: var(--primary); box-shadow: 0 2px 7px rgba(4,70,77,.4); transition: transform 200ms ease; }
 .content-map-leader { position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: color-mix(in srgb, var(--primary) 62%, transparent); }
-.content-map-tag { position: absolute; top: 0; padding: .3rem .6rem; transform: translateY(-50%); border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--line)); border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-sm); font-size: .72rem; font-weight: 600; line-height: 1.2; white-space: nowrap; transition: border-color 180ms ease, background 180ms ease, color 180ms ease; }
+.content-map-tag { position: absolute; top: 0; box-sizing: border-box; inline-size: 8rem; padding: .3rem .6rem; transform: translateY(-50%); border: 1px solid color-mix(in srgb, var(--primary) 38%, var(--line)); border-radius: 999px; background: var(--surface); box-shadow: var(--shadow-sm); font-size: .72rem; font-weight: 600; line-height: 1.25; text-align: center; white-space: normal; transition: border-color 180ms ease, background 180ms ease, color 180ms ease; }
 /* The pill is only ~25px tall, so it grows an invisible hit area to clear the
    minimum touch target without changing how it looks. */
 .content-map-tag::after { content: ""; position: absolute; inset: -10px -8px; }
