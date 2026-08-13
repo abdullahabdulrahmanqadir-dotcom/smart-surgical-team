@@ -2,13 +2,12 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import SocialLinks from "../../components/SocialLinks";
 import ScrollMotion from "../../components/ScrollMotion";
-import { IconArrowRight, IconClock, IconGlobe, IconMail, IconPin } from "../../components/icons";
+import { IconArrowRight, IconClock, IconMail, IconPin } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { notFound } from "next/navigation";
 
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
-const TOWER_URL = "https://smarthealth.group/ar";
 /* Pinned by coordinates rather than by name: searching for "Smart Health Tower"
    drops the map on empty ground, these are the tower itself. */
 const MAP_COORDS = "35.5685910,45.4430236";
@@ -48,7 +47,6 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
                 <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
                 <div><dt><IconPin size={19} /> {dict.contact.location}</dt><dd>{dict.footer.address}</dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
-                <div><dt><IconGlobe size={19} /> {dict.contact.online}</dt><dd><a href={TOWER_URL} target="_blank" rel="noreferrer">smarthealthtower</a></dd></div>
               </dl>
               <div className="contact-social-section">
                 <p>{dict.contact.followTower}</p>

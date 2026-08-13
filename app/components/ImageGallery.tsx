@@ -13,7 +13,7 @@ const FIT_ZOOM = 1;
 /** Untransformed layout box of the image, measured relative to the canvas. */
 type FitBox = { width: number; height: number; centreX: number; centreY: number };
 
-export default function ImageGallery({ images, label, t, presentation = "gallery" }: { images: Image[]; label?: string; t: Dictionary["media"]; presentation?: "gallery" | "poster" }) {
+export default function ImageGallery({ images, label, t, presentation = "gallery" }: { images: Image[]; label?: string; t: Dictionary["media"]; presentation?: "gallery" | "poster" | "hero" }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState(FIT_ZOOM);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -224,15 +224,17 @@ export default function ImageGallery({ images, label, t, presentation = "gallery
   };
 
   const isPoster = presentation === "poster";
+  const isHero = presentation === "hero";
 
-  return <section className={`case-image-gallery${isPoster ? " poster-image-viewer" : ""}`} aria-labelledby={isPoster ? undefined : "case-images-title"} aria-label={isPoster ? (label ?? t.imageViewer) : undefined}>
-    {isPoster ? null : <span className="aside-label" id="case-images-title">{label ?? t.caseImages}</span>}
+  return <section className={`case-image-gallery${isPoster ? " poster-image-viewer" : ""}${isHero ? " content-hero-image hero-image-viewer" : ""}`} aria-labelledby={isPoster || isHero ? undefined : "case-images-title"} aria-label={isPoster || isHero ? (label ?? t.imageViewer) : undefined}>
+    {isPoster || isHero ? null : <span className="aside-label" id="case-images-title">{label ?? t.caseImages}</span>}
     <div className="case-image-thumbnails">{images.map((image, index) =>
       <button key={image.id} type="button" onClick={() => open(index)} aria-label={fill(t.openImage, { index: index + 1, count: images.length })}>
-        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? t.caseImage} eager={isPoster} />
+        <LazyImage className="case-image-thumb" src={image.publicUrl} alt={image.altText ?? t.caseImage} eager={isPoster || isHero} />
         <span className="case-image-thumb-badge">{t.openImageBadge}</span>
       </button>)}
     </div>
+    {isHero && images[0]?.caption ? <p className="content-hero-caption">{images[0].caption}</p> : null}
     {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || t.imageViewer}>
       <div className="image-lightbox-bar">
         <p className="image-lightbox-title">{active.caption || active.altText || t.caseImage}{images.length > 1 ? <span> · {(openIndex ?? 0) + 1} / {images.length}</span> : null}</p>

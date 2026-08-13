@@ -147,7 +147,7 @@ export const en = {
     email: "Email",
     location: "Location",
     hours: "Hours",
-    hoursValue: "Saturday to Thursday",
+    hoursValue: "Saturday to Thursday, from 1pm",
     online: "Online",
     followTower: "Follow Smart Health Tower",
     visitUs: "Visit us",

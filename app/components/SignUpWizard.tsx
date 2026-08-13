@@ -35,11 +35,13 @@ export default function SignUpWizard({ locale, t }: { locale: string; t: Diction
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
 
   function setError(text: string) { setMessage({ type: "error", text }); }
 
   async function handleGoogle() {
+    if (!acceptedLegal) return setError(locale === "ar" ? "يرجى الموافقة على شروط الاستخدام وسياسة الخصوصية للمتابعة." : "Please agree to the Terms of Use and Privacy Policy to continue.");
     setGoogleLoading(true);
     setMessage(null);
     try {
@@ -53,6 +55,7 @@ export default function SignUpWizard({ locale, t }: { locale: string; t: Diction
   function submitEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim()) return setError(t.emailRequired);
+    if (!acceptedLegal) return setError(locale === "ar" ? "يرجى الموافقة على شروط الاستخدام وسياسة الخصوصية للمتابعة." : "Please agree to the Terms of Use and Privacy Policy to continue.");
     setMessage(null); setStep(2);
   }
 
@@ -78,7 +81,7 @@ export default function SignUpWizard({ locale, t }: { locale: string; t: Diction
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/${locale}/sign-in`,
-          data: { first_name: firstName.trim(), last_name: lastName.trim(), full_name: `${firstName.trim()} ${lastName.trim()}`, organisation: organisation.trim(), job_title: jobTitle.trim(), city: city.trim(), country: country.trim() },
+          data: { first_name: firstName.trim(), last_name: lastName.trim(), full_name: `${firstName.trim()} ${lastName.trim()}`, organisation: organisation.trim(), job_title: jobTitle.trim(), city: city.trim(), country: country.trim(), legal_accepted_at: new Date().toISOString(), legal_version: "2026-08-13" },
         },
       });
       if (error) throw error;
@@ -97,6 +100,7 @@ export default function SignUpWizard({ locale, t }: { locale: string; t: Diction
   const status = message && <p className={`form-message is-${message.type}`} role={message.type === "error" ? "alert" : "status"}>{message.type === "success" && <IconCheck size={17} />}{message.text}</p>;
 
   return <div className="auth-card auth-card-wizard">{progress}<div className="auth-card-head wizard-head"><span className="auth-kicker">{fill(t.stepKicker, { step })}</span><h1>{heading}</h1><p>{description}</p></div>{status}
+    {step === 1 && <label className="legal-consent"><input type="checkbox" checked={acceptedLegal} onChange={(event) => setAcceptedLegal(event.target.checked)}/><span>{locale === "ar" ? <>أوافق على <Link href={`/${locale}/terms`}>شروط الاستخدام</Link> و<Link href={`/${locale}/privacy`}>سياسة الخصوصية</Link>.</> : <>I agree to the <Link href={`/${locale}/terms`}>Terms of Use</Link> and <Link href={`/${locale}/privacy`}>Privacy Policy</Link>.</>}</span></label>}
     {step === 1 && <button className="auth-provider" type="button" onClick={handleGoogle} disabled={googleLoading}><span className="auth-provider-mark auth-provider-google" aria-hidden="true">G</span><span>{googleLoading ? t.redirecting : t.continueGoogle}</span><IconArrowRight size={18} /></button>}
     {step === 1 && <p className="auth-google-disclosure">{locale === "ar" ? <>بالمتابعة عبر Google، توافق على مشاركة الاسم والبريد الإلكتروني ومعرّف حساب Google لإنشاء حسابك أو تسجيل الدخول إليه. راجع <Link href={`/${locale}/privacy`}>سياسة الخصوصية</Link>.</> : <>By continuing with Google, you agree to share your name, email address, and Google account identifier to create or sign in to your account. See our <Link href={`/${locale}/privacy`}>Privacy Policy</Link>.</>}</p>}
     {step === 1 && <div className="auth-divider"><span>{t.emailDivider}</span></div>}

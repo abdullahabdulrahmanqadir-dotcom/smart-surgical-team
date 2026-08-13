@@ -39,6 +39,12 @@ export default function ScrollMotion() {
     });
 
     document.documentElement.dataset.motionReady = "true";
+    // IntersectionObserver callbacks are not guaranteed to arrive promptly on
+    // every mobile browser during a client-side navigation.  The reveal effect
+    // must never become a condition for reading the page, so make all sections
+    // visible shortly afterwards as a safe fallback.
+    const revealAll = () => elements.forEach((element) => element.classList.add("is-revealed"));
+    const fallbackTimer = window.setTimeout(revealAll, 700);
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -52,6 +58,7 @@ export default function ScrollMotion() {
     elements.forEach((element) => observer.observe(element));
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       observer.disconnect();
       delete document.documentElement.dataset.motionReady;
       elements.forEach((element) => {

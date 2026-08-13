@@ -147,7 +147,7 @@ export const ar: Dictionary = {
     email: "البريد الإلكتروني",
     location: "الموقع",
     hours: "ساعات العمل",
-    hoursValue: "من السبت إلى الخميس",
+    hoursValue: "من السبت إلى الخميس، من الساعة 1 ظهراً",
     online: "عبر الإنترنت",
     followTower: "تابع برج الصحة Smart",
     visitUs: "زُرنا",
