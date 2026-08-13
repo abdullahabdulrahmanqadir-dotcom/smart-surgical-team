@@ -18,7 +18,7 @@ const TOWER_URL = "https://smarthealth.group/ar";
 /**
  * Extracted from the home page so every page shares one footer. The class names
  * are the originals — their styles already exist in globals.css and the
- * four-column grid depends on this exact structure.
+ * three-column layout keeps the compact social presence intentional.
  */
 export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const home = localePath(locale);
@@ -31,18 +31,29 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
             <BrandMark size={54} />
             <span className="brand-name">{dict.brand.name}</span>
           </Link>
-          <SocialLinks className="socials" t={dict.social} />
+          <SocialLinks className="socials footer-socials" t={dict.social} showLabels />
         </div>
 
-        <nav className="footer-col" aria-label={dict.footer.quickLinks}>
-          <h3>{dict.footer.quickLinks}</h3>
-          <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
-          <Link href={localePath(locale, "research")}>{dict.nav.research}</Link>
-          <Link href={localePath(locale, "posters")}>{dict.nav.posters}</Link>
-          <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
-          <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
-          <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
-        </nav>
+        <div className="footer-navigation">
+          <nav className="footer-col" aria-label={dict.footer.quickLinks}>
+            <h3>{dict.footer.quickLinks}</h3>
+            <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
+            <Link href={localePath(locale, "research")}>{dict.nav.research}</Link>
+            <Link href={localePath(locale, "posters")}>{dict.nav.posters}</Link>
+            <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
+            <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
+            <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
+          </nav>
+
+          <nav className="footer-col" aria-label={dict.topics.title}>
+            <h3>{dict.topics.title}</h3>
+            {PUBLIC_TOPIC_GROUPS.map((group) => (
+              <Link key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
+                {dict.taxonomy[group.slug as keyof Dictionary["taxonomy"]] ?? group.name}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <div className="footer-col">
           <h3>{dict.footer.contactUs}</h3>
@@ -58,17 +69,6 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           </p>
         </div>
 
-        {/* Replaces a hardcoded Kurdish column from the pre-i18n design. That
-            column existed to show *some* non-English copy on an English-only
-            page; the locale switcher does that job properly now. */}
-        <nav className="footer-col" aria-label={dict.topics.title}>
-          <h3>{dict.topics.title}</h3>
-          {PUBLIC_TOPIC_GROUPS.map((group) => (
-            <Link key={group.slug} href={localePath(locale, `topics/${group.slug}`)}>
-              {dict.taxonomy[group.slug as keyof Dictionary["taxonomy"]] ?? group.name}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       <div className="footer-bottom">
@@ -76,8 +76,8 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           © {new Date().getFullYear()} {dict.brand.name}. {dict.footer.rights}
         </span>
         <span className="footer-legal">
-          <Link href={home}>{dict.footer.privacy}</Link>
-          <Link href={home}>{dict.footer.terms}</Link>
+          <Link href={localePath(locale, "privacy")}>{dict.footer.privacy}</Link>
+          <Link href={localePath(locale, "terms")}>{dict.footer.terms}</Link>
         </span>
       </div>
     </footer>

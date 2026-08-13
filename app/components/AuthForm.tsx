@@ -102,6 +102,7 @@ function SignInForm({ locale, t }: { locale: string; t: Dictionary["auth"] }) {
         <span>{googleLoading ? t.redirecting : t.continueGoogle}</span>
         <IconArrowRight size={18} />
       </button>
+      <p className="auth-google-disclosure">{locale === "ar" ? <>بالمتابعة عبر Google، توافق على مشاركة الاسم والبريد الإلكتروني ومعرّف حساب Google لإنشاء حسابك أو تسجيل الدخول إليه. راجع <Link href={`/${locale}/privacy`}>سياسة الخصوصية</Link>.</> : <>By continuing with Google, you agree to share your name, email address, and Google account identifier to create or sign in to your account. See our <Link href={`/${locale}/privacy`}>Privacy Policy</Link>.</>}</p>
 
       <div className="auth-divider"><span>{t.emailDivider}</span></div>
 

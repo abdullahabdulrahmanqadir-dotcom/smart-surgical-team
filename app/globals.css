@@ -1490,6 +1490,8 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 @media (max-width: 720px) { .latest-case-card { grid-template-columns:1fr; }.latest-case-art { min-height:12rem; }.latest-case-section { padding:1rem; }.latest-case-copy { padding:1.25rem; } }
 @media (max-width: 520px) { .content-browser-hero-copy h2 { font-size: clamp(2.5rem, 13vw, 3.35rem); } .content-topic-switcher, .content-case-grid { grid-template-columns: 1fr; } .content-topic-option { min-height: 5.55rem; } .content-case-art { min-height: 11rem; } .content-search, .content-select { flex-basis: 100%; } }
 
+@media (max-width: 520px) { .footer-navigation { grid-template-columns: 1fr; gap: 1.75rem; } }
+
 .topic-index-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2342,9 +2344,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   margin: 0 auto;
   padding: clamp(2.5rem, 5vw, 3.5rem) var(--gutter);
   display: grid;
-  grid-template-columns: 1.5fr 0.8fr 1.2fr 1fr;
-  gap: 2.5rem;
+  grid-template-columns: minmax(14rem, 1fr) minmax(20rem, 1.45fr) minmax(16rem, 1.05fr);
+  gap: clamp(2rem, 4vw, 4.5rem);
 }
+
+.footer-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1.5rem, 4vw, 3.5rem); }
 
 .footer-brand p {
   margin-top: 1rem;
@@ -2375,6 +2379,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   color: var(--primary);
   border-color: var(--primary);
 }
+
+.footer-socials { margin-top: 1.35rem; }
+.footer-socials a { display: inline-flex; width: auto; min-height: 36px; gap: .5rem; padding: 0 .8rem; border-radius: 999px; font-size: .8rem; font-weight: 700; text-decoration: none; }
 
 
 .footer-col h3 {
@@ -2431,6 +2438,21 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   color: var(--primary);
 }
 
+/* Public legal pages are deliberately simple, readable long-form documents. */
+.legal-page { max-width: 52rem; margin: 0 auto; padding: clamp(3.5rem, 8vw, 6.5rem) var(--gutter) clamp(5rem, 10vw, 8rem); }
+.legal-page header { padding-bottom: 2rem; border-bottom: 1px solid var(--line); }
+.legal-page h1 { margin-top: .45rem; font-size: clamp(2.35rem, 5vw, 4.25rem); }
+.legal-updated { margin-top: .9rem; color: var(--text-soft); font-size: .85rem; }
+.legal-page article { margin-top: 2.5rem; }
+.legal-page article > section + section { margin-top: 2.25rem; padding-top: 2.25rem; border-top: 1px solid var(--line); }
+.legal-page h2 { font-family: var(--font-body-stack); font-size: 1.08rem; font-weight: 800; }
+.legal-page p, .legal-page li { color: var(--text-muted); line-height: 1.8; }
+.legal-page p + p { margin-top: .9rem; }
+.legal-page ul { display: grid; gap: .65rem; margin: 1rem 0 0; padding-inline-start: 1.25rem; }
+.legal-page a, .auth-google-disclosure a { color: var(--primary); font-weight: 700; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.legal-lead { color: var(--text) !important; font-size: 1.08rem; line-height: 1.85 !important; }
+.auth-google-disclosure { margin-top: .7rem; color: var(--text-soft); font-size: .72rem; line-height: 1.55; text-align: center; }
+
 /* ============================================================
    Responsive
    ============================================================ */
@@ -2475,9 +2497,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .footer-main {
-    grid-template-columns: 1fr 1fr;
-  }
+  .footer-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+  .footer-navigation { grid-column: 1 / -1; }
 
 }
 
@@ -2689,6 +2711,8 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+
+  .footer-navigation { grid-column: auto; }
 
   .footer-legal a {
     margin: 0 1.25rem 0 0;
@@ -3148,6 +3172,26 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .profile-recommendations { overflow: hidden; background: color-mix(in srgb, var(--surface) 90%, var(--brand-ivory)); }
 .recommendation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; margin-top: 1.4rem; }.recommendation-grid a { display: grid; grid-template-columns: 1fr auto; gap: .22rem .75rem; min-height: 126px; padding: 1.05rem; border: 1px solid color-mix(in srgb, var(--brand-copper) 27%, var(--line)); border-radius: var(--radius-md); background: var(--surface); color: var(--text); transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }.recommendation-grid a:hover { transform: translateY(-3px); border-color: var(--brand-copper); box-shadow: var(--shadow-sm); }.recommendation-grid span { color: var(--accent); font-size: .69rem; font-weight: 800; letter-spacing: var(--tracking-label); }.recommendation-grid strong { grid-column: 1; align-self: end; font-size: .9rem; }.recommendation-grid small { grid-column: 1; color: var(--text-muted); font-size: .74rem; line-height: 1.45; }.recommendation-grid svg { grid-column: 2; grid-row: 1 / span 3; align-self: end; color: var(--accent); }
 .profile-events-empty { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; align-items: center; margin-top: 1.35rem; padding: 1.05rem; border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--primary-soft) 48%, var(--surface)); }.profile-events-date { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--brand-teal-deep); color: #fff; font-size: .68rem; font-weight: 800; letter-spacing: .08em; }.profile-events-empty h3 { font-family: var(--font-body-stack); font-size: .9rem; }.profile-events-empty p { margin-top: .22rem; color: var(--text-muted); font-size: .78rem; line-height: 1.5; }.profile-events-empty a { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line)); border-radius: 50%; color: var(--primary); transition: transform .2s ease, background .2s ease; }.profile-events-empty a:hover { transform: translateX(2px); background: var(--surface); }
+
+/* The profile uses warm ivory washes in the light theme. Replace those mixes
+   in dark mode so the personal workspace remains genuinely dark. */
+[data-theme="dark"] .profile-page { background: linear-gradient(120deg, #1c1613, #15110f 54%, #120f0d); }
+[data-theme="dark"] .profile-page::before { border-color: rgba(223, 160, 102, .16); }
+[data-theme="dark"] .profile-identity { border-color: #47372c; background: #201915; box-shadow: 0 13px 32px rgba(0, 0, 0, .32); }
+[data-theme="dark"] .profile-welcome { border-color: #4f3a2c; background: #241c17; box-shadow: 0 17px 38px rgba(0, 0, 0, .38); }
+[data-theme="dark"] .profile-metrics > div { border-color: #46362b; background: #2a201a; }
+[data-theme="dark"] .profile-panel { border-color: #44342a; background: #211a16; box-shadow: 0 10px 27px rgba(0, 0, 0, .3); }
+[data-theme="dark"] .profile-recommendations { background: #211a16; }
+[data-theme="dark"] .recommendation-grid a { border-color: #49392e; background: #2a201a; }
+[data-theme="dark"] .profile-events-empty { border-color: #31534e; background: #1d2926; }
+
+/* Keep the editorial About treatment and the adjacent contact-details card
+   grounded in the dark palette instead of blending in the light ivory wash. */
+[data-theme="dark"] .about-page { background: linear-gradient(90deg, #1d1713, #15110f 42%, #171310); }
+[data-theme="dark"] .about-page::before { background: rgba(223, 160, 102, .34); }
+[data-theme="dark"] .about-statement::after, [data-theme="dark"] .about-closing::before { background: #b97845; }
+[data-theme="dark"] .team-profile { border-color: #44342a; background: #211a16; }
+[data-theme="dark"] .contact-details { border-color: #3d4c46; background: #201a16; box-shadow: 0 16px 40px rgba(0, 0, 0, .38); }
 
 @media (max-width: 900px) { .contact-layout { margin-inline: 0; }.profile-layout { grid-template-columns: minmax(0, 1fr); }.profile-page::before { width: 100%; height: 13rem; border-inline-end: 0; border-bottom: 1px solid color-mix(in srgb, var(--brand-copper) 19%, transparent); } }
 @media (max-width: 680px) { .about-page::before, .team-group::after { display: none; }.about-statement::after { inset-inline-end: 0; }.contact-intro { padding-inline-start: 1.1rem; }.contact-layout { grid-template-columns: 1fr; }.contact-location { min-height: 340px; }.profile-metrics, .recommendation-grid { grid-template-columns: 1fr; }.profile-welcome-orbit { top: -10rem; }.profile-events-empty { grid-template-columns: auto minmax(0, 1fr) auto; }.profile-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

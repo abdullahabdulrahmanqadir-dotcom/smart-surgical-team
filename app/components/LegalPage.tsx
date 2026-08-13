@@ -1,0 +1,73 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import type { Locale } from "../lib/i18n";
+
+type LegalPageProps = { locale: Locale; kind: "privacy" | "terms" };
+
+const updated = "13 August 2026";
+
+function EnglishPrivacy() {
+  return <>
+    <p className="legal-lead">This Privacy Policy explains how Smart Surgical Team (“we”, “us”, or “our”) handles personal information when you use this website, create an account, or sign in with Google.</p>
+    <Section title="Who we are and how to contact us"><p>Smart Surgical Team provides educational content about head and neck surgery. For privacy questions or requests, email <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>. Our contact location is Smart Health Tower, Sulaymaniyah, Iraq.</p></Section>
+    <Section title="Information we collect"><ul><li><b>Account information:</b> your name, email address, and the profile details you provide during registration, such as organisation, professional role, city, and country.</li><li><b>Google sign-in information:</b> when you choose “Continue with Google”, Google and our authentication provider provide the basic profile information needed to identify your account, including your name, email address, and Google account identifier. We do not request access to Gmail, Google Drive, Google Calendar, or other Google Workspace content.</li><li><b>Learning preferences:</b> items you save for later and the preferences you set in your learning profile.</li><li><b>Communications:</b> information you include when you email us.</li><li><b>Technical information:</b> limited technical information needed to deliver, secure, and troubleshoot the website, such as browser and device information, IP-related security data, and authentication/session data processed by our hosting and authentication providers.</li></ul></Section>
+    <Section title="How we use information"><p>We use personal information to create and secure accounts; provide saved-learning and account features; respond to enquiries; protect the website and prevent misuse; maintain and improve the service; and comply with legal obligations. We do not sell personal information or use it for targeted advertising.</p></Section>
+    <Section title="Google user data"><p>Google sign-in is used only to authenticate you and create or link your Smart Surgical Team account. We use the Google information described above only for those visible account features. We do not sell, rent, transfer, or use Google user data for advertising, profiling, or training general-purpose artificial intelligence models.</p><p>The use of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer">Google API Services User Data Policy</a>, including its Limited Use requirements.</p></Section>
+    <Section title="Service providers and sharing"><p>We use service providers to operate the website, including Supabase for authentication and account data, Cloudflare for hosting and media delivery, and Google where you elect to use Google sign-in. These providers process information only as needed to provide their services. We may also disclose information where required to protect rights, safety, and security, or to comply with applicable law.</p></Section>
+    <Section title="Retention and security"><p>We retain account information while your account remains active and for a reasonable period afterward where necessary for security, legal compliance, dispute resolution, or legitimate operational records. We use reasonable technical and organisational measures designed to protect information; however, no internet service can guarantee absolute security.</p></Section>
+    <Section title="Your choices and rights"><p>You can update available profile information and saved items through your account. You may request access, correction, deletion, or restriction of your personal information by emailing us. We may need to verify your identity and may retain limited information where required by law or for legitimate security purposes.</p></Section>
+    <Section title="International processing and changes"><p>Your information may be processed in countries where our service providers operate. When we update this Policy, we will post the revised version here and update the “Last updated” date. Material changes to Google user-data practices will be disclosed before the changed use begins.</p></Section>
+  </>;
+}
+
+function EnglishTerms() {
+  return <>
+    <p className="legal-lead">These Terms of Use govern access to the Smart Surgical Team website and learning platform. By accessing or using it, you agree to these Terms and our <Link href="/en/privacy">Privacy Policy</Link>.</p>
+    <Section title="Educational purpose — not medical advice"><p>The website provides professional and academic educational material. It does not provide individual medical advice, diagnosis, treatment, emergency guidance, or a substitute for professional judgment. Clinical decisions remain the responsibility of the treating clinician, who must consider the individual patient, current evidence, local requirements, and applicable professional standards.</p></Section>
+    <Section title="Accounts and access"><p>You must provide accurate information, protect your sign-in credentials, and notify us promptly if you believe your account has been used without permission. You are responsible for activity occurring through your account. We may suspend or restrict access where reasonably necessary to protect the service, users, or legal rights.</p></Section>
+    <Section title="Acceptable use"><p>You must not misuse the service, interfere with its operation, attempt unauthorised access, scrape or reproduce content at scale, upload malicious material, infringe rights, or use the platform in a way that is unlawful, deceptive, harmful, or inconsistent with its educational purpose.</p></Section>
+    <Section title="Content and intellectual property"><p>Unless stated otherwise, the website design, text, graphics, educational materials, and branding are owned by or licensed to Smart Surgical Team and are protected by applicable intellectual-property laws. You may use publicly available material for personal, non-commercial learning and professional reference. You may not reproduce, distribute, modify, sell, or publicly republish material without prior written permission, except where applicable law allows it.</p></Section>
+    <Section title="Clinical content and patient privacy"><p>Educational content must not be used to identify a patient. Do not submit patient-identifying information through the website. Any clinical material is presented for education and may be updated, corrected, or removed at any time.</p></Section>
+    <Section title="Third-party services"><p>The website may link to or embed third-party services, including Google sign-in, Google Maps, YouTube, LinkedIn, and external research resources. Those services are governed by their own terms and privacy policies. We are not responsible for third-party content, availability, or practices.</p></Section>
+    <Section title="Disclaimers and liability"><p>To the maximum extent permitted by applicable law, the service is provided “as is” and “as available”, without warranties of any kind. We do not guarantee that content is complete, current, error-free, or suitable for a particular purpose. To the maximum extent permitted by law, Smart Surgical Team is not liable for indirect, incidental, consequential, special, or punitive losses arising from use of, or inability to use, the service.</p></Section>
+    <Section title="Changes, termination, and contact"><p>We may change, suspend, or discontinue any part of the service and may update these Terms from time to time. Continued use after an update takes effect means you accept the updated Terms. Questions about these Terms can be sent to <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>.</p></Section>
+  </>;
+}
+
+function ArabicPrivacy() {
+  return <>
+    <p className="legal-lead">توضح سياسة الخصوصية هذه كيفية تعامل فريق Smart Surgical Team مع المعلومات الشخصية عند استخدامك للموقع أو إنشاء حساب أو تسجيل الدخول عبر Google.</p>
+    <Section title="من نحن وكيفية التواصل معنا"><p>يقدّم فريق Smart Surgical Team محتوى تعليمياً في جراحة الرأس والعنق. للاستفسارات أو الطلبات المتعلقة بالخصوصية، راسلنا على <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>. يقع مقر التواصل في برج الصحة Smart، السليمانية، العراق.</p></Section>
+    <Section title="المعلومات التي نجمعها"><ul><li><b>معلومات الحساب:</b> الاسم والبريد الإلكتروني والبيانات المهنية التي تقدمها عند التسجيل، مثل جهة العمل والمسمى الوظيفي والمدينة والبلد.</li><li><b>معلومات تسجيل الدخول عبر Google:</b> عند اختيار المتابعة عبر Google، تزودنا Google ومزوّد المصادقة بمعلومات الملف الأساسي اللازمة للتعرف على حسابك، بما في ذلك الاسم والبريد الإلكتروني ومعرّف حساب Google. لا نطلب الوصول إلى Gmail أو Google Drive أو Google Calendar أو محتوى Google Workspace آخر.</li><li><b>تفضيلات التعلّم:</b> المواد التي تحفظها والتفضيلات التي تضبطها في ملفك التعليمي.</li><li><b>المراسلات:</b> المعلومات التي تدرجها عند مراسلتنا بالبريد الإلكتروني.</li><li><b>المعلومات التقنية:</b> المعلومات التقنية المحدودة اللازمة لتقديم الموقع وتأمينه واستكشاف الأعطال، مثل معلومات المتصفح والجهاز وبيانات الأمان المرتبطة بعنوان IP وبيانات الجلسة والمصادقة.</li></ul></Section>
+    <Section title="كيفية استخدام المعلومات"><p>نستخدم المعلومات لإنشاء الحسابات وتأمينها، وتقديم ميزات التعلّم المحفوظ والملف الشخصي، والرد على الاستفسارات، وحماية الموقع من إساءة الاستخدام، والالتزام بالالتزامات القانونية. لا نبيع المعلومات الشخصية ولا نستخدمها للإعلانات الموجّهة.</p></Section>
+    <Section title="بيانات مستخدم Google"><p>يُستخدم تسجيل الدخول عبر Google فقط لمصادقتك وإنشاء حسابك أو ربطه بحساب Smart Surgical Team. لا نبيع أو نؤجر أو ننقل بيانات مستخدم Google، ولا نستخدمها للإعلان أو التنميط أو تدريب نماذج ذكاء اصطناعي عامة.</p><p>يخضع استخدام المعلومات المستلمة من واجهات Google لسياسة <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer">بيانات مستخدمي خدمات Google API</a>، بما في ذلك متطلبات الاستخدام المحدود.</p></Section>
+    <Section title="مزوّدو الخدمة ومشاركة المعلومات"><p>نستخدم Supabase للمصادقة وبيانات الحساب، وCloudflare للاستضافة وتقديم الوسائط، وGoogle إذا اخترت تسجيل الدخول عبرها. نعالج المعلومات أو نفصح عنها فقط بالقدر اللازم لتقديم الخدمات أو لحماية الحقوق والأمن أو عندما يقتضي القانون ذلك.</p></Section>
+    <Section title="الاحتفاظ والأمان"><p>نحتفظ بمعلومات الحساب طوال فترة نشاط الحساب ولمدة معقولة بعد ذلك عند الحاجة للأمن أو الالتزام القانوني أو تسوية النزاعات. نستخدم تدابير تقنية وتنظيمية معقولة، لكن لا يمكن لأي خدمة عبر الإنترنت ضمان أمان مطلق.</p></Section>
+    <Section title="حقوقك وخياراتك"><p>يمكنك تحديث المعلومات المتاحة وحذف المواد المحفوظة من حسابك. يمكنك طلب الوصول إلى معلوماتك أو تصحيحها أو حذفها أو تقييد معالجتها عبر مراسلتنا بالبريد الإلكتروني. قد نتحقق من هويتك ونحتفظ بمعلومات محدودة عندما يقتضي القانون أو الأمن ذلك.</p></Section>
+  </>;
+}
+
+function ArabicTerms() {
+  return <>
+    <p className="legal-lead">تنظّم شروط الاستخدام هذه الوصول إلى موقع ومنصة التعلّم الخاصة بفريق Smart Surgical Team. باستخدامك لها، فإنك توافق على هذه الشروط وعلى <Link href="/ar/privacy">سياسة الخصوصية</Link>.</p>
+    <Section title="غرض تعليمي وليس نصيحة طبية"><p>يقدّم الموقع مادة تعليمية وأكاديمية ولا يقدّم نصيحة طبية فردية أو تشخيصاً أو علاجاً أو إرشاداً للطوارئ. تظل القرارات السريرية مسؤولية الطبيب المعالج مع مراعاة حالة المريض والأدلة الحديثة والمتطلبات المحلية والمعايير المهنية المعمول بها.</p></Section>
+    <Section title="الحسابات والوصول"><p>يجب تقديم معلومات دقيقة وحماية بيانات تسجيل الدخول وإبلاغنا فوراً عند الاشتباه باستخدام غير مصرح به. أنت مسؤول عن النشاط الذي يتم عبر حسابك. يجوز لنا تعليق أو تقييد الوصول عند الضرورة المعقولة لحماية الخدمة أو المستخدمين أو الحقوق القانونية.</p></Section>
+    <Section title="الاستخدام المقبول"><p>يجب ألا تسيء استخدام الخدمة أو تعرقل عملها أو تحاول الوصول غير المصرح به أو تجمع المحتوى آلياً أو تعيد إنتاجه على نطاق واسع أو ترفع مواد ضارة أو تنتهك الحقوق أو تستخدم المنصة بشكل غير قانوني أو مضلل أو ضار أو مخالف لغرضها التعليمي.</p></Section>
+    <Section title="المحتوى والملكية الفكرية"><p>ما لم يذكر خلاف ذلك، فإن تصميم الموقع والنصوص والرسومات والمواد التعليمية والعلامات مملوكة أو مرخّصة لفريق Smart Surgical Team. يجوز استخدام المواد المتاحة للعامة للتعلّم الشخصي غير التجاري والمرجع المهني، ولا يجوز نسخها أو توزيعها أو تعديلها أو بيعها أو إعادة نشرها علناً دون إذن كتابي مسبق إلا حيث يسمح القانون.</p></Section>
+    <Section title="المحتوى السريري وخصوصية المرضى"><p>لا يجوز استخدام المحتوى التعليمي لتحديد هوية أي مريض. لا ترسل معلومات تعرّف بالمرضى عبر الموقع. ويجوز تحديث أي مادة سريرية أو تصحيحها أو إزالتها في أي وقت.</p></Section>
+    <Section title="الخدمات الخارجية"><p>قد يرتبط الموقع بخدمات خارجية أو يضمّنها، مثل Google وخرائط Google وYouTube وLinkedIn ومصادر الأبحاث الخارجية. تخضع تلك الخدمات لشروطها وسياسات الخصوصية الخاصة بها، ولا نتحمل مسؤولية محتواها أو توافرها أو ممارساتها.</p></Section>
+    <Section title="إخلاء المسؤولية وحدودها"><p>إلى أقصى حد يسمح به القانون، تُقدّم الخدمة كما هي وحسب توافرها دون ضمانات. لا نضمن اكتمال المحتوى أو حداثته أو خلوه من الأخطاء أو ملاءمته لغرض معين. وإلى الحد الذي يسمح به القانون، لا يتحمل فريق Smart Surgical Team مسؤولية الخسائر غير المباشرة أو العرضية أو التبعية أو الخاصة أو العقابية الناشئة عن استخدام الخدمة أو تعذر استخدامها.</p></Section>
+    <Section title="التغييرات والتواصل"><p>يجوز لنا تعديل أو تعليق أو إيقاف أي جزء من الخدمة وتحديث هذه الشروط من وقت لآخر. ويعني استمرار الاستخدام بعد سريان التحديث قبول الشروط المحدّثة. يمكن إرسال الأسئلة إلى <a href="mailto:info@smartsurgicalteam.com">info@smartsurgicalteam.com</a>.</p></Section>
+  </>;
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return <section><h2>{title}</h2>{children}</section>;
+}
+
+export default function LegalPage({ locale, kind }: LegalPageProps) {
+  const arabic = locale === "ar";
+  const privacy = kind === "privacy";
+  const title = privacy ? (arabic ? "سياسة الخصوصية" : "Privacy Policy") : (arabic ? "شروط الاستخدام" : "Terms of Use");
+  return <main className="legal-page"><header><p className="section-kicker">Smart Surgical Team</p><h1>{title}</h1><p className="legal-updated">{arabic ? "آخر تحديث: 13 أغسطس 2026" : `Last updated: ${updated}`}</p></header><article>{privacy ? (arabic ? <ArabicPrivacy /> : <EnglishPrivacy />) : (arabic ? <ArabicTerms /> : <EnglishTerms />)}</article></main>;
+}
