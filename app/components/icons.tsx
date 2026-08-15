@@ -217,6 +217,15 @@ export function IconCheck(props: IconProps) {
   );
 }
 
+export function IconTrash(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M4.5 7h15M9 7V4.5h6V7M7 7l.8 13h8.4L17 7" />
+      <path d="M10 10.5v6M14 10.5v6" />
+    </svg>
+  );
+}
+
 export function IconSparkle(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

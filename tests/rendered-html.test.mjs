@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-async function fetchPath(path, headers = {}) {
+async function fetchPath(path, headers = {}, init = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${path}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request(`http://localhost${path}`, { headers: { accept: "text/html", ...headers } }),
+    new Request(`http://localhost${path}`, { ...init, headers: { accept: "text/html", ...headers, ...(init.headers ?? {}) } }),
     { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
     { waitUntil() {}, passThroughOnException() {} },
   );
@@ -79,6 +79,11 @@ test("renders the complete staff directory with its local portraits", async () =
     assert.ok(html.includes(name), `${name} should appear in the staff directory`);
     assert.ok(html.includes(portrait), `${name} should use their local portrait`);
   }
+});
+
+test("account deletion requires an authenticated session", async () => {
+  const response = await fetchPath("/api/profile", { "content-type": "application/json" }, { method: "DELETE" });
+  assert.equal(response.status, 401);
 });
 
 test("renders the bilingual clinical poster archive", async () => {
