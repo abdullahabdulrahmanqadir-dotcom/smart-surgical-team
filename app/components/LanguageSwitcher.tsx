@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { IconChevronDown, IconGlobe } from "./icons";
+import { IconChevronDown } from "./icons";
 import { LOCALES, LOCALE_META, swapLocaleInPath, type Locale } from "../lib/i18n";
 
 const flagClass: Record<Locale, string> = {
@@ -22,6 +22,7 @@ export default function LanguageSwitcher({
   label: string;
 }) {
   const pathname = usePathname() ?? `/${locale}`;
+  const activeMeta = LOCALE_META[locale];
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   // The header renders this switcher twice (desktop bar and mobile nav), so the
@@ -44,17 +45,18 @@ export default function LanguageSwitcher({
   }, []);
 
   return (
-    <div className={`language-menu${open ? " is-open" : ""}`} ref={menuRef}>
+    <div className={`language-menu${open ? " is-open" : ""}`} ref={menuRef} translate="no">
       <button
         className="language-trigger"
         type="button"
+        aria-label={`${label}: ${activeMeta.label}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
       >
-        <IconGlobe className="language-trigger-icon" size={18} />
-        <span className="language-trigger-text">{label}</span>
+        <span className={`language-flag ${flagClass[locale]}`} aria-hidden="true" />
+        <span className="language-trigger-text" lang={activeMeta.htmlLang}>{activeMeta.label}</span>
         <IconChevronDown className="language-trigger-chevron" size={15} />
       </button>
 
