@@ -13,7 +13,7 @@ import BackToPrevious from "../../../components/BackToPrevious";
 import { IconArrowRight, IconFile, IconPlay } from "../../../components/icons";
 import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
-import { isLocale, localePath, type Locale } from "../../../lib/i18n";
+import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
 import { TEAM_GROUPS } from "../../../lib/team";
 import TranslatableContent from "../../../components/TranslatableContent";
@@ -52,7 +52,7 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
               <span className="related-play"><IconPlay size={18} /></span>
             </div>
             <span className="related-topic">{item.topic}</span>
-            <h3>{item.title}</h3>
+            <h3 {...authoredTitleProps(item.title)}>{item.title}</h3>
           </Link>
         );
       })}
@@ -105,8 +105,8 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <main id="main-content" className="content-page">
-      <nav className="content-breadcrumb" aria-label={dict.library.breadcrumb}><Link href={localePath(active, "topics")}>{dict.library.content}</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b>{content.title}</b></nav>
-      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} t={dict.saveCase} /></div>
+      <nav className="content-breadcrumb" aria-label={dict.library.breadcrumb}><Link href={localePath(active, "topics")}>{dict.library.content}</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b {...authoredTitleProps(content.title)}>{content.title}</b></nav>
+      <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1 {...authoredTitleProps(content.title)}>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} t={dict.saveCase} /></div>
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} t={dict.media} />

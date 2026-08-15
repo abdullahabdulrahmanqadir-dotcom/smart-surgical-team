@@ -6,7 +6,7 @@ import { IconArrowRight, IconCalendar, IconPin } from "./icons";
 // From `event-data`, not `events`: this is a client component, and `events`
 // pulls in `next/cache`, which has no browser equivalent.
 import { eventDateRange, type TeamEvent } from "../lib/event-data";
-import { localePath, type Locale } from "../lib/i18n";
+import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 
 export default function EventsExplorer({ locale, events, t }: { locale: Locale; events: TeamEvent[]; t: Dictionary["events"] }) {
@@ -28,7 +28,7 @@ export default function EventsExplorer({ locale, events, t }: { locale: Locale; 
   const formatLabel = (value: string) => ({ "in-person": t.inPerson, hybrid: t.hybrid, online: t.online }[value] ?? value);
   const renderEvent = (event: TeamEvent) => <Link className="event-row" href={localePath(locale, `events/${event.slug}`)} key={event.slug}>
     <div className="event-row-date"><b>{new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(`${event.startDate}T12:00:00`))}</b><strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong><span>{event.startDate.slice(0, 4)}</span></div>
-    <div className="event-row-copy"><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? t.pastEvent : t.upcoming}</span><span>{typeLabel(event.type)}</span><span>{formatLabel(event.format)}</span></div><h3>{event.title}</h3><p>{event.summary}</p><div className="event-meta"><span><IconCalendar size={15}/>{eventDateRange(event, locale)}</span><span><IconPin size={15}/>{event.location}</span></div></div>
+    <div className="event-row-copy"><div className="event-card-tags"><span className={`event-status event-status-${event.status}`}>{event.status === "past" ? t.pastEvent : t.upcoming}</span><span>{typeLabel(event.type)}</span><span>{formatLabel(event.format)}</span></div><h3 {...authoredTitleProps(event.title)}>{event.title}</h3><p>{event.summary}</p><div className="event-meta"><span><IconCalendar size={15}/>{eventDateRange(event, locale)}</span><span><IconPin size={15}/>{event.location}</span></div></div>
     <span className="event-row-go" aria-hidden="true"><IconArrowRight size={19}/></span>
   </Link>;
   const upcoming = filtered.filter((event) => event.status === "upcoming");

@@ -7,7 +7,7 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import { IconArrowRight } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
-import { isLocale, localePath, type Locale } from "../../lib/i18n";
+import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getPosters, type PosterEntry } from "../../lib/posters";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 function PosterCard({ poster, locale, label }: { poster: PosterEntry; locale: Locale; label: string }) {
   return <Link className="poster-card" href={localePath(locale, `posters/${poster.slug}`)} aria-label={`${label}: ${poster.title}`}>
     <span className="poster-card-image"><img src={poster.imageUrl} alt="" loading="lazy" width={640} height={640}/></span>
-    <span className="poster-card-copy"><small>{poster.label}</small><strong>{poster.title}</strong><span>{label} <IconArrowRight size={16}/></span></span>
+    <span className="poster-card-copy"><small>{poster.label}</small><strong {...authoredTitleProps(poster.title)}>{poster.title}</strong><span>{label} <IconArrowRight size={16}/></span></span>
   </Link>;
 }
 
@@ -53,7 +53,7 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
         <div className="poster-details">
           <span className="poster-featured-label">{t.featured}</span>
           <span className="poster-study-type">{featured.label}</span>
-          <h2 id="featured-poster-title">{featured.title}</h2>
+          <h2 id="featured-poster-title" {...authoredTitleProps(featured.title)}>{featured.title}</h2>
           <p className="poster-summary">{featured.summary}</p>
           <Link className="btn btn-primary btn-lg poster-open" href={localePath(active, `posters/${featured.slug}`)}>{t.viewDetails} <IconArrowRight size={18}/></Link>
         </div>

@@ -31,6 +31,14 @@ export function dirFor(locale: Locale): "ltr" | "rtl" {
   return LOCALE_META[locale].dir;
 }
 
+/** Keep authored titles in their own bidi context inside either site locale. */
+export function authoredTitleProps(text: string) {
+  const isArabic = /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]/.test(text);
+  return isArabic
+    ? ({ dir: "rtl", lang: "ar" } as const)
+    : ({ dir: "ltr", lang: "en", translate: "no" } as const);
+}
+
 /**
  * Picks the best locale from an Accept-Language header, falling back to the
  * default. Used only to redirect "/" — never to override an explicit choice,

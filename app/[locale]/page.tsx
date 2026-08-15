@@ -16,7 +16,7 @@ import {
   IconPlus,
   IconSparkle,
 } from "../components/icons";
-import { isLocale, localePath, type Locale } from "../lib/i18n";
+import { authoredTitleProps, isLocale, localePath, type Locale } from "../lib/i18n";
 import { fill, getDictionary, type Dictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/events";
@@ -67,7 +67,7 @@ async function UpcomingEvents({ locale, t, eventT }: { locale: Locale; t: Dictio
             <strong>{new Date(`${event.startDate}T12:00:00`).getDate()}</strong>
           </span>
           <span className="webinar-body">
-            <h3>{event.title}</h3>
+            <h3 {...authoredTitleProps(event.title)}>{event.title}</h3>
             <p>{event.location}</p>
             <small>
               <IconClock size={13} /> {eventDateRange(event, locale)}
@@ -227,7 +227,7 @@ export default async function Home({
           <div className="research-preview-head"><div><span className="section-kicker">{dict.home.researchKicker}</span><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media">{latestResearch.imageUrl ? <img src={latestResearch.imageUrl} alt="" loading="lazy"/> : <span className="research-preview-placeholder"><IconFile size={40}/></span>}<span className="research-preview-badge">{latestResearch.category}</span></div>
-            <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span><h3>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
+            <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span><h3 {...authoredTitleProps(latestResearch.title)}>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
           </Link>
         </section>}
 
@@ -265,7 +265,7 @@ export default async function Home({
                 <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
                   <span className="team-feature-portrait"><img src={member.portrait} alt={fill(dict.home.portraitOf, { name: member.name })} width={96} height={96} loading="lazy" decoding="async"/></span>
                   <span className="team-feature-body">
-                    <h3>{member.name}</h3>
+                    <h3 {...authoredTitleProps(member.name)}>{member.name}</h3>
                     <p>{member.role}</p>
                     <small>{member.credentials}</small>
                   </span>
