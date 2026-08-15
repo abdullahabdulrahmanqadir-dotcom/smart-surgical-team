@@ -5,13 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import { contentThumbnailUrl } from "../lib/content-thumbnail";
-import { IconArrowRight, IconBell, IconBookmark, IconCalendar, IconCheck, IconFile, IconLayers, IconLogOut, IconMail, IconPlay, IconSliders, IconUser } from "./icons";
+import { IconArrowRight, IconBookmark, IconCalendar, IconFile, IconLayers, IconLogOut, IconMail, IconPlay, IconUser } from "./icons";
 import TopicGlyph from "./TopicGlyph";
 import { fill, type Dictionary } from "../lib/dictionaries";
 
 type Member = { name: string; email: string } | null;
 type SavedCase = { slug: string; title: string; summary: string; topic: string; kind: string; duration: string; videoUrl?: string; thumbnailSource?: "youtube" | "image"; thumbnailUrl?: string };
-type ProfileSection = "overview" | "saved" | "events" | "preferences";
+type ProfileSection = "overview" | "saved";
 
 function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {
   const thumbnail = contentThumbnailUrl(savedCase);
@@ -23,21 +23,11 @@ function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {
 export default function MemberProfile({ locale, initialMember, t }: { locale: string; initialMember: Member; t: Dictionary["profile"] }) {
   const [member, setMember] = useState<Member>(initialMember);
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
-  const [emailUpdates, setEmailUpdates] = useState(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const stored = window.localStorage.getItem("sst-profile-preferences");
-      return stored ? JSON.parse(stored).emailUpdates ?? true : true;
-    } catch {
-      return true;
-    }
-  });
-  const [saved, setSaved] = useState(false);
   const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
   const initials = useMemo(() => (member?.name ?? "SST").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(), [member]);
   const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
-    { id: "overview", label: t.overview, icon: IconUser }, { id: "saved", label: t.savedLearning, icon: IconBookmark },
-    { id: "events", label: t.events, icon: IconCalendar }, { id: "preferences", label: t.preferences, icon: IconSliders },
+    { id: "overview", label: t.overview, icon: IconUser },
+    { id: "saved", label: t.savedLearning, icon: IconBookmark },
   ];
 
   useEffect(() => {
@@ -65,19 +55,13 @@ export default function MemberProfile({ locale, initialMember, t }: { locale: st
   useEffect(() => {
     const syncActiveSection = () => {
       const section = window.location.hash.slice(1);
-      if (["overview", "saved", "events", "preferences"].includes(section)) setActiveSection(section as ProfileSection);
+      if (["overview", "saved"].includes(section)) setActiveSection(section as ProfileSection);
     };
 
     syncActiveSection();
     window.addEventListener("hashchange", syncActiveSection);
     return () => window.removeEventListener("hashchange", syncActiveSection);
   }, []);
-
-  function savePreferences() {
-    try { localStorage.setItem("sst-profile-preferences", JSON.stringify({ emailUpdates })); } catch { /* no persistent browser storage */ }
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 3200);
-  }
 
   async function removeSavedCase(slug: string) {
     const nextSavedCases = savedCases.filter((savedCase) => savedCase.slug !== slug);
@@ -124,10 +108,6 @@ export default function MemberProfile({ locale, initialMember, t }: { locale: st
       <div className="profile-content">
         {activeSection !== "saved" && <>
         <section className="profile-welcome" id="overview"><div className="profile-welcome-orbit" aria-hidden="true"><i /><i /><i /></div><span className="auth-kicker">{t.learningSpace}</span><h2>{fill(t.welcome, { name: member.name.split(" ")[0] })}</h2><p>{t.welcomeBody}</p><div className="profile-metrics"><div><IconBookmark size={19} /><strong>{t.savedCases}</strong><span>{savedCases.length ? fill(savedCases.length === 1 ? t.savedCount : t.savedCountPlural, { count: savedCases.length }) : t.collectionReady}</span></div><div><IconLayers size={19} /><strong>{t.learningPath}</strong><span>{t.learningPathBody}</span></div><div><IconCalendar size={19} /><strong>{t.eventsMetric}</strong><span>{t.eventsMetricBody}</span></div></div></section>
-
-        <section className="profile-panel profile-events" id="events"><div className="profile-panel-heading"><div><span className="auth-kicker">{t.eventsWebinars}</span><h2>{t.eventsTitle}</h2></div><Link href={`/${locale}/events`} className="text-link">{t.viewEvents}</Link></div><div className="profile-events-empty"><span className="profile-events-date">SST</span><div><h3>{t.upcomingTitle}</h3><p>{t.upcomingBody}</p></div><Link href={`/${locale}/events`} aria-label={t.exploreEvents}><IconArrowRight size={18} /></Link></div></section>
-
-        <section className="profile-panel" id="preferences"><div className="profile-panel-heading"><div><span className="auth-kicker">{t.preferences}</span><h2>{t.preferencesTitle}</h2></div></div><label className="preference-toggle"><span><IconBell size={19} /><span><b>{t.learningUpdates}</b><small>{t.updatesBody}</small></span></span><input type="checkbox" checked={emailUpdates} onChange={(event) => setEmailUpdates(event.target.checked)} /><i aria-hidden="true" /></label><div className="profile-save-row"><button className="btn btn-primary" type="button" onClick={savePreferences}>{t.savePreferences}</button>{saved && <p role="status"><IconCheck size={17} />{t.preferencesSaved}</p>}</div></section>
         </>}
         {activeSection === "saved" && <section className="profile-saved-section" id="saved" aria-labelledby="saved-learning-title"><div className="profile-panel-heading"><div><span className="auth-kicker">{t.savedLearning}</span><h2 id="saved-learning-title">{t.referenceLibrary}</h2><p>{t.referenceBody}</p></div><Link href={`/${locale}/topics`} className="text-link">{t.browseTopics}</Link></div>{savedCases.length ? <div className="saved-content-grid">{savedCases.map((savedCase) => { const kindLabel = savedCase.kind === "webinar_recording" ? t.webinarRecording : savedCase.kind === "case_article" ? t.caseArticle : savedCase.kind === "poster" ? t.poster : t.video; return <article className="saved-content-card" key={savedCase.slug}><Link className="saved-content-open" href={`/${locale}/library/${savedCase.slug}`} aria-label={fill(t.openCase, { title: savedCase.title })}><div className="saved-content-art"><SavedCaseArtwork savedCase={savedCase} /><span className="saved-content-type">{savedCase.kind === "video" || savedCase.kind === "webinar_recording" ? <IconPlay size={12} /> : <IconFile size={12} />}{kindLabel}</span></div><div className="saved-content-copy"><p>{savedCase.topic}</p><h3>{savedCase.title}</h3><span>{savedCase.summary}</span><div><small /><IconArrowRight size={18} /></div></div></Link><button className="saved-content-remove" type="button" onClick={() => void removeSavedCase(savedCase.slug)} aria-label={fill(t.removeCase, { title: savedCase.title })}>{t.remove}</button></article>; })}</div> : <div className="saved-empty"><div className="saved-empty-icon"><IconBookmark size={22} /></div><div><h3>{t.nothingSaved}</h3><p>{t.nothingSavedBody}</p></div></div>}</section>}
       </div>
