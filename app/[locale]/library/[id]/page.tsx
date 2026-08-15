@@ -10,7 +10,7 @@ import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
 import BackToPrevious from "../../../components/BackToPrevious";
-import { IconArrowRight, IconFile, IconPlay } from "../../../components/icons";
+import { IconArrowRight, IconFile } from "../../../components/icons";
 import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
@@ -49,7 +49,6 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
           <Link href={localePath(locale, `library/${item.slug}`)} className="related-card" key={item.id}>
             <div className={`related-art tone-${(index % 4) + 1}`}>
               {thumbnail ? <LazyImage className="related-thumbnail" src={thumbnail} /> : null}
-              <span className="related-play"><IconPlay size={18} /></span>
             </div>
             <span className="related-topic">{item.topic}</span>
             <h3 {...authoredTitleProps(item.title)}>{item.title}</h3>
@@ -119,6 +118,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
               // English database prose, so the wrapper marks those alone.
               <TranslatableContent
                 locale={active}
+                autoTranslate={active === "ar"}
                 labels={{
                   translate: dict.library.translateCase,
                   translating: dict.library.translatingCase,

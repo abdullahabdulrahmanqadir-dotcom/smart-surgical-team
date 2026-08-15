@@ -3368,7 +3368,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-breadcrumb-back:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; border-radius: var(--radius-sm); }
 .presenter-team-link { margin-top: 1.75rem; }
 .related-art::after { display: none; }
-.related-grid { grid-auto-rows: 23rem; }
+.related-grid { grid-auto-rows: 19rem; }
 .related-art { min-height: 10rem; height: 10rem; flex-basis: 10rem; }
 @media (max-width: 620px) { .related-grid { grid-auto-rows: 22rem; }.related-art { min-height: 10.5rem; height: 10.5rem; flex-basis: 10.5rem; } }
 
