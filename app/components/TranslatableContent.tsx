@@ -58,10 +58,14 @@ export default function TranslatableContent({
   children,
   locale,
   labels,
+  autoTranslate = false,
+  className,
 }: {
   children: React.ReactNode;
   locale: string;
   labels: { translate: string; translating: string; downloading: string; showOriginal: string; failed: string };
+  autoTranslate?: boolean;
+  className?: string;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const originals = useRef<Map<Text, string> | null>(null);
@@ -78,13 +82,16 @@ export default function TranslatableContent({
     api
       .availability({ sourceLanguage: "en", targetLanguage: "ar" })
       .then((status) => {
-        if (!cancelled && status !== "unavailable") setSupported(true);
+        if (!cancelled && status !== "unavailable") {
+          setSupported(true);
+          if (autoTranslate) void translate();
+        }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [locale]);
+  }, [autoTranslate, locale]);
 
   async function translate() {
     const host = hostRef.current;
@@ -130,7 +137,7 @@ export default function TranslatableContent({
 
   return (
     <>
-      {supported ? (
+      {supported && !autoTranslate ? (
         <div className="case-translate" translate="no">
           <button
             type="button"
@@ -149,11 +156,11 @@ export default function TranslatableContent({
           </button>
           {phase === "error" ? <span className="case-translate-error">{labels.failed}</span> : null}
         </div>
-      ) : null}
+      ) : autoTranslate && phase === "error" ? <span className="case-translate-error" translate="no">{labels.failed}</span> : null}
 
       {/* lang marks the prose as English so a browser page-translate recognises
           it; translate="yes" re-enables translation inside the /ar opt-out. */}
-      <div ref={hostRef} lang="en" translate="yes">
+      <div ref={hostRef} className={className} lang="en" translate="yes">
         {children}
       </div>
     </>
