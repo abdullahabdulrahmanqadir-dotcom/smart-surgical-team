@@ -86,6 +86,15 @@ test("account deletion requires an authenticated session", async () => {
   assert.equal(response.status, 401);
 });
 
+test("mobile translation fallback rejects malformed requests before calling its provider", async () => {
+  const response = await fetchPath(
+    "/api/translate",
+    { "content-type": "application/json", accept: "application/json" },
+    { method: "POST", body: JSON.stringify({ texts: [] }) },
+  );
+  assert.equal(response.status, 400);
+});
+
 test("renders the bilingual clinical poster archive", async () => {
   for (const [locale, heading] of [["en", "Clinical posters"], ["ar", "ملصقات سريرية"]]) {
     const response = await fetchPath(`/${locale}/posters`);

@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Wraps database-authored English prose on an Arabic page.
  *
- * Two mechanisms, deliberately layered, because neither covers everyone:
+ * Three mechanisms, deliberately layered, because no single one covers every
+ * browser:
  *
  *  1. Markup. The layout sets translate="no" on <body> for /ar so a browser
  *     page-translate cannot re-translate the already-correct Arabic interface.
@@ -13,10 +14,13 @@ import { useEffect, useRef, useState } from "react";
  *     which is also what tells the browser the content is foreign in the first
  *     place. Works in every browser, including mobile, and needs no JS.
  *
- *  2. The on-device Translator API (Chrome 138+/Edge 148+, desktop only). Where
+ *  2. The on-device Translator API (Chrome 138+/Edge 148+). Where
  *     available it powers the button below, translating in place with no network
- *     round-trip and no API key. Everywhere else the button never renders and
- *     mechanism 1 remains the path.
+ *     round-trip and no API key.
+ *
+ *  3. A same-origin server fallback for mobile browsers and other clients that
+ *     do not expose the Translator API. This keeps the same in-place experience
+ *     on phones instead of silently leaving the prose in English.
  *
  * The API translates strings, not markup, so this walks text nodes and rewrites
  * them individually — passing the sanitized HTML through wholesale would mangle
@@ -34,6 +38,8 @@ type TranslatorCtor = {
     monitor?: (m: EventTarget) => void;
   }) => Promise<TranslatorLike>;
 };
+
+type TranslationResponse = { translations?: unknown };
 
 function translatorApi(): TranslatorCtor | undefined {
   return (globalThis as unknown as { Translator?: TranslatorCtor }).Translator;
@@ -54,6 +60,43 @@ function textNodes(root: HTMLElement): Text[] {
   return found;
 }
 
+function preserveOuterWhitespace(source: string, translated: string): string {
+  const leading = source.match(/^\s*/)?.[0] ?? "";
+  const trailing = source.match(/\s*$/)?.[0] ?? "";
+  return `${leading}${translated}${trailing}`;
+}
+
+async function translateOnServer(texts: string[]): Promise<string[]> {
+  const batches: string[][] = [];
+  for (const text of texts) {
+    const current = batches.at(-1);
+    const currentLength = current?.reduce((total, item) => total + item.length, 0) ?? 0;
+    if (!current || current.length >= 20 || currentLength + text.length > 14_000) batches.push([text]);
+    else current.push(text);
+  }
+
+  const translations: string[] = [];
+  for (const batch of batches) {
+    const response = await fetch("/api/translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ texts: batch }),
+    });
+    if (!response.ok) throw new Error("Server translation failed");
+
+    const payload = await response.json() as TranslationResponse;
+    if (
+      !Array.isArray(payload.translations) ||
+      payload.translations.length !== batch.length ||
+      payload.translations.some((value) => typeof value !== "string")
+    ) {
+      throw new Error("Invalid server translation response");
+    }
+    translations.push(...payload.translations as string[]);
+  }
+  return translations;
+}
+
 export default function TranslatableContent({
   children,
   locale,
@@ -69,34 +112,23 @@ export default function TranslatableContent({
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const originals = useRef<Map<Text, string> | null>(null);
-  const [supported, setSupported] = useState(false);
+  const autoStarted = useRef(false);
   const [phase, setPhase] = useState<Phase>("idle");
+  const supported = locale === "ar";
 
-  // Feature detection has to run client-side: the server cannot know whether
-  // this particular browser ships the model.
+  // Translation is available on every Arabic page: the native API is preferred
+  // when present, and the same-origin route covers mobile browsers.
   useEffect(() => {
     if (locale !== "ar") return;
-    const api = translatorApi();
-    if (!api) return;
-    let cancelled = false;
-    api
-      .availability({ sourceLanguage: "en", targetLanguage: "ar" })
-      .then((status) => {
-        if (!cancelled && status !== "unavailable") {
-          setSupported(true);
-          if (autoTranslate) void translate();
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    if (autoTranslate && !autoStarted.current) {
+      autoStarted.current = true;
+      void translate();
+    }
   }, [autoTranslate, locale]);
 
   async function translate() {
     const host = hostRef.current;
-    const api = translatorApi();
-    if (!host || !api) return;
+    if (!host) return;
 
     try {
       setPhase("checking");
@@ -105,20 +137,38 @@ export default function TranslatableContent({
         originals.current = new Map(nodes.map((n) => [n, n.nodeValue ?? ""]));
       }
 
-      const translator = await api.create({
-        sourceLanguage: "en",
-        targetLanguage: "ar",
-        // First use may pull the model down; surface that rather than looking hung.
-        monitor: (m) => m.addEventListener("downloadprogress", () => setPhase("downloading")),
-      });
+      const sources = nodes.map((node) => originals.current?.get(node) ?? node.nodeValue ?? "");
+      const trimmed = sources.map((source) => source.trim());
+      let translations: string[] | undefined;
+      const api = translatorApi();
+
+      if (api) {
+        try {
+          const availability = await api.availability({ sourceLanguage: "en", targetLanguage: "ar" });
+          if (availability !== "unavailable") {
+            const translator = await api.create({
+              sourceLanguage: "en",
+              targetLanguage: "ar",
+              // First use may pull the model down; surface that rather than looking hung.
+              monitor: (m) => m.addEventListener("downloadprogress", () => setPhase("downloading")),
+            });
+            setPhase("translating");
+            translations = [];
+            for (const source of trimmed) translations.push(await translator.translate(source));
+          }
+        } catch {
+          // The native model can fail to download. Continue with the mobile-safe
+          // server path instead of turning that into a visible failure.
+        }
+      }
 
       setPhase("translating");
-      for (const node of nodes) {
-        const source = originals.current.get(node) ?? node.nodeValue ?? "";
-        if (!source.trim()) continue;
-        node.nodeValue = await translator.translate(source);
-      }
+      translations ??= await translateOnServer(trimmed);
+      nodes.forEach((node, index) => {
+        node.nodeValue = preserveOuterWhitespace(sources[index], translations[index]);
+      });
       host.setAttribute("lang", "ar");
+      host.setAttribute("dir", "rtl");
       setPhase("done");
     } catch {
       setPhase("error");
@@ -130,6 +180,7 @@ export default function TranslatableContent({
     if (!host || !originals.current) return;
     for (const [node, value] of originals.current) node.nodeValue = value;
     host.setAttribute("lang", "en");
+    host.setAttribute("dir", "ltr");
     setPhase("idle");
   }
 
