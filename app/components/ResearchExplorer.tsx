@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { IconArrowRight, IconFile, IconSearch } from "./icons";
+import { IconArrowRight, IconSearch } from "./icons";
 import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import type { Publication } from "../lib/research";
 import type { Dictionary } from "../lib/dictionaries";
@@ -76,7 +76,7 @@ export default function ResearchExplorer({ publications, locale, t }: { publicat
     <div className="research-archive-heading"><h1 id="publications-heading">{t.publications}</h1></div>
     <div className="research-controls" aria-label={t.filterPublications}><label className="research-search"><IconSearch size={18}/><span className="visually-hidden">{t.searchPublications}</span><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></label><label>{t.year}<select value={year} onChange={(event) => { setYear(event.target.value); setPage(1); }}><option value="all">{t.allYears}</option>{years.map((value) => <option value={value} key={value}>{value}</option>)}</select></label><label>{t.type}<select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">{t.allTypes}</option>{categories.map((value) => <option value={value} key={value}>{categoryLabel(value)}</option>)}</select></label>{(query || year !== "all" || category !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}</div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
-      <div className="research-card-image">{paper.imageUrl ? <img src={paper.imageUrl} alt="" loading="lazy"/> : <IconFile size={34}/>}<span>{paper.category}</span></div>
+      <div className="research-card-image"><img src={paper.coverUrl} alt="" loading="lazy"/><span>{paper.category}</span></div>
       <div className="research-card-copy"><p className="research-card-year">{paper.year}</p><h3 {...authoredTitleProps(paper.title)}>{paper.title}</h3><p className="research-authors">{paper.authors}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div>
     </Link>)}</div>
     {totalPages > 1 && <nav className="research-pagination" aria-label={t.publicationPages}><button type="button" onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>{t.previous}</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => goToPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>{t.next}</button></nav>}

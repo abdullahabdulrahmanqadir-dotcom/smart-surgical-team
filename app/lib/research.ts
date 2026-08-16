@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "./cache-tags";
+import { researchCoverPath } from "./research-cover";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
 import { TEAM_GROUPS } from "./team";
 
@@ -16,7 +17,10 @@ export type Publication = {
   id: number;
   title: string;
   link: string;
+  /** A harvested figure, or "" when the paper has none. */
   imageUrl: string;
+  /** Always renderable: the figure above, else generated cover art. */
+  coverUrl: string;
   authors: string;
   abstract: string;
   date: string;
@@ -90,6 +94,7 @@ function mapRow(row: ResearchRow): Publication {
     title: row.title,
     link: row.link ?? "",
     imageUrl: row.cover_image_url ?? "",
+    coverUrl: row.cover_image_url || researchCoverPath(row.id),
     authors: row.authors ?? "Smart Health research team",
     abstract: row.abstract ?? "",
     date,

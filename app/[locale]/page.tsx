@@ -11,7 +11,6 @@ import {
   IconArrowRight,
   IconCheck,
   IconClock,
-  IconFile,
   IconGlobe,
   IconPlus,
   IconSparkle,
@@ -226,7 +225,7 @@ export default async function Home({
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
           <div className="research-preview-head"><div><span className="section-kicker">{dict.home.researchKicker}</span><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
-            <div className="research-preview-media">{latestResearch.imageUrl ? <img src={latestResearch.imageUrl} alt="" loading="lazy"/> : <span className="research-preview-placeholder"><IconFile size={40}/></span>}<span className="research-preview-badge">{latestResearch.category}</span></div>
+            <div className="research-preview-media"><img src={latestResearch.coverUrl} alt="" loading="lazy"/><span className="research-preview-badge">{latestResearch.category}</span></div>
             <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span><h3 {...authoredTitleProps(latestResearch.title)}>{latestResearch.title}</h3>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
           </Link>
         </section>}

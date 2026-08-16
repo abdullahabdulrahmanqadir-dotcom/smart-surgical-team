@@ -2080,7 +2080,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .research-preview-media { position:relative; display:grid; place-items:center; min-height:16rem; overflow:hidden; background:var(--primary-soft); color:var(--primary); }
 .research-preview-media img { position:absolute; inset:0; inline-size:100%; block-size:100%; object-fit:cover; transition:transform .35s ease; }
 .research-preview-card:hover .research-preview-media img { transform:scale(1.045); }
-.research-preview-placeholder { display:grid; place-items:center; }
 .research-preview-badge { position:absolute; z-index:1; inset:.85rem auto auto .85rem; padding:.4rem .6rem; border-radius:var(--radius-sm); background:rgba(13,56,56,.88); color:#fff; font-size:.65rem; font-weight:750; text-transform:uppercase; letter-spacing:var(--tracking-label); }
 .research-preview-body { display:flex; flex-direction:column; align-items:flex-start; padding:clamp(1.5rem,3vw,2.5rem); }
 .research-preview-kicker { color:var(--primary); font-size:.7rem; font-weight:750; text-transform:uppercase; letter-spacing:var(--tracking-label); }
