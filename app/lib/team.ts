@@ -42,7 +42,6 @@ export const TEAM_GROUPS: TeamGroup[] = [
     title: "Research Staff",
     intro: "Supporting thoughtful clinical research, data analysis and scientific communication.",
     members: [
-      { name: "Shko H. Hassan", credentials: "M.B.Ch.B.", role: "Research Staff", portrait: "/staff/Shko H. Hassan.avif" },
       { name: "Abdullah A. Qadr", credentials: "M.B.Ch.B.", role: "Research Staff", portrait: "/staff/Abdullah A. Qadr.avif" },
     ],
   },
@@ -50,6 +49,7 @@ export const TEAM_GROUPS: TeamGroup[] = [
     title: "SST Doctors",
     intro: "Clinical care and long-term support for people with thyroid and head and neck conditions.",
     members: [
+      { name: "Shko H. Hassan", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Shko H. Hassan.avif" },
       { name: "Saeed H. Ali", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Saeed H. Ali.avif" },
       { name: "Muhammad H. Ali", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Muhammad H. Ali.avif" },
       { name: "Osama A. Ali", credentials: "S.H.O.", role: "Doctor", portrait: "/staff/Osama A. Ali.avif" },
