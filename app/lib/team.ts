@@ -5,6 +5,8 @@ export type TeamMember = {
   credentials: string;
   role: string;
   portrait: string;
+  /** Kept in the roster (portraits, research author matching) but not rendered on the About page. */
+  hidden?: boolean;
 };
 
 export type TeamGroup = {
@@ -22,9 +24,9 @@ export const TEAM_GROUPS: TeamGroup[] = [
       { name: "Prof. Abdulwahid M. Salih", credentials: "M.D. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Prof. Abdulwahid M. Salih.avif" },
       { name: "Yadgar A. Saeed", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Yadgar A. Saeed.avif" },
       { name: "Aso S. Muhialdeen", credentials: "F.K.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Aso S. Muhialdeen.avif" },
-      { name: "Hardi M. Zahir", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Hardi M. Zahir.avif" },
+      { name: "Hardi M. Zahir", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Hardi M. Zahir.avif", hidden: true },
       { name: "Karzan M. Salih", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Karzan M. Salih.avif" },
-      { name: "Imad S. Sedeeq", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Imad S. Sedeeq.avif" },
+      { name: "Imad S. Sedeeq", credentials: "F.I.B.M.S. (General Surgery)", role: "Head & Neck & Thyroid Surgery", portrait: "/staff/Imad S. Sedeeq.avif", hidden: true },
     ],
   },
   {
@@ -52,9 +54,9 @@ export const TEAM_GROUPS: TeamGroup[] = [
       { name: "Muhammad H. Ali", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Muhammad H. Ali.avif" },
       { name: "Osama A. Ali", credentials: "S.H.O.", role: "Doctor", portrait: "/staff/Osama A. Ali.avif" },
       { name: "Shallaw A. Nasradin", credentials: "S.H.O.", role: "Doctor", portrait: "/staff/Shallaw A. Nasradin.avif" },
-      { name: "Kaihan A. Najar", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Kaihan A. Najar.avif" },
+      { name: "Kaihan A. Najar", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Kaihan A. Najar.avif", hidden: true },
       { name: "Mohammed L. Ahmad", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Mohammed L. Ahmad.avif" },
-      { name: "Ahmad L. Ali", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Ahmad L. Ali.avif" },
+      { name: "Ahmad L. Ali", credentials: "M.B.Ch.B.", role: "Doctor", portrait: "/staff/Ahmad L. Ali.avif", hidden: true },
       { name: "Abdullah O. Hassan", credentials: "S.H.O.", role: "Doctor", portrait: "/staff/Abdullah O. Hassan.avif" },
     ],
   },
@@ -97,6 +99,8 @@ export function getLocalizedTeamGroups(t: Dictionary["team"]): TeamGroup[] {
   return TEAM_GROUPS.map((group, index) => ({
     ...group,
     ...groupCopy[index],
-    members: group.members.map((member) => ({ ...member, ...copyFor(member.name) })),
+    members: group.members
+      .filter((member) => !member.hidden)
+      .map((member) => ({ ...member, ...copyFor(member.name) })),
   }));
 }
