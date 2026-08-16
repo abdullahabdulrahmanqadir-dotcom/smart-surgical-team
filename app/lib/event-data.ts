@@ -92,7 +92,12 @@ export function getEvent(slug: string) {
 }
 
 export function localizeFallbackEvent(event: TeamEvent, t: Dictionary["eventFallback"]): TeamEvent {
-  if (event.fallbackKey === "secondMet") return {
+  // Database-backed copies of the built-in events do not carry `fallbackKey`.
+  // Recover it from the stable slug so those records still use the active
+  // locale instead of leaking their English database fields into Arabic pages.
+  const fallbackKey = event.fallbackKey ?? EVENTS.find((candidate) => candidate.slug === event.slug)?.fallbackKey;
+
+  if (fallbackKey === "secondMet") return {
     ...event,
     title: t.secondTitle, shortTitle: t.secondShortTitle, topic: t.secondTopic, location: t.secondLocation, summary: t.secondSummary,
     highlights: [t.secondHighlightOne, t.secondHighlightTwo, t.secondHighlightThree, t.secondHighlightFour],
@@ -102,7 +107,7 @@ export function localizeFallbackEvent(event: TeamEvent, t: Dictionary["eventFall
       country: [t.iraq, t.usa, t.korea, t.uk][index] ?? faculty.country,
     })),
   };
-  if (event.fallbackKey === "firstMet") return {
+  if (fallbackKey === "firstMet") return {
     ...event,
     title: t.firstTitle, shortTitle: t.firstShortTitle, topic: t.firstTopic, location: t.firstLocation, summary: t.firstSummary,
     highlights: [t.firstHighlightOne, t.firstHighlightTwo, t.firstHighlightThree],

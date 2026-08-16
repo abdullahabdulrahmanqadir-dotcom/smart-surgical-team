@@ -304,6 +304,8 @@ test("events hub and its two initial records are available in every locale", asy
     assert.equal(detail.status, 200);
     const detailHtml = await detail.text();
     assert.match(detailHtml, locale === "ar" ? /التسجيل عبر موقع القمة/ : /Register on MET site/);
+    assert.match(detailHtml, locale === "ar" ? /جلسات علمية بقيادة الخبراء/ : /Expert-led scientific panels/);
+    assert.match(detailHtml, locale === "ar" ? /محاكاة اجتماعات فريق الأورام/ : /Tumour board simulations/);
     assert.match(detailHtml, /mets\.smarthealth\.group\/register/);
     assert.doesNotMatch(detailHtml, /\$100|\$75|\$30/);
   }
