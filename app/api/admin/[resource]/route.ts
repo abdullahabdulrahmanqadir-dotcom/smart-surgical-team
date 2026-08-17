@@ -96,7 +96,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "content") {
     const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,"
       + (posterCtaColumns ? "poster_cta_text,poster_cta_url," : "")
-      + "thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+      + "thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
       + (caseSectionsColumn ? "case_sections," : "")
       + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
     const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
@@ -208,6 +208,14 @@ export async function POST(request: Request, context: RouteContext) {
       return label && sectionBody ? [{ key, label, body: sectionBody }] : [];
     });
     const legacySection = (key: string) => caseSections.find((section) => section.key === key)?.body ?? null;
+    // A before/after pair is only stored once both halves were chosen; a
+    // half-filled selection falls back to the YouTube thumbnail.
+    const requestedThumbnail = text(body.thumbnail_source);
+    const thumbnailSource = requestedThumbnail === "image"
+      ? "image"
+      : requestedThumbnail === "before_after" && optionalText(body.thumbnail_before_path) && optionalText(body.thumbnail_after_path)
+        ? "before_after"
+        : "youtube";
     const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
       // The editor has no kind selector, so a case's kind follows its video: a
@@ -216,9 +224,12 @@ export async function POST(request: Request, context: RouteContext) {
       // an existing record of that kind).
       title, slug, summary: optionalText(body.summary), kind: ["webinar_recording", "poster"].includes(text(body.kind)) ? text(body.kind) : optionalText(body.video_url) ? "video" : "case_article",
       status, access_level: text(body.access_level) === "members_only" ? "members_only" : "public", video_url: optionalText(body.video_url),
-      poster_url: optionalText(body.poster_url), thumbnail_source: text(body.thumbnail_source) === "image" ? "image" : "youtube",
+      poster_url: optionalText(body.poster_url), thumbnail_source: thumbnailSource,
       poster_cta_text: text(body.kind) === "poster" ? posterCtaText : null, poster_cta_url: text(body.kind) === "poster" ? posterCtaUrl : null,
-      thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
+      thumbnail_media_path: thumbnailSource === "image" ? optionalText(body.thumbnail_media_path) : null,
+      thumbnail_before_path: thumbnailSource === "before_after" ? optionalText(body.thumbnail_before_path) : null,
+      thumbnail_after_path: thumbnailSource === "before_after" ? optionalText(body.thumbnail_after_path) : null,
+      duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
       case_sections: caseSections.length ? caseSections : null,

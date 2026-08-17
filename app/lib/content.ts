@@ -41,8 +41,10 @@ type ContentBaseRow = {
   summary: string | null;
   kind: ContentKind;
   video_url: string | null;
-  thumbnail_source: "youtube" | "image" | null;
+  thumbnail_source: "youtube" | "image" | "before_after" | null;
   thumbnail_media_path: string | null;
+  thumbnail_before_path?: string | null;
+  thumbnail_after_path?: string | null;
   duration_seconds: number | null;
   reading_minutes: number | null;
   level: string | null;
@@ -73,7 +75,7 @@ type FullRow = ContentBaseRow & {
 };
 
 const BASE_COLUMNS =
-  "id,title,slug,summary,kind,video_url,thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,access_level,content_topics(topics(name,slug))";
+  "id,title,slug,summary,kind,video_url,thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,access_level,content_topics(topics(name,slug))";
 
 const CARD_SELECT = `${BASE_COLUMNS},content_media(storage_path,public_url)`;
 
@@ -137,7 +139,7 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 const REVALIDATE_SECONDS = 60;
 export const CONTENT_CACHE_TAG = CACHE_TAGS.content;
 
-function mapBase(row: ContentBaseRow, thumbnailUrl: string | undefined): ContentCard {
+function mapBase(row: ContentBaseRow, artwork: ThumbnailUrls): ContentCard {
   const topics = toArray(row.content_topics)
     .map((entry) => firstOf(entry.topics))
     .filter((topic): topic is TopicRow & { name: string; slug: string } => Boolean(topic?.name && topic.slug));
@@ -157,17 +159,26 @@ function mapBase(row: ContentBaseRow, thumbnailUrl: string | undefined): Content
     publishedAt: row.published_at ?? undefined,
     level: row.level ?? "Clinical education",
     videoUrl: row.video_url ?? undefined,
-    thumbnailSource: row.thumbnail_source === "image" ? "image" : "youtube",
-    thumbnailUrl,
+    thumbnailSource: row.thumbnail_source === "image" || row.thumbnail_source === "before_after" ? row.thumbnail_source : "youtube",
+    thumbnailUrl: artwork.thumbnailUrl,
+    beforeUrl: artwork.beforeUrl,
+    afterUrl: artwork.afterUrl,
     accessLevel: row.access_level ?? "public",
   };
 }
 
-/** The chosen thumbnail is stored as a storage path; the matching media row
-    carries the URL it is actually served from. */
-function thumbnailUrlFor(row: { thumbnail_source: string | null; thumbnail_media_path: string | null }, media: { storage_path: string; public_url: string }[] | null) {
-  if (row.thumbnail_source !== "image") return undefined;
-  return media?.find((item) => item.storage_path === row.thumbnail_media_path)?.public_url;
+type ThumbnailUrls = { thumbnailUrl?: string; beforeUrl?: string; afterUrl?: string };
+
+/** Chosen artwork is stored as storage paths; the matching media rows carry the
+    URLs they are actually served from. A before/after pair resolves two. */
+function thumbnailUrlFor(
+  row: { thumbnail_source: string | null; thumbnail_media_path: string | null; thumbnail_before_path?: string | null; thumbnail_after_path?: string | null },
+  media: { storage_path: string; public_url: string }[] | null,
+): ThumbnailUrls {
+  const urlFor = (path: string | null | undefined) => (path ? media?.find((item) => item.storage_path === path)?.public_url : undefined);
+  if (row.thumbnail_source === "before_after") return { beforeUrl: urlFor(row.thumbnail_before_path), afterUrl: urlFor(row.thumbnail_after_path) };
+  if (row.thumbnail_source === "image") return { thumbnailUrl: urlFor(row.thumbnail_media_path) };
+  return {};
 }
 
 async function fetchCards(): Promise<ContentCard[]> {

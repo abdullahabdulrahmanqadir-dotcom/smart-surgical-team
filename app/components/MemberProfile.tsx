@@ -10,7 +10,7 @@ import TopicGlyph from "./TopicGlyph";
 import { fill, type Dictionary } from "../lib/dictionaries";
 
 type Member = { name: string; email: string; createdAt?: string; emailVerified?: boolean } | null;
-type SavedCase = { slug: string; title: string; summary: string; topic: string; kind: string; duration: string; videoUrl?: string; thumbnailSource?: "youtube" | "image"; thumbnailUrl?: string };
+type SavedCase = { slug: string; title: string; summary: string; topic: string; kind: string; duration: string; videoUrl?: string; thumbnailSource?: "youtube" | "image" | "before_after"; thumbnailUrl?: string; beforeUrl?: string; afterUrl?: string };
 type ProfileSection = "overview" | "saved";
 
 function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {

@@ -10,7 +10,7 @@ export const en = {
     guideIntroActive: "Focused on {name}. Browse published content by topic or format.",
     chooseRegion: "Select a region above and its focus areas will open here.", mapReset: "Back to the whole head and neck",
     focusAreas: "Focus areas", conditions: "Conditions", conditionCases: "Cases", caseVideoLabel: "Case video",
-    caseReadLabel: "Case study", minRead: "min read", caseEmptyTitle: "No published content yet",
+    caseReadLabel: "Case study", beforeLabel: "Before", afterLabel: "After", minRead: "min read", caseEmptyTitle: "No published content yet",
     caseEmptyBody: "Published content for this topic will appear here.", collectionKicker: "Learning collection",
     collectionTitle: "Learning collection", collectionBody: "Published operative videos, imaging reviews and discussions appear here.",
     backToTopics: "All topics", otherTopics: "Continue exploring",
@@ -279,6 +279,7 @@ export const en = {
     closeViewer: "Close image viewer", loadingImage: "Loading image", previousImage: "Previous image", nextImage: "Next image", chooseImage: "Choose image", imageNumber: "Image {index}",
     playerLabel: "{title} player", watchOnYouTubeLabel: "Watch {title} on YouTube", videoFallback: "Your browser does not support video playback.",
     watchOnYouTube: "Watch on YouTube", youtubeNote: "Opens in YouTube for age-restricted content",
+    beforeLabel: "Before", afterLabel: "After",
   },
   memberContent: {
     membersOnlyLearning: "Members-only learning", usersOnlyTitle: "This item is for site users.", checkingAccess: "Checking your access…",

@@ -725,6 +725,23 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     });
     setForm((current) => ({ ...current, [key]: [...(Array.isArray(current[key]) ? current[key] as Media[] : []), ...additions] }));
   }
+  // Dropping an image onto the before or after slot adds it to the case's own
+  // image list — these are the same album images, not a separate upload — and
+  // points that slot at it straight away.
+  function pickPairImage(file: File, field: "thumbnail_before_path" | "thumbnail_after_path") {
+    if (file.size > MAX_UPLOAD_BYTES) { setUploadError("Choose a file no larger than 10 MB."); return; }
+    if (file.type === "application/pdf") { setUploadError("Before and after slots take images, not PDFs."); return; }
+    setUploadError("");
+    const preview = URL.createObjectURL(file);
+    previewUrls.current.push(preview);
+    const local_id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const addition: Media = { storage_path: "", public_url: preview, kind: "image", alt_text: "", caption: "", file, local_id };
+    setForm((current) => ({
+      ...current,
+      content_media: [...(Array.isArray(current.content_media) ? current.content_media as Media[] : []), addition],
+      [field]: local_id,
+    }));
+  }
   // The cover fills its URL field with the local preview so the admin sees the
   // image immediately; `cover_file` marks it as not-yet-uploaded until Save.
   function pickCover(file: File) {
@@ -820,14 +837,17 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
       if (form.poster_file instanceof File) { posterUrl = (await sendToStorage(form.poster_file)).publicUrl; step("Uploaded the poster image"); }
       // A thumbnail chosen from a pending image referenced its temporary id;
       // repoint it at the real storage path now that the image is uploaded.
-      let thumbnailPath = form.thumbnail_media_path;
-      if (typeof thumbnailPath === "string" && thumbnailPath.startsWith("local-")) {
-        thumbnailPath = contentMedia.find((item) => item.local_id === thumbnailPath)?.storage_path ?? "";
-      }
+      const storedPath = (value: unknown) => {
+        if (typeof value !== "string" || !value) return value;
+        return value.startsWith("local-") ? contentMedia.find((item) => item.local_id === value)?.storage_path ?? "" : value;
+      };
+      const thumbnailPath = storedPath(form.thumbnail_media_path);
+      const beforePath = storedPath(form.thumbnail_before_path);
+      const afterPath = storedPath(form.thumbnail_after_path);
       setProgress({ done, total, label: "Writing to the database..." });
       // A rejected save keeps the editor open, so the bar must not be left
       // sitting at "Saved" over a record that never landed.
-      const saved = await onSave({ ...form, ...legacyCaseColumns(section, form), cover_image_url: coverImageUrl, cover_file: undefined, poster_url: posterUrl, poster_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, media: section === "research" ? researchMedia : contentMedia });
+      const saved = await onSave({ ...form, ...legacyCaseColumns(section, form), cover_image_url: coverImageUrl, cover_file: undefined, poster_url: posterUrl, poster_file: undefined, content_media: contentMedia, research_media: researchMedia, thumbnail_media_path: thumbnailPath, thumbnail_before_path: beforePath, thumbnail_after_path: afterPath, media: section === "research" ? researchMedia : contentMedia });
       if (saved === false) setProgress(null); else step("Saved");
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Could not upload the attached files.");
@@ -842,7 +862,7 @@ function Editor({ section, value, topics, contributors, caseSectionsStorable = t
     <ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/>
     <CaseFields title="Written poster details" intro="Write the supporting text readers should see on the poster detail page. Rename, reorder or add sections as needed." sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/>
   </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} removed={Boolean(form.poster_image_removed)} onRemove={removePosterImage} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;
-  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>{importWarning && <p className="admin-blocked" role="alert">{importWarning}</p>}<CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" ? "image" : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
+  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>{importWarning && <p className="admin-blocked" role="alert">{importWarning}</p>}<CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" || form.thumbnail_source === "before_after" ? form.thumbnail_source : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} beforePath={String(form.thumbnail_before_path ?? "")} afterPath={String(form.thumbnail_after_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)} onSelectBefore={(path) => set("thumbnail_before_path", path)} onSelectAfter={(path) => set("thumbnail_after_path", path)} onDropBefore={(file) => pickPairImage(file, "thumbnail_before_path")} onDropAfter={(file) => pickPairImage(file, "thumbnail_after_path")}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
     <Field label="Authors" hint="Free-text byline, e.g. Dr. A, Dr. B, and colleagues." value={form.authors} onChange={(value) => set("authors", value)}/>
@@ -1041,7 +1061,57 @@ function PosterImagePicker({ value, removed, onRemove, onPick, uploading, error 
     {removed && <p className="admin-removal-notice" role="status">Image marked for removal. Save to unpublish the poster and delete its stored R2 file. Cancel to keep it.</p>}
   </section>;
 }
-function ThumbnailPicker({ media, source, selectedPath, onSource, onSelect }: { media: Media[]; source: "youtube" | "image"; selectedPath: string; onSource: (source: "youtube" | "image") => void; onSelect: (path: string) => void }) { const images = media.filter((item) => item.kind === "image"); return <section className="admin-media admin-thumbnail-picker"><h2>Topic card thumbnail</h2><p>Choose the YouTube thumbnail, or one of this itema~s uploaded images.</p><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label><label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>{source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <label key={key}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}</section>; }
+type ThumbnailSource = "youtube" | "image" | "before_after";
+
+/** One half of the before/after pair: drop an image on it, choose a file, or
+    pick one of the images already attached to this case. */
+function PairSlot({ label, images, selectedPath, onSelect, onDropFile }: { label: string; images: Media[]; selectedPath: string; onSelect: (path: string) => void; onDropFile: (file: File) => void }) {
+  const [over, setOver] = useState(false);
+  const chosen = images.find((item) => (item.storage_path || item.local_id || "") === selectedPath);
+  const inputId = `pair-slot-${label.toLowerCase()}`;
+  return <div className="admin-pair-slot">
+    <label
+      className={`admin-pair-drop${over ? " is-over" : ""}${chosen ? " has-image" : ""}`}
+      htmlFor={inputId}
+      onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(event) => {
+        event.preventDefault(); setOver(false);
+        const file = event.dataTransfer.files?.[0];
+        if (file) onDropFile(file);
+      }}
+    >
+      <span className="admin-pair-title">{label}</span>
+      {chosen ? <img src={chosen.public_url} alt={`${label} image preview`}/> : <span className="admin-pair-hint">Drag an image here, or click to choose</span>}
+      <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onDropFile(file); event.target.value = ""; }}/>
+    </label>
+    {images.length > 0 && <select aria-label={`${label} image`} value={selectedPath} onChange={(event) => onSelect(event.target.value)}>
+      <option value="">Or reuse a case image…</option>
+      {images.map((item, index) => { const key = item.storage_path || item.local_id || ""; return <option key={key} value={key}>{item.alt_text || `Image ${index + 1}`}</option>; })}
+    </select>}
+    {chosen && <button type="button" className="admin-delete" onClick={() => onSelect("")}>Clear {label.toLowerCase()}</button>}
+  </div>;
+}
+
+function ThumbnailPicker({ media, source, selectedPath, beforePath, afterPath, onSource, onSelect, onSelectBefore, onSelectAfter, onDropBefore, onDropAfter }: { media: Media[]; source: ThumbnailSource; selectedPath: string; beforePath: string; afterPath: string; onSource: (source: ThumbnailSource) => void; onSelect: (path: string) => void; onSelectBefore: (path: string) => void; onSelectAfter: (path: string) => void; onDropBefore: (file: File) => void; onDropAfter: (file: File) => void }) {
+  const images = media.filter((item) => item.kind === "image");
+  return <section className="admin-media admin-thumbnail-picker">
+    <h2>Topic card thumbnail</h2>
+    <p>Choose the YouTube thumbnail, one of this item&apos;s uploaded images, or a before/after pair shown as one split image.</p>
+    <label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "youtube"} onChange={() => onSource("youtube")}/>Use YouTube thumbnail</label>
+    <label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>
+    <label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "before_after"} onChange={() => onSource("before_after")}/>Use a before &amp; after pair</label>
+    {source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <label key={key}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}
+    {source === "before_after" && <>
+      <div className="admin-pair-grid">
+        <PairSlot label="Before" images={images} selectedPath={beforePath} onSelect={onSelectBefore} onDropFile={onDropBefore}/>
+        <PairSlot label="After" images={images} selectedPath={afterPath} onSelect={onSelectAfter} onDropFile={onDropAfter}/>
+      </div>
+      <p className="admin-media-hint">Dropped images join this case&apos;s images. Readers see the two halves as one picture; the Before and After captions appear on hover. Both halves are needed — otherwise the card falls back to the YouTube thumbnail.</p>
+      {source === "before_after" && (!beforePath || !afterPath) && <p className="admin-upload-error">Choose both a before and an after image.</p>}
+    </>}
+  </section>;
+}
 function Chapters({ chapters, setChapters }: { chapters: { title: string; starts_at_seconds: number }[]; setChapters: (chapters: { title: string; starts_at_seconds: number }[]) => void }) { return <section className="admin-chapters"><div><h2>Video chapters</h2><button type="button" onClick={() => setChapters([...chapters, { title: "", starts_at_seconds: 0 }])}>Add chapter</button></div>{chapters.length ? chapters.map((chapter, index) => <div className="admin-chapter" key={index}><input value={chapter.title} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, title: event.target.value } : entry))} placeholder="Chapter title"/><input type="number" value={chapter.starts_at_seconds} onChange={(event) => setChapters(chapters.map((entry, position) => position === index ? { ...entry, starts_at_seconds: Number(event.target.value) } : entry))} aria-label="Start time in seconds"/><button type="button" onClick={() => setChapters(chapters.filter((_, position) => position !== index))}></button></div>) : <p>No chapters added.</p>}</section>; }
 // Saving lives in the header, and the header sticks: long case records used to
 // hide the only save button several screens below the fold.

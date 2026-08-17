@@ -12,7 +12,7 @@ export const ar: Dictionary = {
     guideIntroActive: "التركيز على {name}. تصفّح المحتوى المنشور حسب الموضوع أو الصيغة.",
     chooseRegion: "اختر منطقة في الأعلى وستظهر مجالات التركيز الخاصة بها هنا.", mapReset: "العودة إلى الرأس والعنق كاملاً",
     focusAreas: "مجالات التركيز", conditions: "الحالات المرضية", conditionCases: "الحالات", caseVideoLabel: "فيديو الحالة",
-    caseReadLabel: "دراسة حالة", minRead: "دقيقة قراءة", caseEmptyTitle: "لا يوجد محتوى منشور بعد",
+    caseReadLabel: "دراسة حالة", beforeLabel: "قبل", afterLabel: "بعد", minRead: "دقيقة قراءة", caseEmptyTitle: "لا يوجد محتوى منشور بعد",
     caseEmptyBody: "سيظهر هنا المحتوى المنشور الخاص بهذا الموضوع.", collectionKicker: "مجموعة تعليمية",
     collectionTitle: "مجموعة تعليمية", collectionBody: "تظهر هنا مقاطع العمليات الجراحية ومراجعات التصوير والمناقشات المنشورة.",
     backToTopics: "جميع المواضيع", otherTopics: "واصل الاستكشاف",
@@ -279,6 +279,7 @@ export const ar: Dictionary = {
     closeViewer: "إغلاق عارض الصور", loadingImage: "جارٍ تحميل الصورة", previousImage: "الصورة السابقة", nextImage: "الصورة التالية", chooseImage: "اختيار صورة", imageNumber: "الصورة {index}",
     playerLabel: "مشغّل {title}", watchOnYouTubeLabel: "مشاهدة {title} على YouTube", videoFallback: "متصفحك لا يدعم تشغيل الفيديو.",
     watchOnYouTube: "المشاهدة على YouTube", youtubeNote: "يفتح في YouTube للمحتوى المقيّد بحسب العمر",
+    beforeLabel: "قبل", afterLabel: "بعد",
   },
   memberContent: {
     membersOnlyLearning: "تعلّم خاص بالأعضاء", usersOnlyTitle: "هذه المادة مخصّصة لمستخدمي الموقع.", checkingAccess: "جارٍ التحقق من صلاحية وصولك…",
