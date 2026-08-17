@@ -22,16 +22,18 @@ import { paletteFor } from "../lib/research-palettes";
  * the cover exists to tell one card apart from the next, and on a page showing
  * a single paper there is nothing to tell it apart from.
  *
- * The title is the only thing on it. The journal name used to sit at the foot,
- * but it is reference data rather than something a reader scans a grid for, so
- * it lives in the paper's Publication details instead.
+ * The journal sits above the title as an eyebrow, and appears again in the
+ * paper's Publication details — deliberately in both places: on the card it is
+ * context while you are scanning, on the page it is the citation.
  */
 export default function ResearchCover({
   title,
+  journal,
   palette,
   paletteKey = "",
 }: {
   title: string;
+  journal?: string;
   palette?: string;
   /** Distinguishes unfiled papers from each other when there is no palette. */
   paletteKey?: string;
@@ -47,6 +49,7 @@ export default function ResearchCover({
           the journal above it inherited the page's right alignment, and the
           two halves of one cover pulled apart. */}
       <div className="research-cover-body" {...authoredTitleProps(title)}>
+        {journal ? <p className="research-cover-journal">{journal}</p> : null}
         {/* A real heading: the cover carries the card's only title, and the
             results grid needs headings to be navigable. */}
         <h3 className="research-cover-title">{title}</h3>
