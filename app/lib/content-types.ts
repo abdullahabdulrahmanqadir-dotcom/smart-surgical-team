@@ -83,8 +83,10 @@ export type ContentCard = {
   publishedAt?: string;
   level: string;
   videoUrl?: string;
-  thumbnailSource?: "youtube" | "image";
+  thumbnailSource?: "youtube" | "image" | "before_after";
   thumbnailUrl?: string;
+  beforeUrl?: string;
+  afterUrl?: string;
   accessLevel?: "public" | "members_only";
 };
 

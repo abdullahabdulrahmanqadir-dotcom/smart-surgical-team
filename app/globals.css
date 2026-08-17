@@ -3551,3 +3551,64 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .hero-image-viewer .case-image-thumbnails button { display: block; aspect-ratio: auto; border: 0; border-radius: 0; }
 .hero-image-viewer .case-image-thumb-badge { inset: auto .75rem .75rem; }
 .content-hero-caption { margin: 0; padding: 0.65rem 0.9rem; color: var(--text-muted); font-size: 0.85rem; }
+
+/* Before/after card artwork: two pictures drawn as one seamless frame, split
+   down the middle. The captions stay hidden until hover or keyboard focus so
+   the pair reads as a single photograph at rest. */
+.card-art-pair { position: absolute; z-index: 1; inset: 0; display: grid; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; }
+.card-art-pair .card-art-half { position: relative; overflow: hidden; }
+.card-art-pair .card-art-half + .card-art-half { border-inline-start: 1px solid rgba(255, 255, 255, .35); }
+.card-art-pair .lazy-image { width: 100%; height: 100%; }
+.card-art-pair img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card-art-half-label { position: absolute; z-index: 2; inset: auto .4rem .4rem; padding: .18rem .4rem; border-radius: 3px; background: rgba(0, 0, 0, .68); color: #fff; font-size: .66rem; font-weight: 700; opacity: 0; transition: opacity .18s ease; pointer-events: none; }
+.content-case-card:hover .card-art-half-label, .content-case-card:focus-visible .card-art-half-label,
+.latest-case-card:hover .card-art-half-label, .latest-case-card:focus-visible .card-art-half-label,
+.related-card:hover .card-art-half-label, .related-card:focus-visible .card-art-half-label { opacity: 1; }
+.content-case-card:hover .card-art-pair img { transform: scale(1.04); }
+.card-art-pair img { transition: transform 250ms ease; }
+/* The latest-case tile has no absolutely positioned art slot of its own. */
+.latest-case-art .card-art-pair { position: absolute; }
+.related-art .card-art-pair { position: absolute; }
+@media (prefers-reduced-motion: reduce) { .card-art-pair img, .card-art-half-label { transition: none; } }
+
+/* The same pair as the case hero: side by side, each half still zoomable. */
+.case-image-thumbnails.is-before-after { grid-template-columns: 1fr 1fr; gap: 0; }
+.case-image-thumbnails.is-before-after button { border-radius: 0; }
+.case-image-thumbnails.is-before-after button + button { border-inline-start: 1px solid rgba(255, 255, 255, .35); }
+.hero-image-viewer .case-image-thumbnails.is-before-after .case-image-thumb-badge { opacity: 0; }
+.hero-image-viewer .case-image-thumbnails.is-before-after button:hover .case-image-thumb-badge,
+.hero-image-viewer .case-image-thumbnails.is-before-after button:focus-visible .case-image-thumb-badge { opacity: 1; }
+
+/* Admin: the two drop targets for a before/after pair. */
+.admin-pair-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.admin-pair-slot { display: grid; gap: .4rem; align-content: start; }
+.admin-pair-slot select { width: 100%; padding: .35rem; border: 1px solid var(--line); border-radius: .35rem; background: var(--surface); font-size: .78rem; }
+.admin-pair-slot .admin-delete { justify-self: start; font-size: .75rem; }
+.admin-pair-drop { position: relative; display: grid; place-items: center; gap: .3rem; aspect-ratio: 1.3; padding: .5rem; overflow: hidden; border: 2px dashed var(--line); border-radius: .45rem; background: var(--surface-2); text-align: center; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+.admin-pair-drop.is-over { border-color: var(--primary); background: var(--primary-soft); }
+.admin-pair-drop.has-image { border-style: solid; padding: 0; }
+.admin-pair-drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.admin-pair-title { position: relative; z-index: 2; padding: .15rem .4rem; border-radius: 3px; background: rgba(0, 0, 0, .6); color: #fff; font-size: .68rem; font-weight: 700; justify-self: start; align-self: start; }
+.admin-pair-hint { position: relative; z-index: 2; color: var(--text-muted); font-size: .72rem; line-height: 1.35; }
+.admin-pair-drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+/* Deleting an image is permanent once saved, so the confirmation sits inline
+   next to the file rather than in a dialog that could be dismissed blind. */
+.admin-media-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .74rem; }
+.admin-media-confirm > span { font-weight: 650; }
+.admin-thumbnail-option { position: relative; }
+.admin-thumbnail-option .admin-delete { position: absolute; z-index: 2; inset: .3rem .3rem auto auto; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .66); color: #fff; font-size: .8rem; line-height: 1; opacity: 0; transition: opacity .15s ease; }
+.admin-thumbnail-option:hover .admin-delete, .admin-thumbnail-option:focus-within .admin-delete { opacity: 1; }
+.admin-thumbnail-option .admin-media-confirm { position: absolute; z-index: 3; inset: auto 0 0; justify-content: center; padding: .3rem; background: rgba(0, 0, 0, .8); color: #fff; }
+.admin-pair-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .74rem; }
+.admin-pair-actions > button { padding: .2rem .45rem; border: 1px solid var(--line); border-radius: .3rem; background: var(--surface); font-size: .74rem; cursor: pointer; }
+
+/* Files are identified by their own name, so a long one must truncate rather
+   than stretch the row or spill out of a tile. */
+.admin-media-name { display: block; overflow: hidden; color: var(--text-muted); font-size: .72rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.admin-thumbnail-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.admin-pair-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The reason a save is refused belongs beside the save button, not only next
+   to the field that caused it. */
+.admin-save-blocked { max-width: 34rem; margin-top: .5rem; }

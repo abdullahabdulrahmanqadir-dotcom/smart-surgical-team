@@ -9,9 +9,9 @@ import type { TopicIconName } from "./icons";
 import type { TopicGroup } from "../lib/topics";
 import TopicGlyph from "./TopicGlyph";
 import HeadNeckMap from "./HeadNeckMap";
-import LazyImage from "./LazyImage";
 import { fill } from "../lib/dictionaries";
-import { contentThumbnailUrl } from "../lib/content-thumbnail";
+import { contentCardArt } from "../lib/content-thumbnail";
+import CardArt from "./CardArt";
 import { IconChevronDown, IconFile, IconPlay, IconSearch } from "./icons";
 
 type LibraryItem = ContentCard & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
@@ -37,11 +37,11 @@ function CaseCardSkeleton() {
 }
 
 function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
-  const cardImage = contentThumbnailUrl(item);
+  const cardImage = contentCardArt(item);
   return (
     <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
       <div className="content-case-art">
-        {cardImage ? <LazyImage className="content-case-thumbnail" src={cardImage} /> : <span className="content-case-art-glyph" aria-hidden="true">
+        {cardImage ? <CardArt item={item} className="content-case-thumbnail" labels={{ before: t.beforeLabel, after: t.afterLabel }} /> : <span className="content-case-art-glyph" aria-hidden="true">
           <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
         </span>}
         <span className="content-case-type">
@@ -62,9 +62,13 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIco
 }
 
 function LatestCaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
-  const cardImage = contentThumbnailUrl(item);
+  const cardImage = contentCardArt(item);
   return <a className="latest-case-card" href={localePath(locale, `library/${item.slug}`)}>
-    <div className="latest-case-art">{cardImage ? <img src={cardImage} alt="" loading="eager" decoding="async" /> : <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={104} />}</div>
+    <div className="latest-case-art">{cardImage
+      ? (cardImage.kind === "single"
+        ? <img src={cardImage.url} alt="" loading="eager" decoding="async" />
+        : <CardArt item={item} eager labels={{ before: t.beforeLabel, after: t.afterLabel }} />)
+      : <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={104} />}</div>
     <div className="latest-case-copy"><span className="content-case-type">{item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}{item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}</span><p className="content-case-topic">{item.subTopic}</p><h2 {...authoredTitleProps(item.title)}>{item.title}</h2><p>{item.summary}</p><div className="content-case-meta"><span>{item.date}</span></div></div>
   </a>;
 }

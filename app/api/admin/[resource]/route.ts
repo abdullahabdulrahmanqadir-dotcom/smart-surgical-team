@@ -47,10 +47,24 @@ function missingCaseSections(message: string | undefined) { return Boolean(messa
 let posterCtaColumns = true;
 function missingPosterCtaColumns(message: string | undefined) { return Boolean(message) && /poster_cta_(text|url)/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
 
-async function deleteFromStorage(keys: unknown[]) {
+/**
+ * Removes stored objects from R2, reporting whether they actually went.
+ *
+ * The caller has usually deleted the database rows already, so a failure here
+ * cannot be retried from the record — the keys are no longer reachable. It
+ * therefore says so rather than only logging, letting the caller warn the admin
+ * that files were left behind instead of reporting a clean delete.
+ */
+async function deleteFromStorage(keys: unknown[]): Promise<boolean> {
   const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
-  if (!unique.length) return;
-  try { await env.MEDIA_BUCKET.delete(unique); } catch (error) { console.error("R2 cleanup failed:", error); }
+  if (!unique.length) return true;
+  // R2 caps a bulk delete at 1000 keys per call.
+  const batches = Array.from({ length: Math.ceil(unique.length / 1000) }, (_, index) => unique.slice(index * 1000, index * 1000 + 1000));
+  let ok = true;
+  for (const batch of batches) {
+    try { await env.MEDIA_BUCKET.delete(batch); } catch (error) { ok = false; console.error("R2 cleanup failed:", batch, error); }
+  }
+  return ok;
 }
 
 function cacheTagsFor(resource: Resource): PublicCacheTag[] {
@@ -96,7 +110,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "content") {
     const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,"
       + (posterCtaColumns ? "poster_cta_text,poster_cta_url," : "")
-      + "thumbnail_source,thumbnail_media_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+      + "thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
       + (caseSectionsColumn ? "case_sections," : "")
       + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
     const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
@@ -208,6 +222,14 @@ export async function POST(request: Request, context: RouteContext) {
       return label && sectionBody ? [{ key, label, body: sectionBody }] : [];
     });
     const legacySection = (key: string) => caseSections.find((section) => section.key === key)?.body ?? null;
+    // A before/after cover needs both halves. Storing a half-filled pair would
+    // silently show the YouTube thumbnail instead, so the save is refused
+    // rather than quietly ignoring the cover the editor asked for.
+    const requestedThumbnail = text(body.thumbnail_source);
+    if (requestedThumbnail === "before_after" && !(optionalText(body.thumbnail_before_path) && optionalText(body.thumbnail_after_path))) {
+      return apiError("A before/after cover needs both images. Choose the missing one, or pick a different cover option.");
+    }
+    const thumbnailSource = requestedThumbnail === "image" ? "image" : requestedThumbnail === "before_after" ? "before_after" : "youtube";
     const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
       // The editor has no kind selector, so a case's kind follows its video: a
@@ -216,9 +238,12 @@ export async function POST(request: Request, context: RouteContext) {
       // an existing record of that kind).
       title, slug, summary: optionalText(body.summary), kind: ["webinar_recording", "poster"].includes(text(body.kind)) ? text(body.kind) : optionalText(body.video_url) ? "video" : "case_article",
       status, access_level: text(body.access_level) === "members_only" ? "members_only" : "public", video_url: optionalText(body.video_url),
-      poster_url: optionalText(body.poster_url), thumbnail_source: text(body.thumbnail_source) === "image" ? "image" : "youtube",
+      poster_url: optionalText(body.poster_url), thumbnail_source: thumbnailSource,
       poster_cta_text: text(body.kind) === "poster" ? posterCtaText : null, poster_cta_url: text(body.kind) === "poster" ? posterCtaUrl : null,
-      thumbnail_media_path: text(body.thumbnail_source) === "image" ? optionalText(body.thumbnail_media_path) : null, duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
+      thumbnail_media_path: thumbnailSource === "image" ? optionalText(body.thumbnail_media_path) : null,
+      thumbnail_before_path: thumbnailSource === "before_after" ? optionalText(body.thumbnail_before_path) : null,
+      thumbnail_after_path: thumbnailSource === "before_after" ? optionalText(body.thumbnail_after_path) : null,
+      duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
       case_sections: caseSections.length ? caseSections : null,
@@ -283,16 +308,18 @@ export async function POST(request: Request, context: RouteContext) {
       const inserted = await client.from(table).insert(rows);
       if (inserted.error) return apiError(`Saved the item, but could not update ${table.replace("content_", "")}: ${inserted.error.message}`, 500);
     }
-    await deleteFromStorage(removedMediaKeys);
+    // Images the save dropped must leave the bucket too. If that fails they are
+    // now unreferenced, so the admin is told rather than shown a clean save.
     const nextPosterKey = storageKeyFromUrl(body.poster_url);
-    if (priorPosterKey && priorPosterKey !== nextPosterKey) await deleteFromStorage([priorPosterKey]);
+    const stalePosterKeys = priorPosterKey && priorPosterKey !== nextPosterKey ? [priorPosterKey] : [];
+    const purged = await deleteFromStorage([...removedMediaKeys, ...stalePosterKeys]);
     // Saving against a database without migration 0010 keeps the five built-in
     // sections (they have their own columns) but silently drops renamed
     // headings and added sections. Say so rather than report a clean save.
     const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
     const ctaLost = !posterCtaColumns && Boolean(posterCtaText || posterCtaUrl);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
+    return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
   if (resource === "research") {
@@ -344,9 +371,9 @@ export async function POST(request: Request, context: RouteContext) {
     // A cover that changed (replaced or cleared) leaves its old object behind.
     const newCoverKey = storageKeyFromUrl(payload.cover_image_url);
     const removedCoverKeys = priorCoverKey && priorCoverKey !== newCoverKey ? [priorCoverKey] : [];
-    await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
+    const purgedResearch = await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved });
+    return Response.json({ data: saved, warning: purgedResearch ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
   if (resource === "topics") {
@@ -431,7 +458,10 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const { error } = await client.from(table).delete().eq("id", id);
   if (error) return apiError(error.message, 500);
-  await deleteFromStorage(storageKeys);
+  // Cascading foreign keys take the item's rows with it — media, topics,
+  // chapters, credits, saved items and progress — and any webinar that pointed
+  // at it as a recording simply loses that link.
+  const purged = await deleteFromStorage(storageKeys);
   await invalidatePublicCache(resource);
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, warning: purged ? undefined : "The item and its database records were deleted, but its stored files could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
 }

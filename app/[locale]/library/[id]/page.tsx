@@ -14,7 +14,8 @@ import { IconArrowRight, IconFile } from "../../../components/icons";
 import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
-import { contentThumbnailUrl } from "../../../lib/content-thumbnail";
+import { contentCardArt } from "../../../lib/content-thumbnail";
+import CardArt from "../../../components/CardArt";
 import { TEAM_GROUPS } from "../../../lib/team";
 import TranslatableContent from "../../../components/TranslatableContent";
 
@@ -37,6 +38,7 @@ function RelatedSkeleton({ t }: { t: Dictionary["library"] }) {
 
 /** Streamed separately from the case itself so the article never waits on it. */
 async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: Locale; contentId: string; topicSlug: string; kind: ContentKind }) {
+  const dict = getDictionary(locale);
   const allContent = await getLibraryContent();
   const related = allContent.filter((item) => item.id !== contentId && (item.topicSlug === topicSlug || item.kind === kind)).slice(0, 3);
   if (!related.length) return <div className="related-grid" />;
@@ -44,11 +46,11 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
   return (
     <div className="related-grid">
       {related.map((item, index) => {
-        const thumbnail = contentThumbnailUrl(item);
+        const art = contentCardArt(item);
         return (
           <Link href={localePath(locale, `library/${item.slug}`)} className="related-card" key={item.id}>
             <div className={`related-art tone-${(index % 4) + 1}`}>
-              {thumbnail ? <LazyImage className="related-thumbnail" src={thumbnail} /> : null}
+              {art ? <CardArt item={item} className="related-thumbnail" labels={{ before: dict.media.beforeLabel, after: dict.media.afterLabel }} /> : null}
             </div>
             <span className="related-topic">{item.topic}</span>
             <h3 {...authoredTitleProps(item.title)}>{item.title}</h3>
@@ -92,12 +94,20 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   // the card thumbnail becomes the hero shown where the player would be; if none
   // was chosen, the first uploaded image stands in. The hero is then dropped
   // from the sidebar gallery so it is never shown twice.
-  const mainImage = content.videoUrl
+  // A before/after pair takes the hero as a single split frame; each half stays
+  // clickable, so the pair is dropped from the sidebar gallery like a single
+  // hero image is.
+  const pairImages = content.thumbnailSource === "before_after" && content.beforeUrl && content.afterUrl
+    ? [images.find((item) => item.publicUrl === content.beforeUrl), images.find((item) => item.publicUrl === content.afterUrl)].filter((item) => item !== undefined)
+    : [];
+  const heroPair = !content.videoUrl && pairImages.length === 2 ? pairImages : null;
+  const mainImage = content.videoUrl || heroPair
     ? undefined
     : (content.thumbnailSource === "image" && content.thumbnailUrl
         ? images.find((item) => item.publicUrl === content.thumbnailUrl)
         : undefined) ?? images[0];
-  const galleryImages = mainImage ? images.filter((item) => item.id !== mainImage.id) : images;
+  const heroImages = heroPair ?? (mainImage ? [mainImage] : []);
+  const galleryImages = heroImages.length ? images.filter((item) => !heroImages.some((hero) => hero.id === item.id)) : images;
   const contributors = content.contributors.length ? content.contributors : [{ ...content.presenter, photoUrl: undefined as string | undefined }];
 
   return <>
@@ -109,7 +119,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} t={dict.media} />
-          {mainImage ? <ImageGallery images={[mainImage]} t={dict.media} presentation="hero" /> : null}
+          {heroImages.length ? <ImageGallery images={heroImages} t={dict.media} presentation="hero" pair={Boolean(heroPair)} /> : null}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.resources}</span><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
             <div className="section-mini-head"><div><span className="section-kicker">{dict.library.overview}</span><h2 id="case-summary-title">{dict.library.caseDetails}</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
