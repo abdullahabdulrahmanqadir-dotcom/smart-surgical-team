@@ -47,10 +47,24 @@ function missingCaseSections(message: string | undefined) { return Boolean(messa
 let posterCtaColumns = true;
 function missingPosterCtaColumns(message: string | undefined) { return Boolean(message) && /poster_cta_(text|url)/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
 
-async function deleteFromStorage(keys: unknown[]) {
+/**
+ * Removes stored objects from R2, reporting whether they actually went.
+ *
+ * The caller has usually deleted the database rows already, so a failure here
+ * cannot be retried from the record — the keys are no longer reachable. It
+ * therefore says so rather than only logging, letting the caller warn the admin
+ * that files were left behind instead of reporting a clean delete.
+ */
+async function deleteFromStorage(keys: unknown[]): Promise<boolean> {
   const unique = [...new Set(keys.map((key) => text(key)).filter(Boolean))];
-  if (!unique.length) return;
-  try { await env.MEDIA_BUCKET.delete(unique); } catch (error) { console.error("R2 cleanup failed:", error); }
+  if (!unique.length) return true;
+  // R2 caps a bulk delete at 1000 keys per call.
+  const batches = Array.from({ length: Math.ceil(unique.length / 1000) }, (_, index) => unique.slice(index * 1000, index * 1000 + 1000));
+  let ok = true;
+  for (const batch of batches) {
+    try { await env.MEDIA_BUCKET.delete(batch); } catch (error) { ok = false; console.error("R2 cleanup failed:", batch, error); }
+  }
+  return ok;
 }
 
 function cacheTagsFor(resource: Resource): PublicCacheTag[] {
@@ -294,16 +308,18 @@ export async function POST(request: Request, context: RouteContext) {
       const inserted = await client.from(table).insert(rows);
       if (inserted.error) return apiError(`Saved the item, but could not update ${table.replace("content_", "")}: ${inserted.error.message}`, 500);
     }
-    await deleteFromStorage(removedMediaKeys);
+    // Images the save dropped must leave the bucket too. If that fails they are
+    // now unreferenced, so the admin is told rather than shown a clean save.
     const nextPosterKey = storageKeyFromUrl(body.poster_url);
-    if (priorPosterKey && priorPosterKey !== nextPosterKey) await deleteFromStorage([priorPosterKey]);
+    const stalePosterKeys = priorPosterKey && priorPosterKey !== nextPosterKey ? [priorPosterKey] : [];
+    const purged = await deleteFromStorage([...removedMediaKeys, ...stalePosterKeys]);
     // Saving against a database without migration 0010 keeps the five built-in
     // sections (they have their own columns) but silently drops renamed
     // headings and added sections. Say so rather than report a clean save.
     const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
     const ctaLost = !posterCtaColumns && Boolean(posterCtaText || posterCtaUrl);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : undefined });
+    return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
   if (resource === "research") {
@@ -355,9 +371,9 @@ export async function POST(request: Request, context: RouteContext) {
     // A cover that changed (replaced or cleared) leaves its old object behind.
     const newCoverKey = storageKeyFromUrl(payload.cover_image_url);
     const removedCoverKeys = priorCoverKey && priorCoverKey !== newCoverKey ? [priorCoverKey] : [];
-    await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
+    const purgedResearch = await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved });
+    return Response.json({ data: saved, warning: purgedResearch ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
   if (resource === "topics") {
@@ -442,7 +458,10 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const { error } = await client.from(table).delete().eq("id", id);
   if (error) return apiError(error.message, 500);
-  await deleteFromStorage(storageKeys);
+  // Cascading foreign keys take the item's rows with it — media, topics,
+  // chapters, credits, saved items and progress — and any webinar that pointed
+  // at it as a recording simply loses that link.
+  const purged = await deleteFromStorage(storageKeys);
   await invalidatePublicCache(resource);
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, warning: purged ? undefined : "The item and its database records were deleted, but its stored files could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
 }

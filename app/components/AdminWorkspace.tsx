@@ -665,7 +665,7 @@ export default function AdminWorkspace() {
   }
   async function remove(item: RecordItem) {
     // The list's Delete button confirms in-page before calling this.
-    try { const headers = await authHeaders(); const apiResource = active === "posters" ? "content" : active; const response = await fetch(`/api/admin/${apiResource}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); setNotice("Deleted."); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); setNoticeTone("warn"); }
+    try { const headers = await authHeaders(); const apiResource = active === "posters" ? "content" : active; const response = await fetch(`/api/admin/${apiResource}?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE", headers }); const result = await readResponse(response); if (!response.ok) throw new Error(errorMessage(result.error, "Could not delete this item.")); const warning = typeof result.warning === "string" ? result.warning : ""; setNotice(warning || "Deleted, including its images."); setNoticeTone(warning ? "warn" : "ok"); await load(); } catch (error) { setNotice(error instanceof Error ? error.message : "Could not delete this item."); setNoticeTone("warn"); }
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
