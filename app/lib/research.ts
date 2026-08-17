@@ -13,20 +13,29 @@ import { TEAM_GROUPS } from "./team";
  * imported once by migration 0009.
  */
 
+/** A topic or subtopic a paper is filed under, as the site needs to render it. */
+export type ResearchTopic = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export type Publication = {
   id: number;
   title: string;
   link: string;
-  /** A harvested figure, or "" when the paper has none. */
-  imageUrl: string;
-  /** Always renderable: the figure above, else generated cover art. */
+  /** The social-preview image; the on-page cover is rendered as real text. */
   coverUrl: string;
   authors: string;
   abstract: string;
   date: string;
   year: string;
-  category: string;
   journal: string;
+  /** Null when the paper is unfiled — it still renders, in a hashed colour. */
+  topic: ResearchTopic | null;
+  subtopic: ResearchTopic | null;
+  /** The topic's palette name, driving the generated cover art. */
+  palette: string;
   contributors?: { name: string; portraitUrl?: string }[];
   media?: { publicUrl: string; altText?: string; caption?: string }[];
 };
@@ -73,16 +82,26 @@ function canUseDatabase() {
 const REVALIDATE_SECONDS = 60;
 export const RESEARCH_CACHE_TAG = CACHE_TAGS.research;
 
+type TopicRow = { id: string; name: string; slug: string; palette?: string | null } | null;
+
 type ResearchRow = {
   id: number; title: string; authors: string | null; abstract: string | null;
-  journal: string | null; category: string | null; link: string | null;
-  published_date: string | null; cover_image_url: string | null;
+  journal: string | null; link: string | null; published_date: string | null;
+  topic: TopicRow; subtopic: TopicRow;
   research_media: { public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
 };
 
+// Both topic joins point at the same table, so PostgREST needs the foreign key
+// named explicitly — without it the embed is ambiguous and the query fails.
 const RESEARCH_SELECT =
-  "id,title,authors,abstract,journal,category,link,published_date,cover_image_url," +
+  "id,title,authors,abstract,journal,link,published_date," +
+  "topic:research_topics!researches_topic_id_fkey(id,name,slug,palette)," +
+  "subtopic:research_topics!researches_subtopic_id_fkey(id,name,slug)," +
   "research_media(public_url,alt_text,caption,sort_order)";
+
+function topicOf(row: TopicRow): ResearchTopic | null {
+  return row ? { id: row.id, name: row.name, slug: row.slug } : null;
+}
 
 function mapRow(row: ResearchRow): Publication {
   const date = row.published_date ?? "";
@@ -93,14 +112,18 @@ function mapRow(row: ResearchRow): Publication {
     id: row.id,
     title: row.title,
     link: row.link ?? "",
-    imageUrl: row.cover_image_url ?? "",
-    coverUrl: row.cover_image_url || researchCoverPath(row.id),
+    coverUrl: researchCoverPath(row.id),
     authors: row.authors ?? "Smart Health research team",
     abstract: row.abstract ?? "",
     date,
     year: date.slice(0, 4) || "Research",
-    category: row.category ?? "Publication",
     journal: row.journal ?? "Journal website",
+    topic: topicOf(row.topic),
+    subtopic: topicOf(row.subtopic),
+    // Subtopics inherit their parent's palette at seed time, but the admin can
+    // change a topic's colour without touching its children, so read the
+    // parent: the topic is what the reader is filtering by.
+    palette: row.topic?.palette ?? "",
     media,
   });
 }
@@ -122,6 +145,34 @@ const cachedResearches = unstable_cache(fetchResearches, ["published-researches"
 
 export async function getResearches(): Promise<Publication[]> {
   return cachedResearches();
+}
+
+/** A topic with its subtopics, in the order the admin arranged them. */
+export type ResearchTopicTree = ResearchTopic & { palette: string; subtopics: ResearchTopic[] };
+
+async function fetchTopicTree(): Promise<ResearchTopicTree[]> {
+  if (!canUseDatabase()) return [];
+  try {
+    const { data, error } = await getSupabaseServerClient()
+      .from("research_topics")
+      .select("id,name,slug,palette,parent_id,sort_order")
+      .order("sort_order", { ascending: true });
+    if (error) { console.error("research topics query failed:", error.message); return []; }
+    const rows = (data ?? []) as { id: string; name: string; slug: string; palette: string; parent_id: string | null }[];
+    return rows.filter((row) => !row.parent_id).map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      palette: row.palette,
+      subtopics: rows.filter((child) => child.parent_id === row.id).map((child) => ({ id: child.id, name: child.name, slug: child.slug })),
+    }));
+  } catch { return []; }
+}
+
+const cachedTopicTree = unstable_cache(fetchTopicTree, ["research-topic-tree"], { revalidate: REVALIDATE_SECONDS, tags: [RESEARCH_CACHE_TAG] });
+
+export async function getResearchTopics(): Promise<ResearchTopicTree[]> {
+  return cachedTopicTree();
 }
 
 /** Finds one publication for its public, stable detail URL. */

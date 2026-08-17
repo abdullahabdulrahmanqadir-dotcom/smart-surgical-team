@@ -4,7 +4,7 @@ import ResearchExplorer from "../../components/ResearchExplorer";
 import ScrollMotion from "../../components/ScrollMotion";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
-import { getResearches } from "../../lib/research";
+import { getResearches, getResearchTopics } from "../../lib/research";
 import { notFound } from "next/navigation";
 
 export default async function ResearchPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -12,8 +12,8 @@ export default async function ResearchPage({ params }: { params: Promise<{ local
   if (!isLocale(locale)) notFound();
   const active: Locale = locale;
   const dict = getDictionary(active);
-  const publications = await getResearches();
+  const [publications, topics] = await Promise.all([getResearches(), getResearchTopics()]);
   return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><ScrollMotion/><main id="main-content">
-    <ResearchExplorer publications={publications} locale={active} t={dict.research}/>
+    <ResearchExplorer publications={publications} topics={topics} locale={active} t={dict.research}/>
   </main><SiteFooter locale={active} dict={dict}/></>;
 }

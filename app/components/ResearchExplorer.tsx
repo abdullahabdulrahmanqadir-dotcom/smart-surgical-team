@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconSearch } from "./icons";
-import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
-import type { Publication } from "../lib/research";
+import { localePath, type Locale } from "../lib/i18n";
+import ResearchCover from "./ResearchCover";
+import type { Publication, ResearchTopicTree } from "../lib/research";
 import type { Dictionary } from "../lib/dictionaries";
 
 const PAGE_SIZE = 9;
 const RESEARCH_VIEW_KEY = "sst-research-view";
 
-export default function ResearchExplorer({ publications, locale, t }: { publications: Publication[]; locale: Locale; t: Dictionary["research"] }) {
+export default function ResearchExplorer({ publications, topics, locale, t }: { publications: Publication[]; topics: ResearchTopicTree[]; locale: Locale; t: Dictionary["research"] }) {
   const [query, setQuery] = useState("");
   const [year, setYear] = useState("all");
-  const [category, setCategory] = useState("all");
+  const [topic, setTopic] = useState("all");
+  const [subtopic, setSubtopic] = useState("all");
   const [page, setPage] = useState(1);
   // The page number and filters live in the URL, so opening a paper and coming
   // back returns to the same page of results rather than resetting to the
@@ -37,8 +39,10 @@ export default function ResearchExplorer({ publications, locale, t }: { publicat
     if (savedQuery) setQuery(savedQuery);
     const savedYear = params.get("year");
     if (savedYear) setYear(savedYear);
-    const savedCategory = params.get("type");
-    if (savedCategory) setCategory(savedCategory);
+    const savedTopic = params.get("topic");
+    if (savedTopic) setTopic(savedTopic);
+    const savedSubtopic = params.get("subtopic");
+    if (savedSubtopic) setSubtopic(savedSubtopic);
     restored.current = true;
   }, []);
   useEffect(() => {
@@ -46,25 +50,40 @@ export default function ResearchExplorer({ publications, locale, t }: { publicat
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (year !== "all") params.set("year", year);
-    if (category !== "all") params.set("type", category);
+    if (topic !== "all") params.set("topic", topic);
+    if (subtopic !== "all") params.set("subtopic", subtopic);
     if (page > 1) params.set("page", String(page));
     const search = params.toString();
     window.history.replaceState(null, "", search ? `?${search}` : window.location.pathname);
     try { sessionStorage.setItem(RESEARCH_VIEW_KEY, search ? `?${search}` : ""); } catch { /* storage unavailable */ }
-  }, [query, year, category, page]);
+  }, [query, year, topic, subtopic, page]);
   const years = [...new Set(publications.map((paper) => paper.year))].sort((a, b) => b.localeCompare(a));
-  const categories = [...new Set(publications.map((paper) => paper.category))].sort();
-  const categoryLabel = (value: string) => ({ Publication: t.publication, Article: t.article, "Clinical study": t.clinicalStudy, Review: t.review }[value] ?? value);
+  // Only topics that actually hold a published paper: an empty option in a
+  // filter is a dead end, and the admin can create a topic before filing
+  // anything under it.
+  const filledSlugs = useMemo(() => new Set(publications.flatMap((paper) => [paper.topic?.slug, paper.subtopic?.slug].filter(Boolean) as string[])), [publications]);
+  const topicOptions = topics.filter((option) => filledSlugs.has(option.slug));
+  const subtopicOptions = (topicOptions.find((option) => option.slug === topic)?.subtopics ?? []).filter((option) => filledSlugs.has(option.slug));
+  const dateLabel = (paper: Publication) => {
+    const parsed = new Date(`${paper.date}T00:00:00`);
+    return Number.isNaN(parsed.valueOf()) ? paper.year : new Intl.DateTimeFormat(locale, { year: "numeric", month: "long" }).format(parsed);
+  };
   const results = useMemo(() => publications.filter((paper) => {
     const needle = query.trim().toLowerCase();
-    return (year === "all" || paper.year === year) && (category === "all" || paper.category === category) && (!needle || `${paper.title} ${paper.authors} ${paper.abstract}`.toLowerCase().includes(needle));
-  }), [publications, query, year, category]);
+    return (year === "all" || paper.year === year)
+      && (topic === "all" || paper.topic?.slug === topic)
+      && (subtopic === "all" || paper.subtopic?.slug === subtopic)
+      && (!needle || `${paper.title} ${paper.authors} ${paper.abstract}`.toLowerCase().includes(needle));
+  }), [publications, query, year, topic, subtopic]);
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageWindowStart = Math.min(Math.max(1, safePage - 2), Math.max(1, totalPages - 4));
   const pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, index) => pageWindowStart + index);
   const displayed = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const resetFilters = () => { setQuery(""); setYear("all"); setCategory("all"); setPage(1); };
+  const resetFilters = () => { setQuery(""); setYear("all"); setTopic("all"); setSubtopic("all"); setPage(1); };
+  // Changing the topic strands any subtopic chosen under the previous one, so
+  // it clears rather than silently filtering everything down to nothing.
+  const changeTopic = (value: string) => { setTopic(value); setSubtopic("all"); setPage(1); };
   const updateQuery = (value: string) => { setQuery(value); setPage(1); };
   const goToPage = (nextPage: number) => {
     setPage(nextPage);
@@ -74,10 +93,10 @@ export default function ResearchExplorer({ publications, locale, t }: { publicat
 
   return <section className="research-archive" id="publications" aria-labelledby="publications-heading">
     <div className="research-archive-heading"><h1 id="publications-heading">{t.publications}</h1></div>
-    <div className="research-controls" aria-label={t.filterPublications}><label className="research-search"><IconSearch size={18}/><span className="visually-hidden">{t.searchPublications}</span><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></label><label>{t.year}<select value={year} onChange={(event) => { setYear(event.target.value); setPage(1); }}><option value="all">{t.allYears}</option>{years.map((value) => <option value={value} key={value}>{value}</option>)}</select></label><label>{t.type}<select value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}><option value="all">{t.allTypes}</option>{categories.map((value) => <option value={value} key={value}>{categoryLabel(value)}</option>)}</select></label>{(query || year !== "all" || category !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}</div>
+    <div className="research-controls" aria-label={t.filterPublications}><label className="research-search"><IconSearch size={18}/><span className="visually-hidden">{t.searchPublications}</span><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></label><label>{t.topic}<select value={topic} onChange={(event) => changeTopic(event.target.value)}><option value="all">{t.allTopics}</option>{topicOptions.map((option) => <option value={option.slug} key={option.slug}>{option.name}</option>)}</select></label><label>{t.subtopic}<select value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(event) => { setSubtopic(event.target.value); setPage(1); }}><option value="all">{t.allSubtopics}</option>{subtopicOptions.map((option) => <option value={option.slug} key={option.slug}>{option.name}</option>)}</select></label><label>{t.year}<select value={year} onChange={(event) => { setYear(event.target.value); setPage(1); }}><option value="all">{t.allYears}</option>{years.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>{(query || year !== "all" || topic !== "all" || subtopic !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}</div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
-      <div className="research-card-image"><img src={paper.coverUrl} alt="" loading="lazy"/><span>{paper.category}</span></div>
-      <div className="research-card-copy"><p className="research-card-year">{paper.year}</p><h3 {...authoredTitleProps(paper.title)}>{paper.title}</h3><p className="research-authors">{paper.authors}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div>
+      <ResearchCover title={paper.title} journal={paper.journal} palette={paper.palette} paletteKey={paper.journal}/>
+      <div className="research-card-copy"><p className="research-authors">{paper.authors}</p><p className="research-card-date">{dateLabel(paper)}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div>
     </Link>)}</div>
     {totalPages > 1 && <nav className="research-pagination" aria-label={t.publicationPages}><button type="button" onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>{t.previous}</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => goToPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>{t.next}</button></nav>}
     {!results.length && <div className="research-empty"><h3>{t.noMatches}</h3><button type="button" onClick={resetFilters}>{t.clearFilters}</button></div>}

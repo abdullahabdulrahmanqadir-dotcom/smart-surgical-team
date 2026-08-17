@@ -4,22 +4,25 @@ import { getSupabaseServerClient } from "../../lib/supabase/server";
 export const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-export type AdminResource = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "research";
+export type AdminResource = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "research" | "research-topics";
 
 // Membership in STAFF_ROLES alone used to grant every staff tier the power to
 // delete any record. The four tiers are now actually enforced: writing content
 // is broadly delegated, but reshaping the taxonomy and destroying records stay
 // with the senior roles.
+// Research topics sit with the other taxonomy: renaming one rewrites the label
+// and cover colour of every paper filed under it, so it is a senior-role edit
+// even though writing an individual paper is not.
 const WRITABLE: Record<StaffRole, AdminResource[]> = {
-  owner: ["content", "research", "topics", "events", "contributors", "people"],
-  content_manager: ["content", "research", "topics", "events", "contributors"],
+  owner: ["content", "research", "research-topics", "topics", "events", "contributors", "people"],
+  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors"],
   editor: ["content", "research", "events", "contributors"],
   contributor: ["content", "research"],
 };
 
 const DELETABLE: Record<StaffRole, AdminResource[]> = {
-  owner: ["content", "research", "topics", "events", "contributors"],
-  content_manager: ["content", "research", "topics", "events", "contributors"],
+  owner: ["content", "research", "research-topics", "topics", "events", "contributors"],
+  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors"],
   editor: ["content", "research"],
   contributor: [],
 };
