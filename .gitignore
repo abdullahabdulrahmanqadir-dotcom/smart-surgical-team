@@ -58,3 +58,4 @@ local-host.error.log
 /.claude/
 /scratch/
 /.logs/
+/supabase/.temp/
