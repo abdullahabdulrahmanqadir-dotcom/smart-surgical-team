@@ -3591,3 +3591,14 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .admin-pair-title { position: relative; z-index: 2; padding: .15rem .4rem; border-radius: 3px; background: rgba(0, 0, 0, .6); color: #fff; font-size: .68rem; font-weight: 700; justify-self: start; align-self: start; }
 .admin-pair-hint { position: relative; z-index: 2; color: var(--text-muted); font-size: .72rem; line-height: 1.35; }
 .admin-pair-drop input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+/* Deleting an image is permanent once saved, so the confirmation sits inline
+   next to the file rather than in a dialog that could be dismissed blind. */
+.admin-media-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .74rem; }
+.admin-media-confirm > span { font-weight: 650; }
+.admin-thumbnail-option { position: relative; }
+.admin-thumbnail-option .admin-delete { position: absolute; z-index: 2; inset: .3rem .3rem auto auto; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .66); color: #fff; font-size: .8rem; line-height: 1; opacity: 0; transition: opacity .15s ease; }
+.admin-thumbnail-option:hover .admin-delete, .admin-thumbnail-option:focus-within .admin-delete { opacity: 1; }
+.admin-thumbnail-option .admin-media-confirm { position: absolute; z-index: 3; inset: auto 0 0; justify-content: center; padding: .3rem; background: rgba(0, 0, 0, .8); color: #fff; }
+.admin-pair-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .74rem; }
+.admin-pair-actions > button { padding: .2rem .45rem; border: 1px solid var(--line); border-radius: .3rem; background: var(--surface); font-size: .74rem; cursor: pointer; }
