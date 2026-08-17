@@ -1,5 +1,5 @@
 import { getTopicContent } from "../../../../lib/content";
-import { getPublicTopicGroup } from "../../../../lib/topics";
+import { getPublicTopicGroupWithSubtopics, topicSlugsFor } from "../../../../lib/topic-tree";
 
 /**
  * Cases for one topic group.
@@ -11,10 +11,10 @@ import { getPublicTopicGroup } from "../../../../lib/topics";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const group = getPublicTopicGroup(slug);
+  const group = await getPublicTopicGroupWithSubtopics(slug);
   if (!group) return Response.json({ error: "Unknown topic." }, { status: 404 });
 
-  const items = await getTopicContent([group.slug, ...group.subTopics.map((topic) => topic.slug)]);
+  const items = await getTopicContent(topicSlugsFor(group));
 
   return Response.json({ items }, {
     headers: {

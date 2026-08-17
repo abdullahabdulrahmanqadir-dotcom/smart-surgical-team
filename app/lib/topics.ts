@@ -79,6 +79,15 @@ export const PUBLIC_TOPIC_GROUPS = TOPIC_GROUPS.filter((group) => group.visible 
 export const FEATURED_TOPICS = PUBLIC_TOPIC_GROUPS.filter((group) => group.featured);
 
 /** Localizes the display copy without mutating the database-aligned taxonomy. */
+/**
+ * Translates the four major topics only.
+ *
+ * Subtopic names deliberately stay in English in every locale. They are
+ * admin-editable, so a translation would only ever cover the ones that happened
+ * to be named in the dictionaries — a filter row half in Arabic and half in
+ * English reads worse than one consistently in English. The subtopic entries
+ * still sitting in the dictionary files are inert because of this.
+ */
 export function localizeTopicGroups(
   groups: TopicGroup[],
   taxonomy: Record<string, string>,
@@ -88,9 +97,5 @@ export function localizeTopicGroups(
     name: taxonomy[group.slug] ?? group.name,
     blurb: taxonomy[`${group.slug}-blurb`] ?? group.blurb,
     intro: taxonomy[`${group.slug}-intro`] ?? group.intro,
-    subTopics: group.subTopics.map((topic) => ({
-      ...topic,
-      name: taxonomy[topic.slug] ?? topic.name,
-    })),
   }));
 }

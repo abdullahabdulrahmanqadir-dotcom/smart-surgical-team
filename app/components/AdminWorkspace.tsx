@@ -3,11 +3,16 @@
 import { FormEvent, MouseEvent as ReactMouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
-import ResearchCover from "./ResearchCover";
-import { PALETTE_LABELS, PALETTE_NAMES } from "../lib/research-palettes";
+import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch } from "./icons";
 
-type Section = "overview" | "content" | "posters" | "topics" | "events" | "contributors" | "people" | "research" | "research-topics";
+// The sections the sidebar offers. Contributors and People & roles were retired
+// from the workspace: roles are changed directly in Supabase, and the two topic
+// taxonomies are now edited inline from the editors that use them.
+type Section = "overview" | "content" | "posters" | "events" | "research";
+// The taxonomies are still read and written through the same admin API; they
+// simply no longer have a screen of their own.
+type Taxonomy = "topics" | "research-topics";
+type Resource = Section | Taxonomy | "contributors";
 type Access = "checking" | "signed_out" | "denied" | "unavailable" | "ready";
 const ADMIN_REQUEST_TIMEOUT_MS = 12_000;
 class RequestError extends Error {
@@ -62,9 +67,7 @@ const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "overview", label: "Overview", icon: IconLayers }, { id: "content", label: "Content", icon: IconFile },
   { id: "posters", label: "Posters", icon: IconFile },
   { id: "research", label: "Research", icon: IconFile },
-  { id: "research-topics", label: "Research topics", icon: IconLayers },
-  { id: "topics", label: "Topics", icon: IconLayers }, { id: "events", label: "Events & webinars", icon: IconPlus },
-  { id: "contributors", label: "Contributors", icon: IconUsers }, { id: "people", label: "People & roles", icon: IconUser },
+  { id: "events", label: "Events & webinars", icon: IconPlus },
 ];
 
 // The stored session is restored asynchronously after the page loads, so the
@@ -534,7 +537,7 @@ export default function AdminWorkspace() {
   async function authHeaders() {
     return { "Content-Type": "application/json", Authorization: `Bearer ${(await accessToken()) ?? ""}` };
   }
-  async function request(resource: Section, init?: RequestInit): Promise<RecordItem> {
+  async function request(resource: Resource, init?: RequestInit): Promise<RecordItem> {
     const headers = await authHeaders();
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), ADMIN_REQUEST_TIMEOUT_MS);
@@ -588,7 +591,7 @@ export default function AdminWorkspace() {
           const topicResult = await request("research-topics");
           if (!current()) return;
           setResearchTopics(asRecords(topicResult.data));
-        } else if (resource === "research-topics") setResearchTopics(rows);
+        }
       }
     } catch (error) {
       if (!current()) return;
@@ -644,24 +647,6 @@ export default function AdminWorkspace() {
         return String(b.updated_at ?? b.created_at ?? "").localeCompare(String(a.updated_at ?? a.created_at ?? ""));
       });
     }
-    // Topics list as a tree: each main topic followed by its own subtopics.
-    // Sorted by sort_order alone they interleave, and a subtopic sitting above
-    // an unrelated topic reads as belonging to it.
-    if (active === "research-topics") {
-      const order = (item: RecordItem) => Number(item.sort_order) || 0;
-      const parentKey = (item: RecordItem) => {
-        const parent = item.parent_id ? items.find((topic) => String(topic.id) === String(item.parent_id)) : item;
-        return [order(parent ?? item), String(parent?.name ?? "")] as const;
-      };
-      return [...searched].sort((a, b) => {
-        const [aOrder, aName] = parentKey(a), [bOrder, bName] = parentKey(b);
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        if (aName !== bName) return aName.localeCompare(bName);
-        // Within one family the parent leads, then its subtopics in order.
-        if (!a.parent_id !== !b.parent_id) return a.parent_id ? 1 : -1;
-        return order(a) - order(b);
-      });
-    }
     if (active === "posters") return searched.sort((a, b) => String(b.published_at ?? b.created_at ?? "").localeCompare(String(a.published_at ?? a.created_at ?? "")));
     if (active !== "content") return searched;
     const childIds = new Set(topics.filter((topic) => String(topic.parent_id ?? "") === contentFilters.major).map((topic) => String(topic.id)));
@@ -679,10 +664,7 @@ export default function AdminWorkspace() {
     if (active === "content") setEditing(emptyContent());
     else if (active === "posters") setEditing({ kind: "poster", status: "published", access_level: "public", title: "", slug: "", summary: "", level: "Clinical poster", poster_url: "", poster_cta_text: "", poster_cta_url: "", contributor_ids: [], case_sections: [{ key: "overview", label: "Overview", body: "" }, { key: "findings", label: "Key findings", body: "" }] });
     else if (active === "research") setEditing({ title: "", authors: "", abstract: "", journal: "", status: "published", published_date: "", link: "", topic_id: "", subtopic_id: "", research_media: [] });
-    else if (active === "research-topics") setEditing({ name: "", parent_id: "", palette: "teal", sort_order: 0 });
-    else if (active === "topics") setEditing({ name: "", slug: "", description: "", sort_order: 0 });
     else if (active === "events") setEditing({ title: "", slug: "", event_type: "Webinar", format: "online", status: "published" });
-    else if (active === "contributors") setEditing({ display_name: "", credentials: "", role_title: "", group_name: "", biography: "", published: true, sort_order: 0 });
     else setEditing(null);
   }
   async function save(value: RecordItem): Promise<boolean> {
@@ -701,17 +683,36 @@ export default function AdminWorkspace() {
   }
   async function signOut() { await getSupabaseBrowserClient().auth.signOut(); window.location.assign("/en/sign-in"); }
 
+  // Subtopics are edited from inside the editor that uses them, so the taxonomy
+  // writes are handed down rather than driven by a section of their own. The
+  // reload afterwards is what makes a rename appear immediately in the picker,
+  // the list filters and — once the API has expired the public cache tag — every
+  // card and filter on the site.
+  const taxonomy: TaxonomyAdmin = {
+    async save(resource, payload) { await request(resource, { method: "POST", body: JSON.stringify(payload) }); },
+    async remove(resource, id) {
+      const headers = await authHeaders();
+      const response = await fetch(`/api/admin/${resource}?id=${encodeURIComponent(id)}`, { method: "DELETE", headers });
+      const result = await readResponse(response);
+      if (!response.ok) throw new RequestError(errorMessage(result.error, "Could not delete this subtopic."), response.status);
+    },
+    async reload(resource) {
+      const rows = asRecords((await request(resource)).data);
+      if (resource === "topics") setTopics(rows); else setResearchTopics(rows);
+    },
+  };
+
   if (access === "checking" && !identity) return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Checking your access...</h1><p>Restoring your staff session.</p></main>;
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We could not verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
-  const canCreate = ["content", "posters", "research", "research-topics", "topics", "events", "contributors"].includes(active);
-  const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : active === "research-topics" ? "research topic" : active === "events" ? "event" : active.slice(0, -1);
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} contributors={contributors} caseSectionsStorable={caseSectionsStorable} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  const canCreate = ["content", "posters", "research", "events"].includes(active);
+  const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : "event";
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} contributors={contributors} caseSectionsStorable={caseSectionsStorable} taxonomy={taxonomy} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
 function Overview({ metrics, setActive }: { metrics: RecordItem; setActive: (section: Section) => void }) {
-  const cards: { key: string; label: string; section: Section }[] = [{ key: "published", label: "Published items", section: "content" }, { key: "drafts", label: "Drafts & unpublishing", section: "content" }, { key: "events", label: "Published events", section: "events" }, { key: "contributors", label: "Contributors", section: "contributors" }, { key: "members", label: "Members", section: "people" }, { key: "research", label: "Research publications", section: "research" }];
+  const cards: { key: string; label: string; section: Section }[] = [{ key: "published", label: "Published items", section: "content" }, { key: "drafts", label: "Drafts & unpublishing", section: "content" }, { key: "events", label: "Published events", section: "events" }, { key: "research", label: "Research publications", section: "research" }];
   return <div className="admin-overview"><section className="admin-welcome"><div><span className="admin-kicker">Control room</span><h2>Keep the platform current, carefully.</h2><p>Publish case articles, update the team, and keep events and learning material accurate from one place.</p></div><button className="btn btn-primary" type="button" onClick={() => setActive("content")}>Create a case article <IconArrowRight size={17}/></button></section><div className="admin-metric-grid">{cards.map((card) => <button type="button" onClick={() => setActive(card.section)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div><section className="admin-safety"><h2>Clinical publishing reminder</h2><p>Only publish material that has been de-identified, consented, and approved by the team. Articles are public unless you select Site users only in the content editor.</p></section></div>;
 }
 
@@ -726,9 +727,9 @@ function List({ section, items, search, setSearch, topics, researchTopics, filte
   const researchMajors = researchTopics.filter((topic) => !topic.parent_id);
   const researchTopicName = (id: unknown) => { const name = researchTopics.find((topic) => String(topic.id) === String(id ?? ""))?.name; return typeof name === "string" ? name : undefined; };
   const change = (key: keyof ContentFilters, value: string) => setFilters({ ...filters, [key]: value, ...(key === "major" ? { subtopic: "" } : {}) });
-  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}...`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}{section === "research" ? <div className="admin-content-filters"><label>Year<select value={researchFilters.year} onChange={(event) => setResearchFilters({ ...researchFilters, year: event.target.value })}><option value="">All years</option>{researchYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label>Topic<select value={researchFilters.topic} onChange={(event) => setResearchFilters({ ...researchFilters, topic: event.target.value })}><option value="">All topics</option>{researchMajors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={researchFilters.status} onChange={(event) => setResearchFilters({ ...researchFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><button type="button" onClick={() => setResearchFilters(EMPTY_RESEARCH_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{section === "research-topics" ? (item.parent_id ? `Subtopic of ${researchTopicName(item.parent_id) ?? "a deleted topic"}` : `Main topic · ${String(item.palette ?? "teal")} cover`) : plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{researchTopicName(item.topic_id) ?? "Unfiled"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button>{section !== "people" && <button className={`admin-delete${confirmingDelete === String(item.id) ? " is-confirming" : ""}`} type="button" title={confirmingDelete === String(item.id) ? "Click again to delete permanently" : "Delete"} onClick={() => { if (confirmingDelete === String(item.id)) { setConfirmingDelete(null); onDelete(item); } else setConfirmingDelete(String(item.id)); }} onBlur={() => setConfirmingDelete((current) => current === String(item.id) ? null : current)}>{confirmingDelete === String(item.id) ? "Delete permanently?" : "Delete"}</button>}</div></div></article>)}</div></div>;
+  return <div className="admin-list"><div className="admin-list-controls"><label><IconSearch size={17}/><span className="visually-hidden">Search</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${section}...`}/></label><span>{items.length} items</span></div>{section === "content" ? <div className="admin-content-filters"><label>Topic<select value={filters.major} onChange={(event) => change("major", event.target.value)}><option value="">All topics</option>{majors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Subtopic<select value={filters.subtopic} disabled={!filters.major} onChange={(event) => change("subtopic", event.target.value)}><option value="">All subtopics</option>{subtopics.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={filters.status} onChange={(event) => change("status", event.target.value)}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="archived">Archived</option></select></label><label>Access<select value={filters.access} onChange={(event) => change("access", event.target.value)}><option value="">All access</option><option value="public">Public</option><option value="members_only">Members only</option></select></label><label>From<input type="date" value={filters.from} onChange={(event) => change("from", event.target.value)}/></label><label>To<input type="date" value={filters.to} onChange={(event) => change("to", event.target.value)}/></label><label>Order<select value={filters.sort} onChange={(event) => change("sort", event.target.value)}><option value="published_desc">Newest published</option><option value="published_asc">Oldest published</option><option value="updated_desc">Recently updated</option></select></label><button type="button" onClick={() => setFilters(EMPTY_CONTENT_FILTERS)}>Clear filters</button></div> : null}{section === "research" ? <div className="admin-content-filters"><label>Year<select value={researchFilters.year} onChange={(event) => setResearchFilters({ ...researchFilters, year: event.target.value })}><option value="">All years</option>{researchYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label>Topic<select value={researchFilters.topic} onChange={(event) => setResearchFilters({ ...researchFilters, topic: event.target.value })}><option value="">All topics</option>{researchMajors.map((topic) => <option key={String(topic.id)} value={String(topic.id)}>{String(topic.name)}</option>)}</select></label><label>Status<select value={researchFilters.status} onChange={(event) => setResearchFilters({ ...researchFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label><button type="button" onClick={() => setResearchFilters(EMPTY_RESEARCH_FILTERS)}>Clear filters</button></div> : null}<div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{researchTopicName(item.topic_id) ?? "Unfiled"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button><button className={`admin-delete${confirmingDelete === String(item.id) ? " is-confirming" : ""}`} type="button" title={confirmingDelete === String(item.id) ? "Click again to delete permanently" : "Delete"} onClick={() => { if (confirmingDelete === String(item.id)) { setConfirmingDelete(null); onDelete(item); } else setConfirmingDelete(String(item.id)); }} onBlur={() => setConfirmingDelete((current) => current === String(item.id) ? null : current)}>{confirmingDelete === String(item.id) ? "Delete permanently?" : "Delete"}</button></div></div></article>)}</div></div>;
 }
-function Editor({ section, value, topics, researchTopics, contributors, caseSectionsStorable = true, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; researchTopics: RecordItem[]; contributors: RecordItem[]; caseSectionsStorable?: boolean; onCancel: () => void; onSave: (value: RecordItem) => boolean | void | Promise<boolean | void> }) {
+function Editor({ section, value, topics, researchTopics, contributors, caseSectionsStorable = true, taxonomy, onCancel, onSave }: { section: Section; value: RecordItem; topics: RecordItem[]; researchTopics: RecordItem[]; contributors: RecordItem[]; caseSectionsStorable?: boolean; taxonomy: TaxonomyAdmin; onCancel: () => void; onSave: (value: RecordItem) => boolean | void | Promise<boolean | void> }) {
   const [form, setForm] = useState<RecordItem>(() => ({ ...value, topic_ids: Array.isArray(value.content_topics) ? value.content_topics.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).topic_id)] : []) : value.topic_ids ?? [], contributor_ids: Array.isArray(value.content_contributors) ? value.content_contributors.flatMap((row) => typeof row === "object" && row ? [String((row as RecordItem).contributor_id)] : []) : value.contributor_ids ?? (value.contributor_id ? [String(value.contributor_id)] : []), chapters: Array.isArray(value.content_chapters) ? value.content_chapters : value.chapters ?? [], content_media: Array.isArray(value.content_media) ? value.content_media : [], research_media: Array.isArray(value.research_media) ? value.research_media : [], case_sections: initialCaseSections(value) }));
   const [uploading, setUploading] = useState(false);
   // Saving a case can take a while: every pending image is uploaded to R2 one
@@ -906,23 +907,19 @@ function Editor({ section, value, topics, researchTopics, contributors, caseSect
     <ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/>
     <CaseFields title="Written poster details" intro="Write the supporting text readers should see on the poster detail page. Rename, reorder or add sections as needed." sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/>
   </section><aside><PosterImagePicker value={String(form.poster_url ?? "")} removed={Boolean(form.poster_image_removed)} onRemove={removePosterImage} onPick={pickPoster} uploading={uploading} error={uploadError}/></aside></div></form>;
-  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress} blocked={pairIsIncomplete() ? PAIR_INCOMPLETE : ""}/><div className="admin-editor-grid"><section>{importWarning && <p className="admin-blocked" role="alert">{importWarning}</p>}<CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} onDelete={(target) => removeMedia("content_media", target)} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" || form.thumbnail_source === "before_after" ? form.thumbnail_source : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} beforePath={String(form.thumbnail_before_path ?? "")} afterPath={String(form.thumbnail_after_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)} onSelectBefore={(path) => set("thumbnail_before_path", path)} onSelectAfter={(path) => set("thumbnail_after_path", path)} onDropBefore={(file) => pickPairImage(file, "thumbnail_before_path")} onDropAfter={(file) => pickPairImage(file, "thumbnail_after_path")} onDelete={(target) => removeMedia("content_media", target)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
+  if (section === "content") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit content" : "New content"} onCancel={onCancel} busy={uploading} progress={progress} blocked={pairIsIncomplete() ? PAIR_INCOMPLETE : ""}/><div className="admin-editor-grid"><section>{importWarning && <p className="admin-blocked" role="alert">{importWarning}</p>}<CaseJsonImport topics={topics} onApply={applyImport}/><Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/><Field label="Card summary" type="textarea" value={form.summary} onChange={(value) => set("summary", value)} required/><div className="admin-field-grid"><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive'],['scheduled','Schedule']]}/><Select label="Visibility" value={form.access_level} onChange={(value) => set("access_level", value)} options={[['public','Public'],['members_only','Site users only']]}/></div>{form.status === "scheduled" && <Field label="Publish on" type="datetime-local" value={form.scheduled_for} onChange={(value) => set("scheduled_for", value)}/>}<TopicPicker topics={topics} value={(form.topic_ids as string[]) ?? []} onChange={(ids) => set("topic_ids", ids)} taxonomy={taxonomy}/><ContributorPicker contributors={contributors} value={(form.contributor_ids as string[]) ?? []} onChange={(ids) => set("contributor_ids", ids)}/><div className="admin-field-grid"><Field label="Video URL (optional)" hint="Paste a YouTube watch or share link, or a direct .mp4/.webm file URL." type="url" value={form.video_url} onChange={(value) => set("video_url", value)}/><Select label="Clinical level" value={form.level ?? "Clinical education"} onChange={(value) => set("level", value)} options={clinicalLevelOptions(form.level)}/></div><CaseFields sections={(form.case_sections as CaseSection[]) ?? []} setSections={(sections) => set("case_sections", sections)} storable={caseSectionsStorable}/></section><aside><MediaManager media={(form.content_media as Media[]) ?? []} setMedia={(media) => set("content_media", media)} upload={(file) => pickMedia(file, "content_media")} onDelete={(target) => removeMedia("content_media", target)} uploading={uploading} error={uploadError}/><ThumbnailPicker media={(form.content_media as Media[]) ?? []} source={form.thumbnail_source === "image" || form.thumbnail_source === "before_after" ? form.thumbnail_source : "youtube"} selectedPath={String(form.thumbnail_media_path ?? "")} beforePath={String(form.thumbnail_before_path ?? "")} afterPath={String(form.thumbnail_after_path ?? "")} onSource={(source) => set("thumbnail_source", source)} onSelect={(path) => set("thumbnail_media_path", path)} onSelectBefore={(path) => set("thumbnail_before_path", path)} onSelectAfter={(path) => set("thumbnail_after_path", path)} onDropBefore={(file) => pickPairImage(file, "thumbnail_before_path")} onDropAfter={(file) => pickPairImage(file, "thumbnail_after_path")} onDelete={(target) => removeMedia("content_media", target)}/><Chapters chapters={(form.chapters as { title: string; starts_at_seconds: number }[]) ?? []} setChapters={(chapters) => set("chapters", chapters)}/></aside></div></form>;
   if (section === "research") return <form className="admin-editor" onSubmit={submit}><EditorHead title={form.id ? "Edit research" : "New research"} onCancel={onCancel} busy={uploading} progress={progress}/><div className="admin-editor-grid"><section>
     <Field label="Title" value={form.title} onChange={(value) => set("title", value)} required/>
     <Field label="Authors" hint="Free-text byline, e.g. Dr. A, Dr. B, and colleagues." value={form.authors} onChange={(value) => set("authors", value)}/>
     <div className="admin-label"><span className="admin-label-text">Abstract</span><RichEditor value={String(form.abstract ?? "")} onChange={(value) => set("abstract", value)} placeholder="Write the abstract..."/></div>
     <Field label="Journal" hint="Shown at the top of the paper's generated cover." value={form.journal} onChange={(value) => set("journal", value)}/>
-    <ResearchTopicPicker topics={researchTopics} topicId={String(form.topic_id ?? "")} subtopicId={String(form.subtopic_id ?? "")} onChange={(topicId, subtopicId) => setForm((current) => ({ ...current, topic_id: topicId, subtopic_id: subtopicId }))}/>
+    <ResearchTopicPicker topics={researchTopics} topicId={String(form.topic_id ?? "")} subtopicId={String(form.subtopic_id ?? "")} taxonomy={taxonomy} onChange={(topicId, subtopicId) => setForm((current) => ({ ...current, topic_id: topicId, subtopic_id: subtopicId }))}/>
     <div className="admin-field-grid"><Field label="Publication date" type="date" value={form.published_date} onChange={(value) => set("published_date", value)}/><Select label="Publishing" value={form.status} onChange={(value) => set("status", value)} options={[['published','Published now'],['draft','Save as draft'],['archived','Unpublish / archive']]}/></div>
     <Field label="External paper link" hint="Full https:// link to the published paper." type="url" value={form.link} onChange={(value) => set("link", value)}/>
   </section><aside>
     <MediaManager media={(form.research_media as Media[]) ?? []} setMedia={(media) => set("research_media", media)} upload={(file) => pickMedia(file, "research_media")} onDelete={(target) => removeMedia("research_media", target)} uploading={uploading} error={uploadError}/>
   </aside></div></form>;
-  if (section === "research-topics") return <ResearchTopicEditor form={form} set={set} topics={researchTopics} onCancel={onCancel} onSave={submit}/>;
-  if (section === "topics") return <SimpleEditor title={form.id ? "Edit topic" : "New topic"} fields={[['name','Topic name'],['description','Description'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit} topics={topics}/>;
-  if (section === "events") return <SimpleEditor title={form.id ? "Edit event" : "New event or webinar"} fields={[['title','Title'],['summary','Summary'],['event_type','Type'],['topic','Topic'],['format','Attendance format'],['status','Status'],['starts_at','Starts at'],['ends_at','Ends at'],['location','Location'],['image_url','Image URL'],['official_url','Official URL'],['registration_url','Registration URL'],['programme_url','Programme URL'],['faculty_url','Faculty page URL'],['highlights','Programme highlights']]} form={{ ...form, highlights: Array.isArray(form.highlights) ? form.highlights.join("\n") : form.highlights }} set={set} onCancel={onCancel} onSave={submit}/>;
-  if (section === "people") return <form className="admin-editor admin-simple-editor" onSubmit={submit}><EditorHead title={`Manage ${String(form.full_name ?? form.email)}`} onCancel={onCancel}/><div className="admin-simple-fields"><Field label="Email" value={form.email} onChange={() => {}}/><Select label="Platform role" value={form.role} onChange={(value) => set("role", value)} options={[['owner','Owner'],['content_manager','Content manager'],['editor','Editor'],['contributor','Contributor'],['member','Member']]}/><p className="admin-role-note">Only the Owner can change roles. The designated Owner account cannot be downgraded here.</p></div></form>;
-  return <SimpleEditor title={form.id ? "Edit contributor" : "New contributor"} fields={[['display_name','Full name'],['credentials','Credentials'],['role_title','Role'],['group_name','Team group'],['photo_url','Portrait URL'],['biography','Biography'],['sort_order','Display order']]} form={form} set={set} onCancel={onCancel} onSave={submit}/>;
+  return <SimpleEditor title={form.id ? "Edit event" : "New event or webinar"} fields={[['title','Title'],['summary','Summary'],['event_type','Type'],['topic','Topic'],['format','Attendance format'],['status','Status'],['starts_at','Starts at'],['ends_at','Ends at'],['location','Location'],['image_url','Image URL'],['official_url','Official URL'],['registration_url','Registration URL'],['programme_url','Programme URL'],['faculty_url','Faculty page URL'],['highlights','Programme highlights']]} form={{ ...form, highlights: Array.isArray(form.highlights) ? form.highlights.join("\n") : form.highlights }} set={set} onCancel={onCancel} onSave={submit}/>;
 }
 
 // Contributors are picked from a checklist rather than a multi-select: the old
@@ -938,12 +935,12 @@ function ContributorPicker({ contributors, value, onChange }: { contributors: Re
     <span className="admin-label-text">Contributors</span>
     {contributors.length
       ? <div className="admin-subtopic-grid">{contributors.map((person) => <label className="admin-checkbox" key={String(person.id)}><input type="checkbox" checked={selected.includes(String(person.id))} onChange={(event) => toggle(String(person.id), event.target.checked)}/>{String(person.display_name)}</label>)}</div>
-      : <small>No contributors have been added yet. Create them under a&SContributorsa.</small>}
+      : <small>No contributors have been added yet. They are managed directly in Supabase.</small>}
     <p className="admin-picker-summary">{selected.length ? <>Credited: {selected.map(nameOf).filter(Boolean).join(", ")}. <b>{nameOf(selected[0])}</b> is the lead author.</> : "Nobody selected a this will be credited to Smart Surgical Team."}</p>
   </section>;
 }
 
-function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value: string[]; onChange: (ids: string[]) => void }) {
+function TopicPicker({ topics, value, onChange, taxonomy }: { topics: RecordItem[]; value: string[]; onChange: (ids: string[]) => void; taxonomy: TaxonomyAdmin }) {
   const majors = topics.filter((topic) => !topic.parent_id);
   const parentOf = (id: string) => topics.find((topic) => String(topic.id) === id)?.parent_id;
   const inferredMajor = value.map((id) => (majors.some((major) => String(major.id) === id) ? id : parentOf(id))).find(Boolean);
@@ -957,15 +954,135 @@ function TopicPicker({ topics, value, onChange }: { topics: RecordItem[]; value:
   useEffect(() => { if (!value.length && majorId) onChange([majorId]); }, [majorId, value.length, onChange]);
 
   function changeMajor(id: string) { setMajorId(id); onChange(id ? [id] : []); }
+  // Ticking a subtopic adds to the filing, it does not replace it. This used to
+  // drop the major topic from the item, which took the item off the major
+  // topic's page and out of every list built from it.
   function toggleSub(id: string, checked: boolean) {
     const next = checked ? [...selectedSubIds, id] : selectedSubIds.filter((entry) => entry !== id);
-    onChange(next.length ? next : majorId ? [majorId] : []);
+    onChange(majorId ? [majorId, ...next] : next);
   }
 
   return <section className="admin-topic-picker">
     <label className="admin-label">Major topic<select value={majorId} onChange={(event) => changeMajor(event.target.value)}>{majors.map((major) => <option value={String(major.id)} key={String(major.id)}>{String(major.name)}</option>)}</select><small>Choose the one major topic this belongs to.</small></label>
-    {subTopics.length > 0 && <div className="admin-subtopic-list"><span className="admin-label-text">Subtopics in this major topic</span><div className="admin-subtopic-grid">{subTopics.map((topic) => <label className="admin-checkbox" key={String(topic.id)}><input type="checkbox" checked={selectedSubIds.includes(String(topic.id))} onChange={(event) => toggleSub(String(topic.id), event.target.checked)}/>{String(topic.name)}</label>)}</div><small>Choose every subtopic that applies. Leave all unchecked to file this under the major topic only.</small></div>}
+    {majorId && <div className="admin-subtopic-list">
+      <span className="admin-label-text">Subtopics in this major topic</span>
+      {subTopics.length > 0
+        ? <div className="admin-subtopic-grid">{subTopics.map((topic) => <label className="admin-checkbox" key={String(topic.id)}><input type="checkbox" checked={selectedSubIds.includes(String(topic.id))} onChange={(event) => toggleSub(String(topic.id), event.target.checked)}/>{String(topic.name)}</label>)}</div>
+        : <small>This major topic has no subtopics yet.</small>}
+      <small>Choose every subtopic that applies. Leave all unchecked to file this under the major topic only.</small>
+      <SubtopicManager key={majorId} resource="topics" parentId={majorId} parentName={String(majors.find((major) => String(major.id) === majorId)?.name ?? "this topic")} subtopics={subTopics} taxonomy={taxonomy} onRemoved={(id) => onChange(value.filter((entry) => entry !== id))}/>
+    </div>}
   </section>;
+}
+
+// ---------------------------------------------------------------------------
+// Editing the subtopics in place
+//
+// The taxonomy no longer has a screen of its own: subtopics are reworded and
+// added from the editor that files things under them, which is where their
+// wording is actually being judged. Only subtopics are editable — the major
+// topics are the site's fixed structure and are deliberately not touchable
+// here, in either taxonomy.
+//
+// Changes are held as a draft until "Save subtopic changes", so a half-typed
+// rename never reaches the site. Saving writes each change, then reloads the
+// taxonomy, so the checkboxes above, the list filters and — the API expires the
+// public cache tag on every write — the cards and filters across the site all
+// show the new wording without a reload or a code release.
+// ---------------------------------------------------------------------------
+type TaxonomyAdmin = {
+  save: (resource: Taxonomy, payload: RecordItem) => Promise<void>;
+  remove: (resource: Taxonomy, id: string) => Promise<void>;
+  reload: (resource: Taxonomy) => Promise<void>;
+};
+type SubtopicDraft = { id: string; name: string; original: string; slug: string; sort_order: number; removed: boolean };
+
+function toDrafts(subtopics: RecordItem[]): SubtopicDraft[] {
+  return subtopics.map((topic) => ({ id: String(topic.id), name: String(topic.name ?? ""), original: String(topic.name ?? ""), slug: String(topic.slug ?? ""), sort_order: Number(topic.sort_order) || 0, removed: false }));
+}
+
+function SubtopicManager({ resource, parentId, parentName, subtopics, taxonomy, onRemoved }: { resource: Taxonomy; parentId: string; parentName: string; subtopics: RecordItem[]; taxonomy: TaxonomyAdmin; onRemoved?: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [drafts, setDrafts] = useState<SubtopicDraft[]>(() => toDrafts(subtopics));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+  // Reopening — or switching to another major topic — starts from what the
+  // database currently holds rather than from a stale draft of another family.
+  //
+  // `subtopics` is filtered fresh on every parent render, so its identity is
+  // never stable; keying the reset on a signature of the rows instead is what
+  // keeps this from re-seeding the draft (and re-rendering) forever.
+  // Switching the major topic remounts this panel — it is keyed on `parentId`
+  // by both callers — so the previous family's drafts can never be left on
+  // screen and saved under the new parent.
+  const latest = useRef(subtopics);
+  // Declared before the reset below so the rows it reads are this render's.
+  useEffect(() => { latest.current = subtopics; });
+  const signature = subtopics.map((topic) => `${String(topic.id)}:${String(topic.name)}:${String(topic.sort_order)}`).join("|");
+  useEffect(() => { if (!open) setDrafts(toDrafts(latest.current)); }, [open, signature]);
+
+  const update = (index: number, patch: Partial<SubtopicDraft>) => setDrafts((current) => current.map((draft, position) => position === index ? { ...draft, ...patch } : draft));
+  // The display order is never typed. Existing subtopics keep whatever order
+  // they were given, and a new one is placed after the last of them, so adding
+  // one is a single decision — its name — rather than a guess at a number.
+  function add() {
+    setDrafts((current) => [...current, { id: "", name: "", original: "", slug: "", sort_order: current.reduce((highest, draft) => Math.max(highest, draft.sort_order), 0) + 1, removed: false }]);
+  }
+  const pending = drafts.some((draft) => draft.removed || (draft.id ? draft.name.trim() !== draft.original : draft.name.trim().length > 0));
+
+  async function commit() {
+    setError(""); setDone("");
+    const blank = drafts.find((draft) => !draft.removed && draft.id && !draft.name.trim());
+    if (blank) { setError(`“${blank.original}” needs a name. Type one, or remove the subtopic.`); return; }
+    setSaving(true);
+    try {
+      for (const draft of drafts) {
+        const name = draft.name.trim();
+        if (draft.removed) { if (draft.id) { await taxonomy.remove(resource, draft.id); onRemoved?.(draft.id); } continue; }
+        if (!draft.id) { if (name) await taxonomy.save(resource, { name, parent_id: parentId, sort_order: draft.sort_order }); continue; }
+        // The stored slug is sent back unchanged: it is the address of the
+        // subtopic's public page, and regenerating it from a reworded name
+        // would break every link already pointing there.
+        if (name !== draft.original) await taxonomy.save(resource, { id: draft.id, name, slug: draft.slug, parent_id: parentId, sort_order: draft.sort_order });
+      }
+      await taxonomy.reload(resource);
+      // Closing hands the panel back to the reset effect above, so it re-opens
+      // on the saved rows — including the real ids of any subtopic just added.
+      setDone("Saved. The new wording is live everywhere these subtopics appear.");
+      setOpen(false);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Could not save these subtopics.");
+      // Whatever did land is already in the database; re-read so the panel
+      // shows the real state rather than a draft that partly failed.
+      await taxonomy.reload(resource).catch(() => {});
+    } finally { setSaving(false); }
+  }
+
+  if (!open) return <div className="admin-subtopic-edit-row">
+    <button type="button" className="admin-subtopic-edit" onClick={() => { setOpen(true); setError(""); setDone(""); }}>Edit subtopics</button>
+    {done && <span className="admin-subtopic-done" role="status"><IconCheck size={15}/> {done}</span>}
+    {error && <span className="admin-upload-error" role="alert">{error}</span>}
+  </div>;
+  return <div className="admin-subtopic-editor">
+    <div className="admin-subtopic-editor-head">
+      <b>Subtopics of {parentName}</b>
+      <button type="button" onClick={() => setOpen(false)} disabled={saving}>Close</button>
+    </div>
+    <p>Rename a subtopic, or add one — a new subtopic is listed after the existing ones automatically. The major topics themselves are fixed and cannot be changed here.</p>
+    {drafts.map((draft, index) => <div className={`admin-subtopic-row${draft.removed ? " is-removed" : ""}`} key={draft.id || `new-${index}`}>
+      <input value={draft.name} disabled={draft.removed || saving} onChange={(event) => update(index, { name: event.target.value })} placeholder="Subtopic name" aria-label={draft.id ? `Name for ${draft.original}` : "New subtopic name"}/>
+      {draft.removed
+        ? <button type="button" disabled={saving} onClick={() => update(index, { removed: false })}>Keep</button>
+        : <button type="button" className="admin-delete" disabled={saving} onClick={() => draft.id ? update(index, { removed: true }) : setDrafts((current) => current.filter((_, position) => position !== index))}>Remove</button>}
+    </div>)}
+    {drafts.some((draft) => draft.removed) && <p className="admin-upload-error" role="alert">Removing a subtopic un-files everything currently filed under it. Those items keep their major topic.</p>}
+    <div className="admin-subtopic-editor-actions">
+      <button type="button" className="admin-add-section" disabled={saving} onClick={add}><IconPlus size={16}/> Add a subtopic</button>
+      <button type="button" className="btn btn-primary" disabled={saving || !pending} onClick={() => void commit()}>{saving ? "Saving…" : "Save subtopic changes"}</button>
+    </div>
+    {error && <p className="admin-upload-error" role="alert">{error}</p>}
+  </div>;
 }
 // Reading a case.json is a two-step action on purpose: the file is parsed and
 // what it will do — and everything it could not do — is shown before anything
@@ -1128,46 +1245,18 @@ function MediaManager({ media, setMedia, upload, onDelete, uploading, error }: {
  * one parent and keeping a stale one would file the paper under two unrelated
  * headings.
  */
-function ResearchTopicPicker({ topics, topicId, subtopicId, onChange }: { topics: RecordItem[]; topicId: string; subtopicId: string; onChange: (topicId: string, subtopicId: string) => void }) {
+function ResearchTopicPicker({ topics, topicId, subtopicId, taxonomy, onChange }: { topics: RecordItem[]; topicId: string; subtopicId: string; taxonomy: TaxonomyAdmin; onChange: (topicId: string, subtopicId: string) => void }) {
   const parents = topics.filter((topic) => !topic.parent_id);
   const children = topics.filter((topic) => String(topic.parent_id ?? "") === topicId);
-  return <div className="admin-field-grid">
-    <Select label="Topic" hint="Sets the colour and design of this paper's cover." value={topicId} onChange={(value) => onChange(value, "")} options={[["", parents.length ? "Unfiled" : "No topics yet — add one under Research topics"], ...parents.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
-    <Select label="Subtopic" value={children.length ? subtopicId : ""} onChange={(value) => onChange(topicId, value)} options={[["", children.length ? "None" : topicId ? "This topic has no subtopics" : "Choose a topic first"], ...children.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
-  </div>;
+  return <section className="admin-topic-picker">
+    <div className="admin-field-grid">
+      <Select label="Topic" hint="Sets the colour and design of this paper's cover." value={topicId} onChange={(value) => onChange(value, "")} options={[["", parents.length ? "Unfiled" : "No topics yet"], ...parents.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
+      <Select label="Subtopic" value={children.length ? subtopicId : ""} onChange={(value) => onChange(topicId, value)} options={[["", children.length ? "None" : topicId ? "This topic has no subtopics" : "Choose a topic first"], ...children.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
+    </div>
+    {topicId && <SubtopicManager key={topicId} resource="research-topics" parentId={topicId} parentName={String(parents.find((topic) => String(topic.id) === topicId)?.name ?? "this topic")} subtopics={children} taxonomy={taxonomy} onRemoved={(id) => { if (id === subtopicId) onChange(topicId, ""); }}/>}
+  </section>;
 }
 
-/**
- * Creates and edits the topics themselves.
- *
- * Renaming a topic here rewrites the label on every paper filed under it, and
- * changing its colour re-skins all of their covers, because papers reference
- * the topic row rather than copying its text. That is the point: the taxonomy
- * is meant to be reshaped as the archive grows, without touching 72 papers.
- */
-function ResearchTopicEditor({ form, set, topics, onCancel, onSave }: { form: RecordItem; set: (key: string, value: unknown) => void; topics: RecordItem[]; onCancel: () => void; onSave: (event: FormEvent) => void }) {
-  const parentId = String(form.parent_id ?? "");
-  // A topic cannot be re-parented under itself, and the tree is two levels
-  // deep, so only other top-level topics can be parents.
-  const parents = topics.filter((topic) => !topic.parent_id && String(topic.id) !== String(form.id ?? ""));
-  return <form className="admin-editor" onSubmit={onSave}><EditorHead title={form.id ? "Edit research topic" : "New research topic"} onCancel={onCancel}/><div className="admin-editor-grid"><section>
-    <Field label="Name" hint="Shown in the public filters and on each paper's page." value={form.name} onChange={(value) => set("name", value)} required/>
-    <Select label="Sits under" hint="Leave as a main topic, or choose a parent to make this a subtopic." value={parentId} onChange={(value) => set("parent_id", value)} options={[["", "A main topic"], ...parents.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
-    {!parentId && <Select label="Cover colour" hint="Every paper filed under this topic gets a cover in this colour." value={String(form.palette ?? "teal")} onChange={(value) => set("palette", value)} options={PALETTE_NAMES.map((name) => [name, PALETTE_LABELS[name]] as [string, string])}/>}
-    {parentId && <p className="admin-label"><small>Subtopics take their cover colour from the topic they sit under.</small></p>}
-    <Field label="Display order" hint="Lower numbers appear first in the filters." type="number" value={form.sort_order} onChange={(value) => set("sort_order", value)}/>
-  </section><aside>
-    {/* The real cover component, not a copy of its markup. The hand-built
-        version here silently kept rendering decorations that had been deleted
-        from the actual covers, so the preview showed the admin something the
-        site no longer produced. */}
-    {!parentId && <section className="admin-media"><h2>Cover preview</h2><p>How a paper filed under this topic will look in the archive.</p>
-      <div className="admin-cover-preview">
-        <ResearchCover title={`${String(form.name || "Topic name")}: how a paper under this topic will look`} palette={String(form.palette ?? "teal")}/>
-      </div>
-    </section>}
-  </aside></div></form>;
-}
 function PosterImagePicker({ value, removed, onRemove, onPick, uploading, error }: { value: string; removed: boolean; onRemove: () => void; onPick: (file: File) => void; uploading: boolean; error?: string }) {
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const storedInR2 = value.startsWith("/api/media/");
@@ -1258,4 +1347,4 @@ function EditorHead({ title, onCancel, busy = false, progress = null, blocked = 
 }
 function Field({ label, value, onChange, type = "text", hint, required = false }: { label: string; value: unknown; onChange: (value: string) => void; type?: string; hint?: string; required?: boolean }) { return <label className="admin-label">{label}{type === "textarea" ? <textarea value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/> : <input type={type} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/>} {hint && <small>{hint}</small>}</label>; }
 function Select({ label, value, onChange, options, hint }: { label: string; value: unknown; onChange: (value: string) => void; options: string[][]; hint?: string }) { return <label className="admin-label">{label}<select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}>{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select>{hint && <small>{hint}</small>}</label>; }
-function SimpleEditor({ title, fields, form, set, onCancel, onSave, topics }: { title: string; fields: string[][]; form: RecordItem; set: (key: string, value: unknown) => void; onCancel: () => void; onSave: (event: FormEvent) => void; topics?: RecordItem[] }) { return <form className="admin-editor admin-simple-editor" onSubmit={onSave}><EditorHead title={title} onCancel={onCancel}/><div className="admin-simple-fields">{fields.map(([key, label]) => <Field key={key} label={label} hint={key === "highlights" ? "One highlight per line." : undefined} type={key === "summary" || key === "description" || key === "biography" || key === "highlights" ? "textarea" : key.includes("_at") ? "datetime-local" : key.includes("url") ? "url" : key === "sort_order" ? "number" : "text"} value={form[key]} onChange={(value) => set(key, value)}/>) }{topics && <label className="admin-label">Parent topic<select value={String(form.parent_id ?? "")} onChange={(event) => set("parent_id", event.target.value)}><option value="">No parent (top-level topic)</option>{topics.filter((topic) => topic.id !== form.id).map((topic) => <option value={String(topic.id)} key={String(topic.id)}>{String(topic.name)}</option>)}</select></label>}</div></form>; }
+function SimpleEditor({ title, fields, form, set, onCancel, onSave }: { title: string; fields: string[][]; form: RecordItem; set: (key: string, value: unknown) => void; onCancel: () => void; onSave: (event: FormEvent) => void }) { return <form className="admin-editor admin-simple-editor" onSubmit={onSave}><EditorHead title={title} onCancel={onCancel}/><div className="admin-simple-fields">{fields.map(([key, label]) => <Field key={key} label={label} hint={key === "highlights" ? "One highlight per line." : undefined} type={key === "summary" || key === "description" || key === "biography" || key === "highlights" ? "textarea" : key.includes("_at") ? "datetime-local" : key.includes("url") ? "url" : key === "sort_order" ? "number" : "text"} value={form[key]} onChange={(value) => set(key, value)}/>) }</div></form>; }

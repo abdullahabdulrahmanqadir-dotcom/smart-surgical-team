@@ -68,6 +68,26 @@ async function deleteFromStorage(keys: unknown[]): Promise<boolean> {
   return ok;
 }
 
+/**
+ * Keeps the major topics out of reach.
+ *
+ * Both taxonomies are now edited from inside the content and research editors,
+ * where only subtopics are offered. The major topics are the site's fixed
+ * structure — every card, filter and section heading is built on them — so the
+ * server refuses to rename, re-parent, create or delete one rather than
+ * trusting that the only caller is that inline panel. Returns the message to
+ * refuse with, or null when the write is a subtopic write.
+ */
+async function majorTopicIsLocked(client: ReturnType<typeof getSupabaseServerClient>, table: "topics" | "research_topics", id: string, parentId: string | null): Promise<string | null> {
+  const LOCKED = "The major topics are fixed and cannot be added to, renamed or removed. Only their subtopics can be edited.";
+  if (!id) return parentId ? null : LOCKED;
+  const { data: existing, error } = await client.from(table).select("parent_id").eq("id", id).maybeSingle();
+  if (error) return `Could not check that topic: ${error.message}`;
+  if (!existing) return "That topic no longer exists. Reload the workspace and try again.";
+  // Editing a major topic, or promoting a subtopic into one, are both refused.
+  return existing.parent_id && parentId ? null : LOCKED;
+}
+
 function cacheTagsFor(resource: Resource): PublicCacheTag[] {
   if (resource === "content" || resource === "topics" || resource === "contributors") return [CACHE_TAGS.content];
   if (resource === "events") return [CACHE_TAGS.events];
@@ -389,6 +409,8 @@ export async function POST(request: Request, context: RouteContext) {
     const name = text(body.name);
     if (!name) return apiError("A topic name is required.");
     const parentId = optionalText(body.parent_id);
+    const locked = await majorTopicIsLocked(client, "research_topics", idValue(body.id), parentId);
+    if (locked) return apiError(locked);
     // Two levels only, matching the database guard in migration 0017. Checked
     // here as well so the admin gets a sentence rather than a Postgres error.
     if (parentId) {
@@ -416,6 +438,8 @@ export async function POST(request: Request, context: RouteContext) {
   if (resource === "topics") {
     const name = text(body.name);
     if (!name) return apiError("A topic name is required.");
+    const locked = await majorTopicIsLocked(client, "topics", idValue(body.id), optionalText(body.parent_id));
+    if (locked) return apiError(locked);
     const payload = { name, slug: slugify(text(body.slug) || name), parent_id: optionalText(body.parent_id), description: optionalText(body.description), sort_order: Number(body.sort_order) || 0 };
     const { data, error } = idValue(body.id) ? await client.from("topics").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("topics").insert(payload).select("id").single();
     if (error) return apiError(error.message, 500);
@@ -468,6 +492,14 @@ export async function DELETE(request: Request, context: RouteContext) {
   if (!id) return apiError("Choose an item to delete.");
   const client = getSupabaseServerClient();
   const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource === "research-topics" ? "research_topics" : resource;
+
+  // Deleting a major topic would take every item filed under it out of the
+  // public listings, so it is refused for the same reason renaming one is.
+  if (resource === "topics" || resource === "research-topics") {
+    const { data: existing } = await client.from(table).select("parent_id").eq("id", id).maybeSingle();
+    if (!existing) return apiError("That topic no longer exists.");
+    if (!existing.parent_id) return apiError("The major topics are fixed and cannot be deleted. Only their subtopics can be removed.");
+  }
 
   // Gather every R2 object this item owns before the row (and its cascading
   // media rows) is gone, so nothing is left orphaned in the bucket. Uploaded

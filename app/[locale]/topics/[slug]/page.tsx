@@ -8,6 +8,7 @@ import { getDictionary } from "../../../lib/dictionaries";
 import { getTopicContent } from "../../../lib/content";
 import { LOCALES, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup, localizeTopicGroups, PUBLIC_TOPIC_GROUPS } from "../../../lib/topics";
+import { getPublicTopicTree, topicSlugsFor } from "../../../lib/topic-tree";
 
 type TopicPageParams = {
   locale: string;
@@ -58,9 +59,11 @@ export default async function TopicDetailPage({
   // Only this group's cases are rendered and serialised. The other topics are
   // fetched by the explorer if and when the reader opens them.
   const dict = getDictionary(active);
-  const groups = localizeTopicGroups(PUBLIC_TOPIC_GROUPS, dict.taxonomy);
+  // The subtopics come from the database, so a subtopic added in the admin
+  // filters and lists here without a code release.
+  const groups = localizeTopicGroups(await getPublicTopicTree(), dict.taxonomy);
   const localizedGroup = groups.find((candidate) => candidate.slug === group.slug) ?? group;
-  const items = await getTopicContent([group.slug, ...group.subTopics.map((topic) => topic.slug)]);
+  const items = await getTopicContent(topicSlugsFor(groups.find((candidate) => candidate.slug === group.slug) ?? group));
 
   return (
     <>
