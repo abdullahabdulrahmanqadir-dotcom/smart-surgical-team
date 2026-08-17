@@ -3429,7 +3429,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 /* Individual research pages */
 .research-detail-page { max-width:var(--content); margin:auto; padding:clamp(2rem,5vw,4rem) var(--gutter) clamp(4.5rem,9vw,7rem); }
 .research-breadcrumb { display:flex; min-width:0; gap:.55rem; align-items:center; color:var(--text-muted); font-size:.82rem; }.research-breadcrumb a { color:var(--primary); font-weight:700; text-decoration:none; }.research-breadcrumb b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
-.research-detail-hero { padding:clamp(2.25rem,6vw,4rem) 0 clamp(2.5rem,6vw,3.5rem); border-bottom:1px solid var(--line); }.research-detail-heading h1 { max-width:24ch; margin-top:.7rem; font-size:clamp(2rem,4.2vw,3.65rem); line-height:1.06; }
+.research-detail-hero { padding:clamp(2.25rem,6vw,4rem) 0 clamp(2.5rem,6vw,3.5rem); border-bottom:1px solid var(--line); }/* No max-width. A 24ch cap held the title to about 24 characters a line, so a
+   paper's name arrived as a narrow stack of short lines with most of the page
+   empty beside it. At this size the full content width still measures only
+   ~38 characters a line, which is a comfortable heading measure. */
+.research-detail-heading h1 { margin-top:.7rem; font-size:clamp(2rem,4.2vw,3.65rem); line-height:1.06; text-wrap:wrap; }
 .research-detail-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(15rem,.38fr); gap:clamp(2rem,7vw,7rem); padding-top:clamp(2.5rem,6vw,5rem); }.research-detail-main h2 { margin-top:.35rem; font-size:clamp(1.8rem,3vw,2.5rem); }.research-detail-abstract { max-width:72ch; margin-top:1.15rem; color:var(--text-muted); font-size:1.05rem; line-height:1.85; }.research-detail-abstract p + p { margin-top:1.25rem; }
 .research-contributors { padding:1rem 1.15rem; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surface-2); }.research-contributors-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }.research-contributor-title { display:flex; align-items:center; gap:.6rem; margin-top:.2rem; }.research-contributor-title h2 { margin:0; font:600 1.25rem/1.15 var(--font-display-stack); }.research-contributor-count { display:grid; place-items:center; min-width:1.7rem; height:1.7rem; border-radius:50%; background:var(--primary-soft); color:var(--primary); font-size:.75rem; font-weight:750; }.research-contributor-toggle { display:grid; flex:none; place-items:center; width:2.75rem; height:2.75rem; border:1px solid var(--line); border-radius:50%; background:var(--surface); color:var(--primary); font:600 1.35rem/1 var(--font-body-stack); cursor:pointer; transition:background .18s ease,border-color .18s ease,transform .18s ease; }.research-contributor-toggle:hover { border-color:var(--primary); background:var(--primary-soft); }.research-contributor-toggle:focus-visible { outline:3px solid var(--primary-ring); outline-offset:3px; }.research-contributor-list { display:grid; grid-template-rows:0fr; overflow:hidden; opacity:0; transition:grid-template-rows .25s ease,opacity .2s ease; }.research-contributor-list.is-open { grid-template-rows:1fr; opacity:1; }.research-contributor-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); min-height:0; gap:.65rem; margin-top:1.15rem; transform:translateY(-.5rem); transition:transform .25s ease; }.research-contributor-list.is-open .research-contributor-grid { transform:translateY(0); }.research-contributor { display:flex; min-width:0; align-items:center; gap:.7rem; padding:.6rem .7rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface); font-size:.87rem; font-weight:650; line-height:1.35; }.research-contributor-avatar { display:grid; flex:none; place-items:center; width:2.55rem; height:2.55rem; overflow:hidden; border-radius:50%; background:var(--primary-soft); color:var(--primary); }.research-contributor-avatar img { width:100%; height:100%; object-fit:cover; object-position:center top; }.research-abstract-section { margin-top:clamp(2.5rem,5vw,4rem); padding-top:clamp(2.5rem,5vw,4rem); border-top:1px solid var(--line); }
 .research-metadata { padding:1.4rem; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surface-2); }.research-metadata dl { margin-top:1rem; }.research-metadata dl > div { padding:1rem 0; border-top:1px solid var(--line); }.research-metadata dt { color:var(--text-muted); font-size:.7rem; font-weight:750; letter-spacing:.07em; text-transform:uppercase; }.research-metadata dd { display:flex; gap:.45rem; align-items:center; margin:.38rem 0 0; line-height:1.45; }.research-metadata dd svg { flex:none; color:var(--primary); }
@@ -3635,3 +3639,75 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   .case-image-thumbnails.is-before-after button + button { border-inline-start: 0; border-block-start: 1px solid rgba(255, 255, 255, .35); }
   .hero-image-viewer .case-image-thumbnails.is-before-after .case-image-thumb-badge { opacity: 1; padding: .16rem .4rem; background: rgba(0, 0, 0, .52); font-size: .62rem; backdrop-filter: blur(2px); }
 }
+
+/* ---------------- Generated publication covers ----------------
+   Publications carry no uploaded artwork. Each cover is built from the paper's
+   own title and journal and coloured by the topic it is filed under, so the
+   archive grid reads as grouped before a single title is read. The three
+   --cover-* custom properties are set inline by ResearchCover.tsx from the
+   topic's palette; everything below is layout that works for any three
+   colours. */
+/* Grid, not block: the hero sizes itself with min-height, and a `height:100%`
+   body inside a block parent of indefinite height collapses to its content —
+   which left the journal floating under the title instead of at the foot. */
+/* A container, so everything inside sizes against the cover's own width rather
+   than the viewport's. The grid goes 3 columns -> 2 -> 1 as the screen narrows,
+   so a card can get *smaller* while the viewport gets bigger and vice versa;
+   viewport units set the type against the wrong number at every breakpoint. */
+/* Padding sits on the body, not here, so `cqi` resolves against the cover's
+   full width. With padding on the container the basis was the content box,
+   which shrank as the padding grew and pinned the two-column sizes to their
+   floor. */
+.research-cover { position:relative; display:grid; container-type:inline-size; aspect-ratio:3/2; overflow:hidden; background:linear-gradient(135deg,var(--cover-glow),var(--cover-base) 55%); color:#fff; isolation:isolate; }
+.research-cover::after { content:""; position:absolute; inset:0; background:radial-gradient(75% 75% at 82% 12%,color-mix(in srgb,var(--cover-edge) 30%,transparent),transparent 70%); pointer-events:none; }
+/* Journal eyebrow, then title, both anchored to the top. Space collects at the
+   foot, which is where the original design left it.
+   Each size is declared twice: a viewport-based value first, then the container
+   query unit. A browser without container query support drops the second
+   declaration as invalid and keeps the first, so it degrades to what this
+   looked like before rather than to nothing.
+
+   `align-content`, not `place-content`: centring the track as well as the
+   content would shrink it to fit the text, and the title would go back to
+   wrapping early instead of running to the margin. */
+.research-cover-body { position:relative; z-index:1; display:grid; grid-template-rows:auto auto; align-content:start; gap:clamp(.9rem,2.5vw,1.4rem); gap:clamp(.8rem,4cqi,1.5rem); padding:clamp(1.15rem,3.2vw,1.75rem); padding:clamp(.95rem,5.5cqi,1.9rem); min-height:0; }
+/* Normal case, no rule above it and no letter-spacing: all three were asked
+   for explicitly and are kept, even though the design this restores had them.
+   Say the word to put the small-caps eyebrow and its rule back. */
+.research-cover-journal { margin:0; color:var(--cover-edge); opacity:.82; font:600 .74rem/1.4 var(--font-body-stack); font-size:clamp(.68rem,4cqi,.86rem); }
+/* `text-wrap:wrap`, explicitly, not `balance`. Balance evens the line lengths
+   out, which on a title meant breaking to a new line well before reaching the
+   right edge — several short stacked lines instead of full ones. Plain greedy
+   wrapping fills each line to the margin and only then breaks, which is also
+   what the SVG twin's wrap() does, so the two stay in step.
+
+   The family is spelled out literally rather than taken from --font-display or
+   --font-display-stack. Both expand to `Newsreader, sans-serif, …`: the generic
+   sans sits second, always resolves, and makes the Georgia further down the
+   stack unreachable. So any time the webfont has not loaded the cover turns
+   sans — which is exactly what happened here, because the cover this replaced
+   was SVG set in Georgia, a system font that never fails to load.
+
+   Naming Georgia directly as the second choice keeps the cover serif in every
+   environment, and matches the artwork this design comes from.
+
+   Clamped to five lines: a handful of these titles run past 200 characters and
+   would otherwise set the card height for the whole row.
+   `--cover-title-scale` opens up short titles and tightens long ones so each
+   cover carries a similar amount of ink (see coverTitleScale). The clamp is
+   what bounds it: whatever the scale asks for, the type cannot end up smaller
+   than .95rem or larger than 1.75rem. */
+.research-cover-title { display:-webkit-box; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:5; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-family:Newsreader,Georgia,"Times New Roman",var(--font-display-arabic),serif; font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:wrap; }
+
+/* The card's white space below the cover: byline, then date. The title is not
+   repeated here — the cover is the title. */
+.research-card-copy .research-authors { margin-top:0; }
+.research-card-date { margin-top:.55rem; color:var(--primary); font-size:.72rem; font-weight:750; letter-spacing:var(--tracking-label); text-transform:uppercase; }
+/* The homepage preview slot sizes its own media, so the cover fills it rather
+   than imposing the card aspect ratio. */
+.research-preview-media .research-cover { width:100%; height:100%; aspect-ratio:auto; }
+
+/* Three filters into a two-column mobile grid leaves the last one as a
+   half-width orphan; let it take the row. Targets the last label rather than a
+   position, because the Clear button only appears once a filter is active. */
+@media (max-width:620px) { .research-controls > label:last-of-type { grid-column:1/-1; } }

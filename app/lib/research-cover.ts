@@ -1,56 +1,33 @@
 /**
- * Generated typographic covers for publications that have no real figure.
+ * The social-preview twin of the on-page publication cover.
  *
- * Most of the head & neck archive is paywalled, and roughly a dozen papers
- * have no figures anywhere in their full text, so there is nothing to harvest
- * for them. Journal cover art and publisher logos are not an option — that is
- * someone else's trademark, and thirteen of the papers share one journal, so
- * the grid would render as a wall of identical thumbnails.
+ * Every publication's cover is generated from its own title and journal and
+ * coloured by the topic it is filed under — see ResearchCover.tsx, which is
+ * what readers actually see. This module renders the same design as an image
+ * file, because a link unfurler on WhatsApp or LinkedIn will not run our CSS;
+ * it wants a URL that returns a picture.
  *
- * Instead every uncovered paper gets a deterministic card built from its own
- * metadata: title, journal, year, category. Output is plain SVG so it needs no
- * font binary, no rasteriser and no storage — it renders identically on the
- * Worker and in local dev. A real `cover_image_url` always wins over this, so
- * harvesting figures later is a data change with no code change.
+ * Output is plain SVG so it needs no font binary, no rasteriser and no
+ * storage — it renders identically on the Worker and in local dev, and stays
+ * correct when a title is edited in the admin because nothing is cached to
+ * disk.
  *
  * Deliberately no letter-spacing anywhere: see the RTL tracking rule. These
  * covers carry Latin metadata today, but the rule is cheaper to keep than to
  * remember.
  */
 
+import { paletteFor } from "./research-palettes";
+
 export type CoverInput = {
   title: string;
   journal?: string;
-  year?: string;
-  category?: string;
+  /** The topic's palette name; falls back to hashing the journal. */
+  palette?: string;
 };
 
 const WIDTH = 1200;
 const HEIGHT = 800;
-
-/**
- * Brand-derived palettes, one per slot, chosen by hash rather than a lookup
- * table that would silently collapse to one colour the moment someone adds a
- * category. The hash key is the journal: category is near-uniform across the
- * archive, and keying on it rendered every card in the same brown — the wall
- * of identical thumbnails this whole approach exists to avoid.
- */
-const PALETTES = [
-  { base: "#0d3838", glow: "#167a78", edge: "#cdebe5" }, // teal deep
-  { base: "#40322a", glow: "#a9642f", edge: "#f4ead4" }, // brown / copper
-  { base: "#4b2d3c", glow: "#a85f68", edge: "#f5e6e8" }, // plum / rose
-  { base: "#2f3a26", glow: "#71805a", edge: "#e9eddf" }, // olive
-  { base: "#1d3140", glow: "#3f6f86", edge: "#dce9ef" }, // slate blue
-  { base: "#43301c", glow: "#d3ab63", edge: "#f7ead9" }, // honey
-];
-
-function paletteFor(key: string) {
-  let hash = 0;
-  for (let index = 0; index < key.length; index += 1) {
-    hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
-  }
-  return PALETTES[hash % PALETTES.length];
-}
 
 function escapeXml(value: string) {
   return value
@@ -84,6 +61,41 @@ function textWidth(text: string, fontSize: number) {
   let ems = 0;
   for (const char of text) ems += glyphWidth(char);
   return ems * fontSize;
+}
+
+/**
+ * How much to open up or tighten a cover's title, by how much title there is.
+ *
+ * These titles run from 36 to 166 characters — a 4.6x spread poured into one
+ * fixed box. Set at a single size, a short title left most of its cover empty
+ * while the longest ones were clipped, and the grid read as broken rather than
+ * varied. Scaling the type inversely evens out the ink each cover carries.
+ *
+ * The range is deliberately much narrower than the range it corrects for:
+ * 1.28x down to 0.88x, about 1.45x end to end against content that varies by
+ * 4.6x. Fully evening it out would need a 4x range, and covers that different
+ * stop looking like one family. The CSS clamps this feeds are the hard stops —
+ * this only shifts a title within them, it cannot push one past a readable
+ * size in either direction.
+ *
+ * Measured in ems rather than counted in characters: the estimator above knows
+ * that capitals and 'm' are wide and 'i' is narrow, so an all-caps title is
+ * treated as the large thing it is instead of by its character count.
+ *
+ * The thresholds are centred on the archive's own median title (~39em), so a
+ * typical paper sits at 1x and the steps correct the outliers either side. An
+ * earlier cut centred them too low, which put the median at 1.14x and quietly
+ * enlarged two thirds of the grid instead of evening it out.
+ */
+export function coverTitleScale(title: string) {
+  const ems = textWidth(title.replace(/\s+/g, " ").trim(), 1);
+  // 25 rather than 22: the genuinely short titles form a run from 15 to 24em,
+  // and the lower cut split that group in half for no reason a reader could see.
+  if (ems <= 25) return 1.28;
+  if (ems <= 32) return 1.14;
+  if (ems <= 45) return 1;
+  if (ems <= 60) return 0.93;
+  return 0.88;
 }
 
 /** Greedy wrap against a real width budget, with a hard split for long words. */
@@ -150,8 +162,8 @@ function fitText(value: string, fontSize: number, maxWidth: number) {
 }
 
 /** Builds the full SVG document for one publication cover. */
-export function researchCoverSvg({ title, journal, year, category }: CoverInput) {
-  const palette = paletteFor(journal?.trim() || category?.trim() || title);
+export function researchCoverSvg({ title, journal, palette: paletteName }: CoverInput) {
+  const palette = paletteFor(paletteName, journal?.trim() || title);
   const cleanTitle = truncate(title || "Publication", 220);
 
   // Step down through sizes and take the largest that fits whole. Driven by
@@ -159,23 +171,23 @@ export function researchCoverSvg({ title, journal, year, category }: CoverInput)
   // needs a smaller size than a lowercase one.
   const maxTextWidth = WIDTH - 200;
   const maxLines = 5;
-  let titleSize = 62;
+  // Same length-driven sizing as the HTML cover, so a shared link and the page
+  // it opens do not show the same title at noticeably different sizes.
+  let titleSize = Math.round(62 * coverTitleScale(cleanTitle));
   let lines = wrap(cleanTitle, titleSize, maxTextWidth, maxLines);
-  for (const size of [54, 46, 40]) {
+  // The step-down remains as a safety net: the scale is bucketed, so a title at
+  // the top of its bucket can still overrun and needs to give ground.
+  for (const factor of [0.87, 0.74, 0.65]) {
     if (!lines[lines.length - 1]?.endsWith("…")) break;
-    titleSize = size;
+    titleSize = Math.round(62 * coverTitleScale(cleanTitle) * factor);
     lines = wrap(cleanTitle, titleSize, maxTextWidth, maxLines);
   }
   const lineHeight = Math.round(titleSize * 1.22);
 
-  // Block is centred on the artwork's optical middle, biased slightly up so it
-  // sits clear of the footer rule.
-  const blockTop = Math.round((HEIGHT - lines.length * lineHeight) / 2) - 20;
-
-  const eyebrow = fitText((journal || "Publication").toUpperCase(), 28, maxTextWidth);
-  const footerRight = (year || "").trim();
-  // Leaves room for the year at the opposite end of the same footer line.
-  const footerLeft = fitText((category || "Research").toUpperCase(), 28, maxTextWidth - 200);
+  // Journal eyebrow at the top, then the title beneath it, matching the HTML
+  // cover. Space collects at the foot.
+  const eyebrow = journal ? fitText(journal, 30, maxTextWidth) : "";
+  const blockTop = eyebrow ? 150 : 100;
 
   const titleLines = lines
     .map((line, index) => `<text x="100" y="${blockTop + index * lineHeight + titleSize}" class="t">${escapeXml(line)}</text>`)
@@ -194,23 +206,13 @@ export function researchCoverSvg({ title, journal, year, category }: CoverInput)
 </radialGradient>
 <style>
 .t { fill: #ffffff; font-family: Georgia, "Times New Roman", serif; font-size: ${titleSize}px; font-weight: 500; }
-.label { fill: ${palette.edge}; font-family: Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 700; }
-.label-dim { fill: ${palette.edge}; fill-opacity: 0.72; font-family: Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 700; }
+.label { fill: ${palette.edge}; fill-opacity: 0.82; font-family: Helvetica, Arial, sans-serif; font-size: 30px; font-weight: 600; }
 </style>
 </defs>
 <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bg)"/>
 <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow)"/>
-<g fill="none" stroke="${palette.edge}" stroke-opacity="0.16" stroke-width="2">
-<circle cx="1010" cy="150" r="120"/>
-<circle cx="1010" cy="150" r="190"/>
-<circle cx="1010" cy="150" r="260"/>
-</g>
-<rect x="100" y="96" width="64" height="5" fill="${palette.edge}" fill-opacity="0.85"/>
-<text x="100" y="140" class="label">${escapeXml(eyebrow)}</text>
+${eyebrow ? `<text x="100" y="112" class="label">${escapeXml(eyebrow)}</text>` : ""}
 ${titleLines}
-<rect x="100" y="${HEIGHT - 122}" width="${WIDTH - 200}" height="1" fill="${palette.edge}" fill-opacity="0.3"/>
-<text x="100" y="${HEIGHT - 78}" class="label-dim">${escapeXml(footerLeft)}</text>
-${footerRight ? `<text x="${WIDTH - 100}" y="${HEIGHT - 78}" class="label-dim" text-anchor="end">${escapeXml(footerRight)}</text>` : ""}
 </svg>`;
 }
 

@@ -2,11 +2,12 @@ import { getResearchById } from "../../../lib/research";
 import { researchCoverSvg } from "../../../lib/research-cover";
 
 /**
- * Generated cover art for a publication that has no harvested figure.
+ * The image form of a publication's cover, for social link previews.
  *
- * Built from the paper's own metadata rather than stored, so it stays correct
- * when a title or journal is edited in Admin and costs nothing to hold. See
- * app/lib/research-cover.ts for why publisher artwork is not used instead.
+ * Readers see the HTML cover (ResearchCover.tsx); unfurlers cannot run CSS, so
+ * they get this. Built from the paper's own metadata rather than stored, so it
+ * stays correct when a title or journal is edited in Admin and costs nothing
+ * to hold.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,8 +17,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new Response(researchCoverSvg({
     title: paper.title,
     journal: paper.journal,
-    year: paper.year,
-    category: paper.category,
+    palette: paper.palette,
   }), {
     headers: {
       "content-type": "image/svg+xml; charset=utf-8",

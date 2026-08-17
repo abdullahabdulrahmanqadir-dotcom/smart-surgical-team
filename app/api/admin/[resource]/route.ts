@@ -2,10 +2,11 @@ import { env } from "cloudflare:workers";
 import { revalidateTag } from "next/cache";
 import { apiError, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
 import { CACHE_TAGS, type PublicCacheTag } from "../../../lib/cache-tags";
+import { isPaletteName } from "../../../lib/research-palettes";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
-const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research"] as const;
+const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research", "research-topics"] as const;
 type Resource = (typeof allowedResources)[number];
 
 function asResource(value: string): Resource | null {
@@ -70,7 +71,9 @@ async function deleteFromStorage(keys: unknown[]): Promise<boolean> {
 function cacheTagsFor(resource: Resource): PublicCacheTag[] {
   if (resource === "content" || resource === "topics" || resource === "contributors") return [CACHE_TAGS.content];
   if (resource === "events") return [CACHE_TAGS.events];
-  if (resource === "research") return [CACHE_TAGS.research];
+  // A topic edit changes the label and cover colour of every paper under it,
+  // so it invalidates the same public cache a paper edit does.
+  if (resource === "research" || resource === "research-topics") return [CACHE_TAGS.research];
   return [];
 }
 
@@ -141,8 +144,13 @@ export async function GET(request: Request, context: RouteContext) {
   }
   if (resource === "research") {
     const { data, error } = await client.from("researches")
-      .select("id,title,authors,abstract,journal,category,link,published_date,status,cover_image_url,created_at,updated_at,research_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
+      .select("id,title,authors,abstract,journal,link,published_date,status,topic_id,subtopic_id,created_at,updated_at,research_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
       .order("updated_at", { ascending: false });
+    if (error) return apiError(error.message, 500);
+    return Response.json({ data });
+  }
+  if (resource === "research-topics") {
+    const { data, error } = await client.from("research_topics").select("id,name,slug,parent_id,palette,sort_order,created_at").order("sort_order");
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
   }
@@ -326,25 +334,29 @@ export async function POST(request: Request, context: RouteContext) {
     const title = text(body.title);
     if (!title) return apiError("A research title is required.");
     const status = ["draft", "scheduled", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
+    const topicId = optionalText(body.topic_id);
+    const subtopicId = optionalText(body.subtopic_id);
+    // Read the subtopic's real parent rather than trusting the form: a stale
+    // editor tab could otherwise pair a subtopic with the wrong topic.
+    const subtopicParentId = subtopicId
+      ? optionalText((await client.from("research_topics").select("parent_id").eq("id", subtopicId).maybeSingle()).data?.parent_id)
+      : null;
     const payload = {
       title,
       authors: optionalText(body.authors),
       abstract: safeRichText(body.abstract) || null,
       journal: optionalText(body.journal),
-      category: optionalText(body.category) ?? "Publication",
       link: optionalText(body.link),
       published_date: date(body.published_date),
       status,
-      cover_image_url: optionalText(body.cover_image_url),
+      topic_id: topicId,
+      // A subtopic belonging to a different topic would file the paper under
+      // two unrelated headings, and clearing the topic has to clear it too.
+      subtopic_id: topicId && subtopicId && subtopicParentId === topicId ? subtopicId : null,
       updated_by: identity.id,
       updated_at: new Date().toISOString(),
     };
     const existingId = idValue(body.id);
-    // Snapshot the cover before the update overwrites it, so a replaced or
-    // removed cover can be cleaned out of R2 further down.
-    const priorCoverKey = existingId
-      ? storageKeyFromUrl((await client.from("researches").select("cover_image_url").eq("id", existingId).maybeSingle()).data?.cover_image_url)
-      : "";
     const { data: saved, error } = existingId
       ? await client.from("researches").update(payload).eq("id", existingId).select("id").single()
       : await client.from("researches").insert(payload).select("id").single();
@@ -368,12 +380,37 @@ export async function POST(request: Request, context: RouteContext) {
       const inserted = await client.from("research_media").insert(validMedia);
       if (inserted.error) return apiError(`Saved the research, but could not update its images: ${inserted.error.message}`, 500);
     }
-    // A cover that changed (replaced or cleared) leaves its old object behind.
-    const newCoverKey = storageKeyFromUrl(payload.cover_image_url);
-    const removedCoverKeys = priorCoverKey && priorCoverKey !== newCoverKey ? [priorCoverKey] : [];
-    const purgedResearch = await deleteFromStorage([...removedMediaKeys, ...removedCoverKeys]);
+    const purgedResearch = await deleteFromStorage(removedMediaKeys);
     await invalidatePublicCache(resource);
     return Response.json({ data: saved, warning: purgedResearch ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
+  }
+
+  if (resource === "research-topics") {
+    const name = text(body.name);
+    if (!name) return apiError("A topic name is required.");
+    const parentId = optionalText(body.parent_id);
+    // Two levels only, matching the database guard in migration 0017. Checked
+    // here as well so the admin gets a sentence rather than a Postgres error.
+    if (parentId) {
+      const { data: parent } = await client.from("research_topics").select("parent_id").eq("id", parentId).maybeSingle();
+      if (!parent) return apiError("That parent topic no longer exists. Reload the workspace and try again.");
+      if (parent.parent_id) return apiError("Research topics are two levels deep — a subtopic cannot sit under another subtopic.");
+    }
+    const payload: Record<string, unknown> = {
+      name,
+      slug: slugify(text(body.slug) || name),
+      parent_id: parentId,
+      sort_order: Number(body.sort_order) || 0,
+    };
+    // Only top-level topics carry a colour. Subtopics inherit their parent's,
+    // so the grid reads as groups rather than fragmenting per subtopic.
+    if (!parentId) payload.palette = isPaletteName(body.palette) ? body.palette : "teal";
+    const { data, error } = idValue(body.id)
+      ? await client.from("research_topics").update(payload).eq("id", idValue(body.id)).select("id").single()
+      : await client.from("research_topics").insert(payload).select("id").single();
+    if (error) return apiError(error.message.includes("research_topics_slug_key") ? "Another research topic already uses that name. Give this one a different name." : error.message, 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
   }
 
   if (resource === "topics") {
@@ -423,14 +460,14 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
-  if (!resource || !["content", "topics", "events", "contributors", "research"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
+  if (!resource || !["content", "topics", "events", "contributors", "research", "research-topics"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
   const access = await resolveAdminIdentity(request);
   if (!access.identity) return apiError(access.message, access.status);
   if (!canDelete(access.identity.role, resource)) return apiError(`${roleLabel(access.identity.role)} accounts cannot delete ${resource}. Ask the Owner or a Content manager.`, 403);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return apiError("Choose an item to delete.");
   const client = getSupabaseServerClient();
-  const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource;
+  const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource === "research-topics" ? "research_topics" : resource;
 
   // Gather every R2 object this item owns before the row (and its cascading
   // media rows) is gone, so nothing is left orphaned in the bucket. Uploaded
@@ -443,11 +480,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     ]);
     storageKeys = [...(media.data ?? []).map((entry) => text(entry.storage_path)), storageKeyFromUrl(row.data?.poster_url)];
   } else if (resource === "research") {
-    const [gallery, row] = await Promise.all([
-      client.from("research_media").select("storage_path").eq("research_id", id),
-      client.from("researches").select("cover_image_url").eq("id", id).maybeSingle(),
-    ]);
-    storageKeys = [...(gallery.data ?? []).map((entry) => text(entry.storage_path)), storageKeyFromUrl(row.data?.cover_image_url)];
+    // Only the figure gallery: publications carry no cover file of their own.
+    const gallery = await client.from("research_media").select("storage_path").eq("research_id", id);
+    storageKeys = (gallery.data ?? []).map((entry) => text(entry.storage_path));
   } else if (resource === "events") {
     const { data } = await client.from("events").select("image_url").eq("id", id).maybeSingle();
     storageKeys = [storageKeyFromUrl(data?.image_url)];
