@@ -3560,7 +3560,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .card-art-pair .card-art-half + .card-art-half { border-inline-start: 1px solid rgba(255, 255, 255, .35); }
 .card-art-pair .lazy-image { width: 100%; height: 100%; }
 .card-art-pair img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.card-art-half-label { position: absolute; z-index: 2; inset: auto .4rem .4rem; padding: .18rem .4rem; border-radius: 3px; background: rgba(0, 0, 0, .68); color: #fff; font-size: .66rem; font-weight: 700; opacity: 0; transition: opacity .18s ease; pointer-events: none; }
+.card-art-half-label { position: absolute; z-index: 2; inset: auto auto .4rem .4rem; padding: .18rem .4rem; border-radius: 3px; background: rgba(0, 0, 0, .68); color: #fff; font-size: .66rem; font-weight: 700; opacity: 0; transition: opacity .18s ease; pointer-events: none; }
 .content-case-card:hover .card-art-half-label, .content-case-card:focus-visible .card-art-half-label,
 .latest-case-card:hover .card-art-half-label, .latest-case-card:focus-visible .card-art-half-label,
 .related-card:hover .card-art-half-label, .related-card:focus-visible .card-art-half-label { opacity: 1; }
@@ -3612,3 +3612,26 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 /* The reason a save is refused belongs beside the save button, not only next
    to the field that caused it. */
 .admin-save-blocked { max-width: 34rem; margin-top: .5rem; }
+
+/* A touch screen has no hover, so captions that only appear on hover would
+   never appear at all. They stay visible there instead — small and translucent
+   rather than hidden. */
+@media (hover: none) {
+  .card-art-half-label { opacity: 1; }
+  .hero-image-viewer .case-image-thumbnails.is-before-after .case-image-thumb-badge { opacity: 1; }
+}
+
+/* Side by side, each half of a pair is barely readable on a phone. They stack
+   instead — before above, after below — which keeps each one full width. */
+@media (max-width: 620px) {
+  .card-art-pair { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  .card-art-pair .card-art-half + .card-art-half { border-inline-start: 0; border-block-start: 1px solid rgba(255, 255, 255, .35); }
+  .card-art-half-label { opacity: 1; padding: .14rem .35rem; background: rgba(0, 0, 0, .52); font-size: .6rem; backdrop-filter: blur(2px); }
+  /* Two stacked halves inside the single-image height would leave each one a
+     letterbox strip, so a card carrying a pair gets a taller art slot. */
+  .content-case-art:has(.card-art-pair) { min-height: 19rem; }
+  .latest-case-art:has(.card-art-pair) { min-height: 22rem; }
+  .case-image-thumbnails.is-before-after { grid-template-columns: 1fr; }
+  .case-image-thumbnails.is-before-after button + button { border-inline-start: 0; border-block-start: 1px solid rgba(255, 255, 255, .35); }
+  .hero-image-viewer .case-image-thumbnails.is-before-after .case-image-thumb-badge { opacity: 1; padding: .16rem .4rem; background: rgba(0, 0, 0, .52); font-size: .62rem; backdrop-filter: blur(2px); }
+}
