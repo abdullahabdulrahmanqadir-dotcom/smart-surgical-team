@@ -1,4 +1,5 @@
 import { authoredTitleProps } from "../lib/i18n";
+import { coverTitleScale } from "../lib/research-cover";
 import { paletteFor } from "../lib/research-palettes";
 
 /**
@@ -42,7 +43,7 @@ export default function ResearchCover({
   return (
     <div
       className={`research-cover is-${size}`}
-      style={{ "--cover-base": colors.base, "--cover-glow": colors.glow, "--cover-edge": colors.edge } as React.CSSProperties}
+      style={{ "--cover-base": colors.base, "--cover-glow": colors.glow, "--cover-edge": colors.edge, "--cover-title-scale": coverTitleScale(title) } as React.CSSProperties}
     >
       {/* Direction is set on the whole block rather than on the title alone.
           On the Arabic pages a Latin title marked dir="ltr" aligned left while

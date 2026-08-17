@@ -63,6 +63,41 @@ function textWidth(text: string, fontSize: number) {
   return ems * fontSize;
 }
 
+/**
+ * How much to open up or tighten a cover's title, by how much title there is.
+ *
+ * These titles run from 36 to 166 characters — a 4.6x spread poured into one
+ * fixed box. Set at a single size, a short title left most of its cover empty
+ * while the longest ones were clipped, and the grid read as broken rather than
+ * varied. Scaling the type inversely evens out the ink each cover carries.
+ *
+ * The range is deliberately much narrower than the range it corrects for:
+ * 1.28x down to 0.88x, about 1.45x end to end against content that varies by
+ * 4.6x. Fully evening it out would need a 4x range, and covers that different
+ * stop looking like one family. The CSS clamps this feeds are the hard stops —
+ * this only shifts a title within them, it cannot push one past a readable
+ * size in either direction.
+ *
+ * Measured in ems rather than counted in characters: the estimator above knows
+ * that capitals and 'm' are wide and 'i' is narrow, so an all-caps title is
+ * treated as the large thing it is instead of by its character count.
+ *
+ * The thresholds are centred on the archive's own median title (~39em), so a
+ * typical paper sits at 1x and the steps correct the outliers either side. An
+ * earlier cut centred them too low, which put the median at 1.14x and quietly
+ * enlarged two thirds of the grid instead of evening it out.
+ */
+export function coverTitleScale(title: string) {
+  const ems = textWidth(title.replace(/\s+/g, " ").trim(), 1);
+  // 25 rather than 22: the genuinely short titles form a run from 15 to 24em,
+  // and the lower cut split that group in half for no reason a reader could see.
+  if (ems <= 25) return 1.28;
+  if (ems <= 32) return 1.14;
+  if (ems <= 45) return 1;
+  if (ems <= 60) return 0.93;
+  return 0.88;
+}
+
 /** Greedy wrap against a real width budget, with a hard split for long words. */
 function wrap(text: string, fontSize: number, maxWidth: number, maxLines: number) {
   const lines: string[] = [];
@@ -136,11 +171,15 @@ export function researchCoverSvg({ title, journal, palette: paletteName }: Cover
   // needs a smaller size than a lowercase one.
   const maxTextWidth = WIDTH - 200;
   const maxLines = 5;
-  let titleSize = 62;
+  // Same length-driven sizing as the HTML cover, so a shared link and the page
+  // it opens do not show the same title at noticeably different sizes.
+  let titleSize = Math.round(62 * coverTitleScale(cleanTitle));
   let lines = wrap(cleanTitle, titleSize, maxTextWidth, maxLines);
-  for (const size of [54, 46, 40]) {
+  // The step-down remains as a safety net: the scale is bucketed, so a title at
+  // the top of its bucket can still overrun and needs to give ground.
+  for (const factor of [0.87, 0.74, 0.65]) {
     if (!lines[lines.length - 1]?.endsWith("…")) break;
-    titleSize = size;
+    titleSize = Math.round(62 * coverTitleScale(cleanTitle) * factor);
     lines = wrap(cleanTitle, titleSize, maxTextWidth, maxLines);
   }
   const lineHeight = Math.round(titleSize * 1.22);
