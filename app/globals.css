@@ -3668,13 +3668,19 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    declaration as invalid and keeps the first, so it degrades to what this
    looked like before rather than to nothing. */
 .research-cover-journal { align-self:end; margin:0; color:var(--cover-edge); opacity:.82; font:600 .74rem/1.4 var(--font-body-stack); font-size:clamp(.68rem,4cqi,.86rem); }
-/* Clamped to five lines: a handful of these titles run past 200 characters and
+/* `text-wrap:wrap`, explicitly, not `balance`. Balance evens the line lengths
+   out, which on a title meant breaking to a new line well before reaching the
+   right edge — several short stacked lines instead of full ones. Plain greedy
+   wrapping fills each line to the margin and only then breaks, which is also
+   what the SVG twin's wrap() does, so the two stay in step.
+
+   Clamped to five lines: a handful of these titles run past 200 characters and
    would otherwise set the card height for the whole row.
    `--cover-title-scale` opens up short titles and tightens long ones so each
    cover carries a similar amount of ink (see coverTitleScale). The clamp is
    what bounds it: whatever the scale asks for, the type cannot end up smaller
    than .95rem or larger than 1.75rem. */
-.research-cover-title { display:-webkit-box; align-self:start; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:5; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:balance; }
+.research-cover-title { display:-webkit-box; align-self:start; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:5; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:wrap; }
 
 /* The card's white space below the cover: byline, then date. The title is not
    repeated here — the cover is the title. */
