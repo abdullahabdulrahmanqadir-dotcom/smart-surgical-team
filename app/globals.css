@@ -3602,3 +3602,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .admin-thumbnail-option .admin-media-confirm { position: absolute; z-index: 3; inset: auto 0 0; justify-content: center; padding: .3rem; background: rgba(0, 0, 0, .8); color: #fff; }
 .admin-pair-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .74rem; }
 .admin-pair-actions > button { padding: .2rem .45rem; border: 1px solid var(--line); border-radius: .3rem; background: var(--surface); font-size: .74rem; cursor: pointer; }
+
+/* Files are identified by their own name, so a long one must truncate rather
+   than stretch the row or spill out of a tile. */
+.admin-media-name { display: block; overflow: hidden; color: var(--text-muted); font-size: .72rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.admin-thumbnail-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.admin-pair-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-align: center; text-overflow: ellipsis; white-space: nowrap; }

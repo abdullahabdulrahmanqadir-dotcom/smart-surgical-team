@@ -1015,6 +1015,20 @@ function CaseFields({ sections, setSections, storable = true, title = "Structure
   </section>;
 }
 /**
+ * The file's own name, as the admin recognises it from their own machine.
+ *
+ * A file still waiting to upload has its File object to hand. A stored one is
+ * named by its R2 key, whose final segment the upload route builds as
+ * `<epoch>-<slugified name>.<ext>` — the timestamp is there to keep keys
+ * unique, so it is plumbing rather than part of the name and is trimmed off.
+ */
+function mediaName(item: Media): string {
+  if (item.file?.name) return item.file.name;
+  const base = decodeURIComponent((item.storage_path || "").split("/").pop() ?? "");
+  return base.replace(/^\d{10,}-/, "") || item.alt_text || "Untitled file";
+}
+
+/**
  * Deletes one image or file for good.
  *
  * A file already in R2 is gone permanently once the item is saved, so the
@@ -1063,13 +1077,14 @@ function MediaManager({ media, setMedia, upload, onDelete, uploading, error }: {
       <span className="admin-media-position" aria-hidden="true">{index + 1}</span>
       {item.kind === "image" ? <a className="admin-media-preview" href={item.public_url} target="_blank" rel="noreferrer" aria-label="Open image preview"><img src={item.public_url} alt={item.alt_text || "Uploaded image preview"}/></a> : <span className="admin-media-kind">PDF</span>}
       <div>
+        <span className="admin-media-name" title={mediaName(item)}>{mediaName(item)}</span>
         <input value={item.alt_text ?? ""} onChange={(event) => setMedia(media.map((entry, position) => position === index ? { ...entry, alt_text: event.target.value } : entry))} placeholder="Alt text / file description"/>
         {item.kind === "image" && <a href={item.public_url} target="_blank" rel="noreferrer">Open preview</a>}
       </div>
       <div className="admin-media-tools">
-        <button type="button" title="Move up" aria-label={`Move ${item.alt_text || `file ${index + 1}`} earlier`} disabled={index === 0} onClick={() => setMedia(moveItem(media, index, index - 1))}>↑</button>
-        <button type="button" title="Move down" aria-label={`Move ${item.alt_text || `file ${index + 1}`} later`} disabled={index === media.length - 1} onClick={() => setMedia(moveItem(media, index, index + 1))}>↓</button>
-        <DeleteMediaButton stored={Boolean(item.storage_path)} label={item.alt_text || `file ${index + 1}`} onDelete={() => onDelete(item.storage_path || item.local_id || "")}/>
+        <button type="button" title="Move up" aria-label={`Move ${mediaName(item)} earlier`} disabled={index === 0} onClick={() => setMedia(moveItem(media, index, index - 1))}>↑</button>
+        <button type="button" title="Move down" aria-label={`Move ${mediaName(item)} later`} disabled={index === media.length - 1} onClick={() => setMedia(moveItem(media, index, index + 1))}>↓</button>
+        <DeleteMediaButton stored={Boolean(item.storage_path)} label={mediaName(item)} onDelete={() => onDelete(item.storage_path || item.local_id || "")}/>
       </div>
     </div>)}
   </section>;
@@ -1116,18 +1131,18 @@ function PairSlot({ label, images, selectedPath, onSelect, onDropFile, onDelete 
       }}
     >
       <span className="admin-pair-title">{label}</span>
-      {chosen ? <img src={chosen.public_url} alt={`${label} image preview`}/> : <span className="admin-pair-hint">Drag an image here, or click to choose</span>}
+      {chosen ? <><img src={chosen.public_url} alt={`${label} image preview`}/><span className="admin-pair-name" title={mediaName(chosen)}>{mediaName(chosen)}</span></> : <span className="admin-pair-hint">Drag an image here, or click to choose</span>}
       <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) onDropFile(file); event.target.value = ""; }}/>
     </label>
     {images.length > 0 && <select aria-label={`${label} image`} value={selectedPath} onChange={(event) => onSelect(event.target.value)}>
       <option value="">Or reuse a case image…</option>
-      {images.map((item, index) => { const key = item.storage_path || item.local_id || ""; return <option key={key} value={key}>{item.alt_text || `Image ${index + 1}`}</option>; })}
+      {images.map((item) => { const key = item.storage_path || item.local_id || ""; return <option key={key} value={key}>{mediaName(item)}</option>; })}
     </select>}
     {chosen && <div className="admin-pair-actions">
       {/* Two different intents: keep the image but stop using it here, or get
           rid of the image altogether. */}
       <button type="button" onClick={() => onSelect("")}>Clear slot</button>
-      <DeleteMediaButton stored={Boolean(chosen.storage_path)} label={`the ${label.toLowerCase()} image`} onDelete={() => onDelete(chosen.storage_path || chosen.local_id || "")}/>
+      <DeleteMediaButton stored={Boolean(chosen.storage_path)} label={mediaName(chosen)} onDelete={() => onDelete(chosen.storage_path || chosen.local_id || "")}/>
     </div>}
   </div>;
 }
@@ -1141,8 +1156,8 @@ function ThumbnailPicker({ media, source, selectedPath, beforePath, afterPath, o
     <label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "image"} onChange={() => onSource("image")} disabled={!images.length}/>Use uploaded image</label>
     <label className="admin-checkbox"><input type="radio" name="thumbnail-source" checked={source === "before_after"} onChange={() => onSource("before_after")}/>Use a before &amp; after pair</label>
     {source === "image" && (images.length ? <div className="admin-thumbnail-options">{images.map((item) => { const key = item.storage_path || item.local_id || ""; return <div className="admin-thumbnail-option" key={key}>
-      <label><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || "Uploaded image"}/></label>
-      <DeleteMediaButton stored={Boolean(item.storage_path)} label={item.alt_text || "this image"} compact onDelete={() => onDelete(key)}/>
+      <label title={mediaName(item)}><input type="radio" name="thumbnail-image" checked={selectedPath === key} onChange={() => onSelect(key)}/><img src={item.public_url} alt={item.alt_text || mediaName(item)}/><span className="admin-thumbnail-name">{mediaName(item)}</span></label>
+      <DeleteMediaButton stored={Boolean(item.storage_path)} label={mediaName(item)} compact onDelete={() => onDelete(key)}/>
     </div>; })}</div> : <p className="admin-upload-error">Add an image first, then select it here.</p>)}
     {source === "image" && images.length > 0 && !images.some((item) => (item.storage_path || item.local_id || "") === selectedPath) && <p className="admin-upload-error">Choose which image to use, or the card falls back to the YouTube thumbnail.</p>}
     {source === "before_after" && <>
