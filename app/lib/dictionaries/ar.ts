@@ -207,6 +207,7 @@ export const ar: Dictionary = {
     images: "صور البحث",
     publicationDetails: "تفاصيل النشر",
     topicLabel: "المجال",
+    journal: "المجلة",
     published: "تاريخ النشر",
     openPaper: "فتح البحث",
     backToResearch: "العودة إلى جميع البحوث",

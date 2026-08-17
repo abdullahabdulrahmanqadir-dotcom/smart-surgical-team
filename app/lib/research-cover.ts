@@ -153,14 +153,6 @@ function truncate(value: string, limit: number) {
   return clean.length > limit ? `${clean.slice(0, limit - 1).trimEnd()}…` : clean;
 }
 
-/** Trims a single-line label to a measured width budget. */
-function fitText(value: string, fontSize: number, maxWidth: number) {
-  let text = value.replace(/\s+/g, " ").trim();
-  if (textWidth(text, fontSize) <= maxWidth) return text;
-  while (text && textWidth(`${text}…`, fontSize) > maxWidth) text = text.slice(0, -1);
-  return `${text.trimEnd()}…`;
-}
-
 /** Builds the full SVG document for one publication cover. */
 export function researchCoverSvg({ title, journal, palette: paletteName }: CoverInput) {
   const palette = paletteFor(paletteName, journal?.trim() || title);
@@ -184,16 +176,11 @@ export function researchCoverSvg({ title, journal, palette: paletteName }: Cover
   }
   const lineHeight = Math.round(titleSize * 1.22);
 
-  // The title starts at the top edge, where the eye lands; the journal is an
-  // attribution and sits at the foot.
-  const blockTop = 100;
-
-  // Normal case, not caps: these are proper nouns, and the all-caps setting was
-  // the hardest thing on the cover to read.
-  const attribution = fitText(journal || "Publication", 30, maxTextWidth);
+  // Centred, matching the HTML cover: the title is the only thing on here now.
+  const blockTop = Math.round((HEIGHT - lines.length * lineHeight) / 2);
 
   const titleLines = lines
-    .map((line, index) => `<text x="100" y="${blockTop + index * lineHeight + titleSize}" class="t">${escapeXml(line)}</text>`)
+    .map((line, index) => `<text x="${WIDTH / 2}" y="${blockTop + index * lineHeight + titleSize}" text-anchor="middle" class="t">${escapeXml(line)}</text>`)
     .join("");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" width="${WIDTH}" height="${HEIGHT}" role="img" aria-label="${escapeXml(cleanTitle)}">
@@ -209,13 +196,11 @@ export function researchCoverSvg({ title, journal, palette: paletteName }: Cover
 </radialGradient>
 <style>
 .t { fill: #ffffff; font-family: Georgia, "Times New Roman", serif; font-size: ${titleSize}px; font-weight: 500; }
-.label { fill: ${palette.edge}; fill-opacity: 0.82; font-family: Helvetica, Arial, sans-serif; font-size: 30px; font-weight: 600; }
 </style>
 </defs>
 <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#bg)"/>
 <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#glow)"/>
 ${titleLines}
-<text x="100" y="${HEIGHT - 90}" class="label">${escapeXml(attribution)}</text>
 </svg>`;
 }
 

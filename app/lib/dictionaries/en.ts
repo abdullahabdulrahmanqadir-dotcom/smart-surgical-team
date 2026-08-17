@@ -207,6 +207,7 @@ export const en = {
     images: "Research images",
     publicationDetails: "Publication details",
     topicLabel: "Topic",
+    journal: "Journal",
     published: "Published",
     openPaper: "Open paper",
     backToResearch: "Back to all research",

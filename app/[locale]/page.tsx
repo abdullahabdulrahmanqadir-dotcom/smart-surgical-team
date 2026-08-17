@@ -226,7 +226,7 @@ export default async function Home({
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
           <div className="research-preview-head"><div><span className="section-kicker">{dict.home.researchKicker}</span><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
-            <div className="research-preview-media"><ResearchCover title={latestResearch.title} journal={latestResearch.journal} palette={latestResearch.palette} paletteKey={latestResearch.journal}/>{latestResearch.topic && <span className="research-preview-badge">{latestResearch.topic.name}</span>}</div>
+            <div className="research-preview-media"><ResearchCover title={latestResearch.title} palette={latestResearch.palette} paletteKey={latestResearch.journal}/>{latestResearch.topic && <span className="research-preview-badge">{latestResearch.topic.name}</span>}</div>
             <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
           </Link>
         </section>}

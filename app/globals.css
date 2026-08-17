@@ -3660,18 +3660,17 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    floor. */
 .research-cover { position:relative; display:grid; container-type:inline-size; aspect-ratio:3/2; overflow:hidden; background:linear-gradient(135deg,var(--cover-glow),var(--cover-base) 55%); color:#fff; isolation:isolate; }
 .research-cover::after { content:""; position:absolute; inset:0; background:radial-gradient(75% 75% at 82% 12%,color-mix(in srgb,var(--cover-edge) 30%,transparent),transparent 70%); pointer-events:none; }
-/* Title first, journal last: the title is what the reader is scanning for, so
-   it starts at the top edge where the eye lands, and the journal sits out of
-   the way at the foot as an attribution. */
-.research-cover-body { position:relative; z-index:1; display:grid; grid-template-rows:1fr auto; padding:clamp(1.15rem,3.2vw,1.75rem); padding:clamp(.95rem,5.5cqi,1.9rem); gap:clamp(.9rem,2.5vw,1.4rem); gap:clamp(.85rem,4cqi,1.6rem); min-height:0; }
-/* Set in normal case, not caps: these are proper nouns, and small caps at this
-   size were the hardest thing on the cover to read. No letter-spacing either —
-   see the RTL tracking rule. */
-/* Each size is declared twice: a viewport-based value first, then the container
+/* The title is the only thing on the cover now, so it takes the middle rather
+   than being pinned to the top with something under it.
+   Each size is declared twice: a viewport-based value first, then the container
    query unit. A browser without container query support drops the second
    declaration as invalid and keeps the first, so it degrades to what this
-   looked like before rather than to nothing. */
-.research-cover-journal { align-self:end; margin:0; color:var(--cover-edge); opacity:.82; font:600 .74rem/1.4 var(--font-body-stack); font-size:clamp(.68rem,4cqi,.86rem); }
+   looked like before rather than to nothing.
+
+   `align-content`, not `place-content`: centring the track as well as the
+   content would shrink it to fit the text, and the title would go back to
+   wrapping early instead of running to the margin. */
+.research-cover-body { position:relative; z-index:1; display:grid; align-content:center; padding:clamp(1.15rem,3.2vw,1.75rem); padding:clamp(.95rem,5.5cqi,1.9rem); min-height:0; }
 /* `text-wrap:wrap`, explicitly, not `balance`. Balance evens the line lengths
    out, which on a title meant breaking to a new line well before reaching the
    right edge — several short stacked lines instead of full ones. Plain greedy
@@ -3684,7 +3683,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    cover carries a similar amount of ink (see coverTitleScale). The clamp is
    what bounds it: whatever the scale asks for, the type cannot end up smaller
    than .95rem or larger than 1.75rem. */
-.research-cover-title { display:-webkit-box; align-self:start; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:5; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:wrap; }
+.research-cover-title { display:-webkit-box; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:5; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-align:center; text-wrap:wrap; }
 
 /* The card's white space below the cover: byline, then date. The title is not
    repeated here — the cover is the title. */

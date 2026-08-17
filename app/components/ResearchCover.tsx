@@ -21,15 +21,17 @@ import { paletteFor } from "../lib/research-palettes";
  * Listings only. A paper's own page sets its title as an ordinary heading —
  * the cover exists to tell one card apart from the next, and on a page showing
  * a single paper there is nothing to tell it apart from.
+ *
+ * The title is the only thing on it. The journal name used to sit at the foot,
+ * but it is reference data rather than something a reader scans a grid for, so
+ * it lives in the paper's Publication details instead.
  */
 export default function ResearchCover({
   title,
-  journal,
   palette,
   paletteKey = "",
 }: {
   title: string;
-  journal?: string;
   palette?: string;
   /** Distinguishes unfiled papers from each other when there is no palette. */
   paletteKey?: string;
@@ -48,7 +50,6 @@ export default function ResearchCover({
         {/* A real heading: the cover carries the card's only title, and the
             results grid needs headings to be navigable. */}
         <h3 className="research-cover-title">{title}</h3>
-        {journal ? <p className="research-cover-journal">{journal}</p> : null}
       </div>
     </div>
   );

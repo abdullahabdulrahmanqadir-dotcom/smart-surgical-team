@@ -4,7 +4,8 @@ import { FormEvent, MouseEvent as ReactMouseEvent, ReactNode, useCallback, useEf
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch, IconUser, IconUsers } from "./icons";
-import { PALETTE_LABELS, PALETTE_NAMES, paletteFor } from "../lib/research-palettes";
+import ResearchCover from "./ResearchCover";
+import { PALETTE_LABELS, PALETTE_NAMES } from "../lib/research-palettes";
 
 type Section = "overview" | "content" | "posters" | "topics" | "events" | "contributors" | "people" | "research" | "research-topics";
 type Access = "checking" | "signed_out" | "denied" | "unavailable" | "ready";
@@ -1149,7 +1150,6 @@ function ResearchTopicEditor({ form, set, topics, onCancel, onSave }: { form: Re
   // A topic cannot be re-parented under itself, and the tree is two levels
   // deep, so only other top-level topics can be parents.
   const parents = topics.filter((topic) => !topic.parent_id && String(topic.id) !== String(form.id ?? ""));
-  const palette = paletteFor(form.palette, String(form.name ?? ""));
   return <form className="admin-editor" onSubmit={onSave}><EditorHead title={form.id ? "Edit research topic" : "New research topic"} onCancel={onCancel}/><div className="admin-editor-grid"><section>
     <Field label="Name" hint="Shown in the public filters and on each paper's page." value={form.name} onChange={(value) => set("name", value)} required/>
     <Select label="Sits under" hint="Leave as a main topic, or choose a parent to make this a subtopic." value={parentId} onChange={(value) => set("parent_id", value)} options={[["", "A main topic"], ...parents.map((topic) => [String(topic.id), String(topic.name)] as [string, string])]}/>
@@ -1157,9 +1157,13 @@ function ResearchTopicEditor({ form, set, topics, onCancel, onSave }: { form: Re
     {parentId && <p className="admin-label"><small>Subtopics take their cover colour from the topic they sit under.</small></p>}
     <Field label="Display order" hint="Lower numbers appear first in the filters." type="number" value={form.sort_order} onChange={(value) => set("sort_order", value)}/>
   </section><aside>
+    {/* The real cover component, not a copy of its markup. The hand-built
+        version here silently kept rendering decorations that had been deleted
+        from the actual covers, so the preview showed the admin something the
+        site no longer produced. */}
     {!parentId && <section className="admin-media"><h2>Cover preview</h2><p>How a paper filed under this topic will look in the archive.</p>
-      <div className="admin-cover-preview" style={{ "--cover-base": palette.base, "--cover-glow": palette.glow, "--cover-edge": palette.edge } as React.CSSProperties}>
-        <div className="research-cover"><div className="research-cover-rings" aria-hidden="true"/><div className="research-cover-body"><p className="research-cover-journal">Journal name</p><p className="research-cover-title">{String(form.name || "Topic name")}: how a paper under this topic will look</p></div></div>
+      <div className="admin-cover-preview">
+        <ResearchCover title={`${String(form.name || "Topic name")}: how a paper under this topic will look`} palette={String(form.palette ?? "teal")}/>
       </div>
     </section>}
   </aside></div></form>;
