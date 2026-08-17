@@ -17,32 +17,27 @@ import { paletteFor } from "../lib/research-palettes";
  * it needs no glyph-width estimation to decide where to wrap. The SVG twin in
  * research-cover.ts survives only for social previews, where a real image file
  * is the only thing a link unfurler will accept.
+ *
+ * Listings only. A paper's own page sets its title as an ordinary heading —
+ * the cover exists to tell one card apart from the next, and on a page showing
+ * a single paper there is nothing to tell it apart from.
  */
 export default function ResearchCover({
   title,
   journal,
   palette,
   paletteKey = "",
-  size = "card",
-  titleAs: Title = "h3",
 }: {
   title: string;
   journal?: string;
   palette?: string;
   /** Distinguishes unfiled papers from each other when there is no palette. */
   paletteKey?: string;
-  size?: "card" | "hero";
-  /**
-   * The cover carries the paper's only title, so it has to be a real heading
-   * rather than styled text — h3 in the results grid, h1 on the paper's own
-   * page, where it is the document heading.
-   */
-  titleAs?: "h1" | "h2" | "h3";
 }) {
   const colors = paletteFor(palette, paletteKey);
   return (
     <div
-      className={`research-cover is-${size}`}
+      className="research-cover"
       style={{ "--cover-base": colors.base, "--cover-glow": colors.glow, "--cover-edge": colors.edge, "--cover-title-scale": coverTitleScale(title) } as React.CSSProperties}
     >
       {/* Direction is set on the whole block rather than on the title alone.
@@ -50,7 +45,9 @@ export default function ResearchCover({
           the journal above it inherited the page's right alignment, and the
           two halves of one cover pulled apart. */}
       <div className="research-cover-body" {...authoredTitleProps(title)}>
-        <Title className="research-cover-title">{title}</Title>
+        {/* A real heading: the cover carries the card's only title, and the
+            results grid needs headings to be navigable. */}
+        <h3 className="research-cover-title">{title}</h3>
         {journal ? <p className="research-cover-journal">{journal}</p> : null}
       </div>
     </div>
