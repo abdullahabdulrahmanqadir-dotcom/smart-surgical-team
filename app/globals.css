@@ -3608,3 +3608,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .admin-media-name { display: block; overflow: hidden; color: var(--text-muted); font-size: .72rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .admin-thumbnail-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
 .admin-pair-name { position: absolute; z-index: 2; inset: auto 0 0; overflow: hidden; padding: .2rem .35rem; background: rgba(0, 0, 0, .66); color: #fff; font-size: .62rem; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The reason a save is refused belongs beside the save button, not only next
+   to the field that caused it. */
+.admin-save-blocked { max-width: 34rem; margin-top: .5rem; }

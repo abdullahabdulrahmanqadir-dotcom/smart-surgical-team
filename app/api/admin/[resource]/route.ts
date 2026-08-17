@@ -208,14 +208,14 @@ export async function POST(request: Request, context: RouteContext) {
       return label && sectionBody ? [{ key, label, body: sectionBody }] : [];
     });
     const legacySection = (key: string) => caseSections.find((section) => section.key === key)?.body ?? null;
-    // A before/after pair is only stored once both halves were chosen; a
-    // half-filled selection falls back to the YouTube thumbnail.
+    // A before/after cover needs both halves. Storing a half-filled pair would
+    // silently show the YouTube thumbnail instead, so the save is refused
+    // rather than quietly ignoring the cover the editor asked for.
     const requestedThumbnail = text(body.thumbnail_source);
-    const thumbnailSource = requestedThumbnail === "image"
-      ? "image"
-      : requestedThumbnail === "before_after" && optionalText(body.thumbnail_before_path) && optionalText(body.thumbnail_after_path)
-        ? "before_after"
-        : "youtube";
+    if (requestedThumbnail === "before_after" && !(optionalText(body.thumbnail_before_path) && optionalText(body.thumbnail_after_path))) {
+      return apiError("A before/after cover needs both images. Choose the missing one, or pick a different cover option.");
+    }
+    const thumbnailSource = requestedThumbnail === "image" ? "image" : requestedThumbnail === "before_after" ? "before_after" : "youtube";
     const contributorIds = Array.isArray(body.contributor_ids) ? body.contributor_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const item = {
       // The editor has no kind selector, so a case's kind follows its video: a
