@@ -6,7 +6,11 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const localBindingConfig = {
   main: "./worker/index.ts",
+  // Newest date supported by the workerd runtime bundled with the currently
+  // pinned Cloudflare Vite plugin. Upgrade this with that plugin, not alone.
+  compatibility_date: "2026-05-22",
   compatibility_flags: ["nodejs_compat"],
+  observability: { enabled: true, head_sampling_rate: 1 },
   r2_buckets: [
     // Editorial media is bound to the real bucket even in dev. A local
     // Miniflare bucket starts empty, so every existing image 404s while

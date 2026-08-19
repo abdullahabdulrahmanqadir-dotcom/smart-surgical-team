@@ -75,6 +75,7 @@ export async function generateMetadata({
 
   return {
     metadataBase: new URL(`${protocol}://${host}`),
+    manifest: "/manifest.webmanifest",
     title,
     description,
     alternates: {
@@ -131,6 +132,15 @@ export default async function LocaleLayout({
           dangerouslySetInnerHTML={{
             __html:
               "try{var t=localStorage.getItem('sst-theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}",
+          }}
+        />
+        <script
+          // Register after the initial load so offline support never competes
+          // with the first render. updateViaCache:none ensures a newly deployed
+          // worker is checked at the network instead of reused from HTTP cache.
+          dangerouslySetInnerHTML={{
+            __html:
+              "if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).catch(function(){})},{once:true})}",
           }}
         />
       </head>

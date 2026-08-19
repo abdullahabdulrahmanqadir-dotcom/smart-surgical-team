@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import { KVCacheHandler } from "vinext/cloudflare";
 import { setCacheHandler } from "vinext/shims/cache";
 import handler from "vinext/server/app-router-entry";
+import { servePublicDocument } from "./page-cache";
 
 interface Env {
   ASSETS: Fetcher;
@@ -35,6 +36,7 @@ interface ExecutionContext {
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
 let cacheHandlerInstalled = false;
+const ALLOWED_IMAGE_WIDTHS = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -50,17 +52,16 @@ const worker = {
     }
 
     if (url.pathname === "/_vinext/image") {
-      const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
         transformImage: async (body, { width, format, quality }) => {
           const result = await env.IMAGES.input(body).transform(width > 0 ? { width } : {}).output({ format, quality });
           return result.response();
         },
-      }, allowedWidths);
+      }, ALLOWED_IMAGE_WIDTHS);
     }
 
-    return handler.fetch(request, env, ctx);
+    return servePublicDocument(request, env, ctx, () => handler.fetch(request, env, ctx));
   },
 };
 

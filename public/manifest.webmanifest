@@ -1,0 +1,18 @@
+{
+  "name": "Smart Surgical Team",
+  "short_name": "SST",
+  "description": "Head and neck surgical education from Smart Surgical Team.",
+  "start_url": "/en",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f6",
+  "theme_color": "#0b5f5b",
+  "icons": [
+    {
+      "src": "/sst-mark.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

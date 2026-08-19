@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_REQUEST_TIMEOUT_MS = 10_000;
+let cachedClient: ReturnType<typeof createClient> | undefined;
+let cachedConfiguration: string | undefined;
 
 const fetchWithTimeout: typeof fetch = async (input, init) => {
   const controller = new AbortController();
@@ -38,10 +40,15 @@ export function getSupabaseServerClient() {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY holds a publishable key. Set it to the project's secret key (sb_secret_…).");
   }
 
-  return createClient(url, serviceRoleKey, {
+  const configuration = `${url}\0${serviceRoleKey}`;
+  if (cachedClient && cachedConfiguration === configuration) return cachedClient;
+
+  cachedClient = createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
     // A network stall must become a reportable server error instead of leaving
     // an admin page request open forever.
     global: { fetch: fetchWithTimeout },
   });
+  cachedConfiguration = configuration;
+  return cachedClient;
 }

@@ -1,6 +1,6 @@
 # Handoff — Smart Surgical Team website
 
-**Updated:** 2026-07-28
+**Updated:** 2026-08-19
 **Read this first.** It supersedes the old paused-Topics notes in this file and
 the stale Phase 1a status text in `docs/project/BUILD_PLAN.md`.
 
@@ -59,6 +59,52 @@ Cloudflare is the only deployment target. The OpenAI Sites packaging that this
 repository started from — `.openai/hosting.json`, the `sites` Vite plugin and
 its deployment archives — has been removed, along with the unused D1/Drizzle
 scaffold that came with it. The app's data layer is Supabase.
+
+### Cloudflare Error 1102 recovery and offline resilience (2026-08-19)
+
+This release addresses the production `Worker exceeded resource limits` outage.
+Public vinext SSR responses had been sent with `Cache-Control: no-store`, so
+repeat page views still executed SSR in the Worker. Warm local production-route
+measurements were roughly 14–28 ms, above the Cloudflare Free plan's 10 ms CPU
+allowance. The existing `unstable_cache` calls reduced Supabase traffic but did
+not cache the final rendered HTML.
+
+The fix adds two complementary cache layers:
+
+- `worker/page-cache.ts` caches safe public HTML in the regional Cloudflare
+  Cache API and global `VINEXT_CACHE` KV. It only caches cookie-free,
+  authorization-free `GET` requests with no query string and bypasses RSC,
+  prefetch, admin, auth, profile and API traffic.
+- Public HTML is fresh for 60 seconds. KV keeps a 24-hour stale copy that can be
+  returned immediately during an SSR failure or CPU outage while a refresh is
+  scheduled with `waitUntil`. Inspect `x-sst-page-cache` (`MISS`, `HIT`, or
+  `STALE`) when diagnosing production.
+- Cached pages now send `Cache-Control: public, max-age=60, s-maxage=60,
+  stale-while-revalidate=86400`, allowing browsers to reuse recent HTML too.
+- `lib/supabase/server.ts` memoizes the server client, and the allowed image
+  widths are hoisted out of the request handler to reduce CPU on genuine cache
+  misses.
+- `public/sw.js` provides device/offline resilience. It precaches both locale
+  homes and core shell assets, saves the exact page open during installation,
+  uses network-first for safe public navigation, and falls back to the last
+  successful page for network errors, 1102 responses, and other server errors.
+  Versioned assets are cache-first; public media is stale-while-revalidate.
+- The service worker never stores personalized requests, query-bearing
+  navigation, RSC responses, auth/admin/profile pages, private APIs, opaque
+  responses, or unsuccessful responses. `public/_headers` prevents a stale
+  service-worker script while keeping hashed assets immutable.
+- `public/manifest.webmanifest` and the registration in
+  `app/[locale]/layout.tsx` make the offline layer available on supported
+  browsers and installed devices.
+
+When changing cached route rules or response formats, bump
+`PAGE_CACHE_VERSION` in `worker/page-cache.ts`. When changing service-worker
+cache behavior, bump `VERSION` in `public/sw.js`; these versions are independent.
+
+This section describes the release requested for `main` on 2026-08-19. Pushing
+`main` triggers the Cloudflare Git deployment. After deployment, verify and
+prime `/en`, `/ar`, `/en/topics`, and `/ar/topics`, then confirm repeat requests
+return `x-sst-page-cache: HIT`.
 
 ## 4. What is implemented now
 
@@ -171,13 +217,27 @@ old external `smarthealth.group` feed is no longer read.
 
 ## 6. Validation status — do not overstate it
 
-### Passing on current `HEAD`
+### Verified for the 2026-08-19 caching release
 
-- ESLint: passing
-- Production build, using the Windows-safe command below: passing
-- `git diff --check`: passing before the latest commits
+- Production build: passing (`npm run build`)
+- Wrangler deployment dry run against `dist/server/wrangler.json`: passing
+- Targeted ESLint for the changed application, Worker and service-worker files:
+  passing
+- Cache and offline tests: 4 of 4 passing
+- Local browser smoke test: manifest and service worker loaded; the worker
+  fetched both locale homes, core assets and the exact open page for precaching
+- Header checks: service worker revalidates, manifest caches for one hour,
+  public HTML caches for 60 seconds and reports `x-sst-page-cache`
 
-### Rendered-route tests: 15 of 15 passing
+Do not report the whole repository as clean: full `npm run lint` still has the
+pre-existing `react-hooks/set-state-in-effect` error in
+`app/components/ResearchExplorer.tsx` plus image warnings. The broader rendered
+HTML suite currently has three content/data-fixture failures (staff directory,
+an Arabic topic label, and the Papillary Carcinoma topic-detail fixture). A raw
+`npx tsc --noEmit` also reports pre-existing Supabase generic `never` errors in
+admin/events code; none point to the caching files changed in this release.
+
+### Rendered-route test harness
 
 The test suite checks the current interaction contract: four
 `.content-topic-option` selectors, the default case library, search, three
@@ -407,3 +467,6 @@ Phase 1a is therefore cleared to merge to `main`. Remember that merging to
 4. Keep clinical placeholders clearly labelled and never fabricate destinations.
 5. Before handing off, record the actual current commit, test result and whether
    the deployed site is behind local work.
+6. For the 2026-08-19 outage work, start with the new section in §3, preserve
+   the public/private cache boundaries, and run `tests/page-cache.test.mjs` plus
+   `tests/service-worker.test.mjs` whenever cache behavior changes.

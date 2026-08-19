@@ -1,0 +1,11 @@
+# Content-hashed vinext bundles never change at the same URL.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Browsers must check for a new service worker instead of pinning an old cache policy.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600
