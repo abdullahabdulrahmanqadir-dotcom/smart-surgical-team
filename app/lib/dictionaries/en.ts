@@ -15,7 +15,7 @@ export const en = {
     collectionTitle: "Learning collection", collectionBody: "Published operative videos, imaging reviews and discussions appear here.",
     backToTopics: "All topics", otherTopics: "Continue exploring",
     recentlyAdded: "Recently added", learnThroughAnatomy: "Learn through the anatomy.", surgicalTopics: "Surgical topics",
-    latestCase: "Latest case", contentLibrary: "Content library", loadingItems: "Loading…", itemCount: "{count} item", itemCountPlural: "{count} items",
+    latestCase: "Latest case", contentLibrary: "Content library", loadingItems: "Loading…", itemCount: "{count} case in {topic}", itemCountPlural: "{count} cases in {topic}", filteredResults: "Showing {count} of {total} items",
     filterLibrary: "Filter case library", filterBy: "Filter by", searchContent: "Search content", subtopic: "Subtopic", allSubtopics: "All subtopics",
     publicationYear: "Publication year", anyTime: "Any time", contentFormat: "Content format", allFormats: "All formats", videoLessons: "Video lessons",
     articlesResources: "Articles & resources", clearAll: "Clear all", loadingTopicContent: "Loading {name} content",

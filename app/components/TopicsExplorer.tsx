@@ -289,49 +289,71 @@ export default function TopicsExplorer({
           <h2>{t.contentLibrary}</h2>
           <p>{activeGroup.intro}</p>
         </div>
-        <span className="content-results" aria-live="polite">
-          {isLoading ? t.loadingItems : fill(filteredCases.length === 1 ? t.itemCount : t.itemCountPlural, { count: filteredCases.length })}
-        </span>
       </div>
 
-      <div className="content-filters" aria-label={t.filterLibrary}>
-        <span className="content-filter-label">{t.filterBy}</span>
-        <label className="content-search">
-          <IconSearch size={17} />
-          <span className="visually-hidden">{t.searchContent}</span>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder={t.searchContent}
-          />
-        </label>
-        <label className="content-select">
-          <span className="visually-hidden">{t.subtopic}</span>
-          <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
-            <option value="all">{t.allSubtopics}</option>
-            {activeGroup.subTopics.map((topic) => <option value={topic.name} key={topic.slug}>{topic.name}</option>)}
-          </select>
-          <IconChevronDown size={16} />
-        </label>
-        <label className="content-select">
-          <span className="visually-hidden">{t.publicationYear}</span>
-          <select value={year} onChange={(event) => setYear(event.target.value)}>
-            <option value="all">{t.anyTime}</option>
-            {availableYears.map((value) => <option value={value} key={value}>{value}</option>)}
-          </select>
-          <IconChevronDown size={16} />
-        </label>
-        <label className="content-select">
-          <span className="visually-hidden">{t.contentFormat}</span>
-          <select value={format} onChange={(event) => setFormat(event.target.value)}>
-            <option value="all">{t.allFormats}</option>
-            <option value="video">{t.videoLessons}</option>
-            <option value="article">{t.articlesResources}</option>
-          </select>
-          <IconChevronDown size={16} />
-        </label>
-        {filtersAreActive ? <button className="content-clear-filters" type="button" onClick={clearFilters}>{t.clearAll}</button> : null}
+      <div className={`content-filters${filtersAreActive ? " has-active-filters" : ""}`} aria-label={t.filterLibrary}>
+        <div className="content-filter-header">
+          <span className="content-filter-label">{t.filterBy}</span>
+          <span className="content-filter-total" aria-live="polite">
+            {isLoading
+              ? t.loadingItems
+              : fill(libraryCases.length === 1 ? t.itemCount : t.itemCountPlural, {
+                  count: libraryCases.length,
+                  topic: activeGroup.name,
+                })}
+          </span>
+        </div>
+        <div className="content-filter-grid">
+          <label className="content-filter-control content-search">
+            <span className="content-control-label">{t.searchContent}</span>
+            <span className="content-control-field">
+              <IconSearch size={17} />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t.searchContent}
+              />
+            </span>
+          </label>
+          <label className="content-filter-control content-select">
+            <span className="content-control-label">{t.subtopic}</span>
+            <span className="content-control-field">
+              <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
+                <option value="all">{t.allSubtopics}</option>
+                {activeGroup.subTopics.map((topic) => <option value={topic.name} key={topic.slug}>{topic.name}</option>)}
+              </select>
+              <IconChevronDown size={16} />
+            </span>
+          </label>
+          <label className="content-filter-control content-select">
+            <span className="content-control-label">{t.publicationYear}</span>
+            <span className="content-control-field">
+              <select value={year} onChange={(event) => setYear(event.target.value)}>
+                <option value="all">{t.anyTime}</option>
+                {availableYears.map((value) => <option value={value} key={value}>{value}</option>)}
+              </select>
+              <IconChevronDown size={16} />
+            </span>
+          </label>
+          <label className="content-filter-control content-select">
+            <span className="content-control-label">{t.contentFormat}</span>
+            <span className="content-control-field">
+              <select value={format} onChange={(event) => setFormat(event.target.value)}>
+                <option value="all">{t.allFormats}</option>
+                <option value="video">{t.videoLessons}</option>
+                <option value="article">{t.articlesResources}</option>
+              </select>
+              <IconChevronDown size={16} />
+            </span>
+          </label>
+        </div>
+        {filtersAreActive ? (
+          <div className="content-filter-summary" aria-live="polite">
+            <p>{fill(t.filteredResults, { count: filteredCases.length, total: libraryCases.length })}</p>
+            <button className="content-clear-filters" type="button" onClick={clearFilters}>{t.clearAll}</button>
+          </div>
+        ) : null}
       </div>
 
       {isLoading ? (
