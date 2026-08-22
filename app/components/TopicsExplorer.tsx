@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { Dictionary } from "../lib/dictionaries";
 import type { ContentCard } from "../lib/content-types";
 import type { Locale } from "../lib/i18n";
@@ -12,7 +12,7 @@ import HeadNeckMap from "./HeadNeckMap";
 import { fill } from "../lib/dictionaries";
 import { contentCardArt } from "../lib/content-thumbnail";
 import CardArt from "./CardArt";
-import { IconChevronDown, IconFile, IconPlay, IconSearch } from "./icons";
+import { IconCheck, IconChevronDown, IconFile, IconPlay, IconSearch } from "./icons";
 
 type LibraryItem = ContentCard & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
 
@@ -31,6 +31,129 @@ function CaseCardSkeleton() {
         <span className="skeleton-line skeleton-line-lg" />
         <span className="skeleton-line" />
         <span className="skeleton-line skeleton-line-sm" />
+      </div>
+    </div>
+  );
+}
+
+type FilterOption = { value: string; label: string };
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: FilterOption[];
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const labelId = useId();
+  const listId = useId();
+  const optionId = (index: number) => `${listId}-option-${index}`;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [isOpen, selectedIndex]);
+
+  const choose = (index: number) => {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setActiveIndex(index);
+    setIsOpen(false);
+  };
+
+  const move = (direction: 1 | -1) => {
+    setActiveIndex((current) => (current + direction + options.length) % options.length);
+  };
+
+  const selectedOption = options[selectedIndex] ?? options[0];
+
+  return (
+    <div
+      className={`content-filter-control content-select${isOpen ? " is-open" : ""}`}
+      ref={rootRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsOpen(false);
+      }}
+    >
+      <span className="content-control-label" id={labelId}>{label}</span>
+      <div className="content-select-shell">
+        <button
+          className="content-control-field content-select-trigger"
+          type="button"
+          role="combobox"
+          aria-labelledby={labelId}
+          aria-controls={listId}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-activedescendant={isOpen ? optionId(activeIndex) : undefined}
+          onClick={() => {
+            if (isOpen) setIsOpen(false);
+            else {
+              setActiveIndex(selectedIndex);
+              setIsOpen(true);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              if (!isOpen) {
+                setIsOpen(true);
+                setActiveIndex(selectedIndex);
+              } else {
+                move(event.key === "ArrowDown" ? 1 : -1);
+              }
+            } else if (event.key === "Home" || event.key === "End") {
+              event.preventDefault();
+              setIsOpen(true);
+              setActiveIndex(event.key === "Home" ? 0 : options.length - 1);
+            } else if ((event.key === "Enter" || event.key === " ") && isOpen) {
+              event.preventDefault();
+              choose(activeIndex);
+            } else if (event.key === "Escape" && isOpen) {
+              event.preventDefault();
+              setIsOpen(false);
+            }
+          }}
+        >
+          <span className="content-select-value">{selectedOption?.label}</span>
+          <IconChevronDown size={16} />
+        </button>
+        {isOpen ? (
+          <ul className="content-select-menu" id={listId} role="listbox" aria-labelledby={labelId}>
+            {options.map((option, index) => {
+              const isSelected = index === selectedIndex;
+              const isActive = index === activeIndex;
+              return (
+                <li
+                  className={`content-select-option${isActive ? " is-active" : ""}${isSelected ? " is-selected" : ""}`}
+                  id={optionId(index)}
+                  role="option"
+                  aria-selected={isSelected}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => choose(index)}
+                  key={option.value}
+                >
+                  <span>{option.label}</span>
+                  {isSelected ? <IconCheck size={15} /> : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
       </div>
     </div>
   );
@@ -316,37 +439,34 @@ export default function TopicsExplorer({
               />
             </span>
           </label>
-          <label className="content-filter-control content-select">
-            <span className="content-control-label">{t.subtopic}</span>
-            <span className="content-control-field">
-              <select value={subTopic} onChange={(event) => setSubTopic(event.target.value)}>
-                <option value="all">{t.allSubtopics}</option>
-                {activeGroup.subTopics.map((topic) => <option value={topic.name} key={topic.slug}>{topic.name}</option>)}
-              </select>
-              <IconChevronDown size={16} />
-            </span>
-          </label>
-          <label className="content-filter-control content-select">
-            <span className="content-control-label">{t.publicationYear}</span>
-            <span className="content-control-field">
-              <select value={year} onChange={(event) => setYear(event.target.value)}>
-                <option value="all">{t.anyTime}</option>
-                {availableYears.map((value) => <option value={value} key={value}>{value}</option>)}
-              </select>
-              <IconChevronDown size={16} />
-            </span>
-          </label>
-          <label className="content-filter-control content-select">
-            <span className="content-control-label">{t.contentFormat}</span>
-            <span className="content-control-field">
-              <select value={format} onChange={(event) => setFormat(event.target.value)}>
-                <option value="all">{t.allFormats}</option>
-                <option value="video">{t.videoLessons}</option>
-                <option value="article">{t.articlesResources}</option>
-              </select>
-              <IconChevronDown size={16} />
-            </span>
-          </label>
+          <FilterSelect
+            label={t.subtopic}
+            value={subTopic}
+            options={[
+              { value: "all", label: t.allSubtopics },
+              ...activeGroup.subTopics.map((topic) => ({ value: topic.name, label: topic.name })),
+            ]}
+            onChange={setSubTopic}
+          />
+          <FilterSelect
+            label={t.publicationYear}
+            value={year}
+            options={[
+              { value: "all", label: t.anyTime },
+              ...availableYears.map((value) => ({ value, label: value })),
+            ]}
+            onChange={setYear}
+          />
+          <FilterSelect
+            label={t.contentFormat}
+            value={format}
+            options={[
+              { value: "all", label: t.allFormats },
+              { value: "video", label: t.videoLessons },
+              { value: "article", label: t.articlesResources },
+            ]}
+            onChange={setFormat}
+          />
         </div>
         {filtersAreActive ? (
           <div className="content-filter-summary" aria-live="polite">
