@@ -21,7 +21,7 @@ export type TopicGroup = {
 
 export const TOPIC_GROUPS: TopicGroup[] = [
   {
-    slug: "thyroid-parathyroid", name: "Thyroid & Parathyroid", blurb: "Thyroidectomy, nerve identification and parathyroid preservation.",
+    slug: "thyroid-parathyroid", name: "Thyroid & Parathyroid", blurb: "Thyroidectomy and parathyroid preservation.",
     intro: "Operative technique across the thyroid and parathyroid glands, with particular attention to recurrent laryngeal nerve identification, parathyroid preservation and haemostasis.",
     icon: "thyroid", imageIcon: "/topic-icons/thyroid-sst-cropped.png", featured: true,
     subTopics: [
@@ -35,7 +35,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     ],
   },
   {
-    slug: "salivary-glands", name: "Salivary Glands", blurb: "Parotidectomy approaches and facial nerve dissection.",
+    slug: "salivary-glands", name: "Salivary Glands", blurb: "Parotidectomy approaches and salivary gland surgery.",
     intro: "Surgery of the salivary glands, centred on parotid approaches and the facial nerve dissection that defines the operation.",
     icon: "parotid", imageIcon: "/topic-icons/parotid-sst-cropped.png", featured: true,
     subTopics: [
@@ -46,7 +46,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
     ],
   },
   {
-    slug: "neck-lymphatic", name: "Neck & Lymphatic Surgery", blurb: "Neck dissection by level, staging and nodal disease.",
+    slug: "neck-lymphatic", name: "Neck & Lymphatic Surgery", blurb: "Neck and lymphatic node surgeries.",
     intro: "Neck dissection presented level by level, alongside the assessment and staging of nodal disease and the workup of neck masses.",
     icon: "lymph", featured: true,
     subTopics: [

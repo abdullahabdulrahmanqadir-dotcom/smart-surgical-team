@@ -92,7 +92,7 @@ export default async function Home({
   const dict = getDictionary(active);
   const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
   const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
-  const benefits = [dict.home.benefitAccess, dict.home.benefitWeekly, dict.home.benefitSave];
+  const benefits = [dict.home.benefitAccess, dict.home.benefitSave];
   const research = await getResearches();
   const latestResearch = research[0];
   // Abstracts can be rich HTML; the card excerpt wants clean text.

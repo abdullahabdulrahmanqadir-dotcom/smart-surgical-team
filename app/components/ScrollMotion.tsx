@@ -6,7 +6,11 @@ const revealSelectors = [
   ".credential-strip",
   ".section-head",
   ".topic-card",
-  ".dashboard > .panel",
+  // The events panel is streamed through a Suspense boundary. Mutating it
+  // before React hydrates that boundary causes a hydration mismatch (and can
+  // make Vite's error transport repeatedly fail), so animate only panels that
+  // are part of the initial hydrated tree.
+  ".dashboard > .panel:not(#events)",
   ".team-feature-panel",
   ".vision-panel",
   ".cta-inner",
