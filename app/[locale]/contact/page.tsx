@@ -7,7 +7,6 @@ import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { notFound } from "next/navigation";
 
-const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 /* Pinned by coordinates rather than by name: searching for "Smart Health Tower"
    drops the map on empty ground, these are the tower itself. */
 const MAP_COORDS = "35.5685910,45.4430236";
@@ -44,7 +43,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <h2 id="contact-details-heading">{dict.contact.detailsTitle}</h2>
               <p>{dict.contact.detailsBody}</p>
               <dl>
-                <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></dd></div>
+                <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd>{dict.contact.emailComingSoon}</dd></div>
                 <div><dt><IconPin size={19} /> {dict.contact.location}</dt><dd>{dict.footer.address}</dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
               </dl>

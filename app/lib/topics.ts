@@ -22,7 +22,7 @@ export type TopicGroup = {
 export const TOPIC_GROUPS: TopicGroup[] = [
   {
     slug: "thyroid-parathyroid", name: "Thyroid & Parathyroid", blurb: "Thyroidectomy and parathyroid preservation.",
-    intro: "Operative technique across the thyroid and parathyroid glands, with particular attention to recurrent laryngeal nerve identification, parathyroid preservation and haemostasis.",
+    intro: "Operative technique across the thyroid and parathyroid glands.",
     icon: "thyroid", imageIcon: "/topic-icons/thyroid-sst-cropped.png", featured: true,
     subTopics: [
       { slug: "papillary-carcinoma", name: "Papillary Thyroid Carcinoma", imageIcon: "/topic-icons/papillary-carcinoma.png" },
@@ -36,7 +36,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
   },
   {
     slug: "salivary-glands", name: "Salivary Glands", blurb: "Parotidectomy approaches and salivary gland surgery.",
-    intro: "Surgery of the salivary glands, centred on parotid approaches and the facial nerve dissection that defines the operation.",
+    intro: "Surgery of the salivary glands.",
     icon: "parotid", imageIcon: "/topic-icons/parotid-sst-cropped.png", featured: true,
     subTopics: [
       { slug: "pleomorphic-adenoma", name: "Pleomorphic Adenoma", imageIcon: "/topic-icons/parotid-sst-cropped.png" },
