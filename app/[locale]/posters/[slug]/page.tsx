@@ -9,15 +9,17 @@ import { IconArrowRight } from "../../../components/icons";
 import { getDictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPoster } from "../../../lib/posters";
+import { pageMetadata, seoDescription } from "../../../lib/seo";
 
 type Params = { locale: string; slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { locale, slug } = await params;
   if (!isLocale(locale)) return {};
+  const dict = getDictionary(locale);
   const poster = await getPoster(slug);
-  if (!poster) return {};
-  return { title: `${poster.title} | Smart Surgical Team`, description: poster.summary, openGraph: { title: poster.title, description: poster.summary, images: [{ url: poster.imageUrl, alt: poster.imageAlt }] } };
+  if (!poster) return { robots: { index: false, follow: false } };
+  return pageMetadata({ locale, path: `posters/${poster.slug}`, title: `${poster.title} | ${dict.brand.name}`, description: seoDescription(poster.summary, dict.seo.postersDescription), image: { url: poster.imageUrl, alt: poster.imageAlt } });
 }
 
 export default async function PosterDetailPage({ params }: { params: Promise<Params> }) {

@@ -23,12 +23,12 @@ Chrome account was confirmed signed in during the work below.
 | 2 | Submit and verify XML sitemap | Completed and live |
 | 3 | Set up Google Analytics 4 | Completed and live |
 | 4 | Google Business Profile | Duplicate/eligibility assessment completed; profile not created |
-| 5 | Put the primary keyword in each page title | Not started |
-| 6 | Add the city to main service pages | Not started |
-| 7 | Write a unique meta description for every page | Not started |
-| 8 | Add relevant internal links | Not started |
-| 9 | Compress and optimize images | Not started |
-| 10 | Start backlinks/citations | Not started |
+| 5 | Put the primary keyword in each page title | Completed locally; pending deploy |
+| 6 | Add the city to main service pages | Completed locally; pending deploy |
+| 7 | Write a unique meta description for every page | Completed locally; pending deploy |
+| 8 | Add relevant internal links | Completed locally; pending deploy |
+| 9 | Compress and optimize images | Completed locally; pending deploy |
+| 10 | Start backlinks/citations | Legitimate targets researched; outreach blocked on verified business facts |
 
 A final technical SEO audit should be run after phases 5–10.
 
@@ -96,6 +96,20 @@ Final behavior:
 - Analytics currently reports data collection as pending; Google states that
   the first data can take up to 48 hours to appear.
 
+### 2026-08-24 GA4 recheck
+
+GA4 still displayed **No data received from your website yet**. A signed-in
+Google Tag Assistant session found the correct tag (`G-KZ5GNTTR1K`) but reported
+**No hits were sent** and **Default consent state has not been set yet**. The
+cause was that the permanent-denial consent default ran in a React effect,
+after Google's consent-initialization phase.
+
+A local fix now initializes the same four denied storage/advertising purposes
+synchronously in the document head, before config or event commands. The
+privacy model is unchanged: no banner, no analytics cookies, no ad signals,
+and manual query-free page views only. Build and rendered-HTML checks pass, but
+Tag Assistant must be rerun after an approved deployment.
+
 ## Phase 4 — Google Business Profile assessment
 
 The duplicate check is complete. A Google search for **Smart Surgical Team
@@ -132,6 +146,54 @@ patients and may be rejected or suspended by Google.
   present.
 - Production Chrome smoke test: no banner/settings UI and
   `https://www.googletagmanager.com/gtag/js?id=G-KZ5GNTTR1K` present.
+
+## Local phases 5–9 work (2026-08-24)
+
+- Added localized, keyword-specific titles and unique descriptions for all
+  public hubs plus database-backed event, poster, research, and library detail
+  routes.
+- Added canonical, English/Arabic hreflang, and `x-default` metadata to those
+  routes; auth and profile pages now explicitly declare `noindex`.
+- Added truthful Sulaymaniyah wording to the home, About, Contact, and Events
+  metadata, plus visible About-page location context.
+- Added contextual About links to the topic library and research archive. The
+  existing breadcrumbs, related-content rails, event cards, topic cards, and
+  global navigation already provide broad internal linking.
+- Replaced actively loaded photographic PNG references with WebP/JPEG variants.
+  The affected source assets totalled about 19.3 MB; the served variants total
+  about 1.7 MB (roughly 91% smaller). Original files remain for rollback.
+- Added a rendered-HTML regression test covering unique localized metadata,
+  canonical/hreflang output, synchronous denied-consent initialization, and
+  optimized image references.
+
+Local verification: production build passed; targeted ESLint passed with one
+pre-existing `<img>` performance warning; cache/service-worker tests passed;
+the new SEO regression passed. The broader rendered-HTML suite retains exactly
+the three pre-existing fixture/content failures recorded above.
+
+## Phase 10 citation targets
+
+No listing was created and no outreach was sent because the Phase 4 business
+name, eligibility, phone, hours, and profile ownership questions remain open.
+Once those facts are confirmed, prioritize:
+
+1. The existing Smart Health Tower website and LinkedIn profile: request a
+   dedicated Smart Surgical Team page or service section linking to the site.
+2. The Asia-Pacific Society of Thyroid Surgery event listing for the Second
+   Middle East Thyroid Summit: request that the official event/organizer entry
+   include the appropriate site link.
+3. University of Sulaimani department and faculty profiles for eligible team
+   members: add the official team/research URL through the institution owner.
+4. Author-controlled ORCID, Google Scholar, and ResearchGate profiles: link the
+   research archive where profile policies allow it.
+5. Publisher or repository records only through legitimate author correction
+   workflows; do not attempt promotional edits to PubMed/PMC records.
+
+Evidence supporting these relationships includes the Smart Health Tower
+affiliation in PubMed (`PMID 38938739`), the University of Sulaimani affiliation
+in PMC (`PMC6136020`), and the APTS listing of the 2026 summit in Sulaymaniyah.
+Do not buy links, mass-submit directories, or create duplicate business
+profiles.
 
 Repository-wide known issues were not caused by this SEO work: the broader
 rendered-HTML suite still has three content/fixture failures (staff directory,

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Newsreader, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
+import { seoAlternates } from "../lib/seo";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import "../globals.css";
 
@@ -71,8 +72,8 @@ export async function generateMetadata({
   const protocol =
     requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
 
-  const title = `${dict.brand.name} | ${dict.brand.tagline}`;
-  const description = dict.metadata.description;
+  const title = dict.seo.homeTitle;
+  const description = dict.seo.homeDescription;
 
   return {
     metadataBase: new URL(`${protocol}://${host}`),
@@ -82,21 +83,18 @@ export async function generateMetadata({
     verification: {
       google: "r9oYyfOdYpMIg6pXNiBhv9-fUilFXtcSwYRrc9K4Y-A",
     },
-    alternates: {
-      canonical: `/${active}`,
-      // Lets search engines serve the right language and stops the three
-      // locales competing with each other as duplicate content.
-      languages: Object.fromEntries(LOCALES.map((l) => [LOCALE_META[l].htmlLang, `/${l}`])),
-    },
+    // Lets search engines serve the right language and keeps localized pages
+    // from competing as duplicate content.
+    alternates: seoAlternates(active),
     icons: { icon: "/sst-mark.png", shortcut: "/sst-mark.png", apple: "/sst-mark.png" },
     openGraph: {
       title,
       description,
       type: "website",
       locale: LOCALE_META[active].htmlLang,
-      images: [{ url: "/og-team.png", width: 1728, height: 904, alt: dict.brand.name }],
+      images: [{ url: "/og-team.jpg", width: 1728, height: 904, alt: dict.brand.name }],
     },
-    twitter: { card: "summary_large_image", title, description, images: ["/og-team.png"] },
+    twitter: { card: "summary_large_image", title, description, images: ["/og-team.jpg"] },
   };
 }
 
@@ -126,6 +124,15 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <head>
+        <script
+          // Google requires the default consent state synchronously, before
+          // any config or event command. Keeping every storage purpose denied
+          // preserves the site's banner-free, cookieless measurement policy.
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}window.gtag=window.gtag||gtag;gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});",
+          }}
+        />
         {/* Case and topic thumbnails for video content come from YouTube's
             image host. Opening that connection alongside the document saves a
             DNS lookup and TLS handshake from the critical path. */}

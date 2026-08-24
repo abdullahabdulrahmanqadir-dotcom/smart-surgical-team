@@ -1,6 +1,7 @@
 /* Event artwork is maintained by the official MET site, so these direct images
    deliberately avoid a local image optimisation/proxy layer. */
 /* eslint-disable @next/next/no-img-element */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
@@ -9,6 +10,23 @@ import { IconArrowRight, IconCalendar, IconCheck, IconFile, IconGlobe, IconPin, 
 import { eventDateRange, getPublicEvent, localizeFallbackEvent } from "../../../lib/events";
 import { fill, getDictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
+import { pageMetadata, seoDescription } from "../../../lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
+  const { locale, slug } = await params;
+  if (!isLocale(locale)) return {};
+  const dict = getDictionary(locale);
+  const sourceEvent = await getPublicEvent(slug);
+  if (!sourceEvent) return { robots: { index: false, follow: false } };
+  const event = localizeFallbackEvent(sourceEvent, dict.eventFallback);
+  return pageMetadata({
+    locale,
+    path: `events/${event.slug}`,
+    title: fill(dict.seo.eventTitle, { event: event.title }),
+    description: seoDescription(event.summary, dict.seo.eventsDescription),
+    image: event.image ? { url: event.image, alt: event.title } : undefined,
+  });
+}
 
 export default async function EventDetailPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await params;

@@ -65,6 +65,42 @@ test("server-renders the English home page", async () => {
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
 });
 
+test("public hubs expose unique localized SEO metadata and optimized imagery", async () => {
+  const routes = ["", "/about", "/contact", "/topics", "/events", "/posters", "/research", "/privacy", "/terms"];
+
+  for (const locale of ["en", "ar"]) {
+    const titles = new Set();
+    const descriptions = new Set();
+
+    for (const route of routes) {
+      const path = `/${locale}${route}`;
+      const response = await fetchPath(path);
+      assert.equal(response.status, 200, `${path} renders`);
+      const html = await response.text();
+      const title = html.match(/<title>(.*?)<\/title>/)?.[1] ?? "";
+      const description = html.match(/<meta name="description" content="([^"]+)"/i)?.[1] ?? "";
+
+      assert.ok(title, `${path} has a title`);
+      assert.ok(description, `${path} has a description`);
+      assert.ok(!titles.has(title), `${path} has a unique title`);
+      assert.ok(!descriptions.has(description), `${path} has a unique description`);
+      assert.match(html, new RegExp(`<link rel="canonical" href="[^"]+${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
+      assert.match(html, new RegExp(`hrefLang="x-default" href="[^"]+/en${route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
+
+      titles.add(title);
+      descriptions.add(description);
+    }
+  }
+
+  const home = await (await fetchPath("/en")).text();
+  assert.match(home, /gtag\('consent','default'.*analytics_storage:'denied'/);
+  assert.match(home, /og-team\.jpg/);
+  assert.match(home, /hero-histology-(?:thyroid|trachea|artery|vessels)\.webp/);
+
+  const events = await (await fetchPath("/en/events")).text();
+  assert.match(events, /smart-health-tower-events-hero\.webp/);
+});
+
 test("renders the complete staff directory with its local portraits", async () => {
   const response = await fetchPath("/en/about");
   assert.equal(response.status, 200);

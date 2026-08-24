@@ -4,11 +4,12 @@ import ScrollMotion from "../../../components/ScrollMotion";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import TopicsExplorer from "../../../components/TopicsExplorer";
-import { getDictionary } from "../../../lib/dictionaries";
+import { fill, getDictionary } from "../../../lib/dictionaries";
 import { getTopicContent } from "../../../lib/content";
-import { LOCALES, isLocale, localePath, type Locale } from "../../../lib/i18n";
+import { LOCALES, isLocale, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup, localizeTopicGroups, PUBLIC_TOPIC_GROUPS } from "../../../lib/topics";
 import { getPublicTopicTree, topicSlugsFor } from "../../../lib/topic-tree";
+import { pageMetadata } from "../../../lib/seo";
 
 type TopicPageParams = {
   locale: string;
@@ -31,13 +32,13 @@ export async function generateMetadata({
   if (!isLocale(locale) || !group) notFound();
 
   const dict = getDictionary(locale);
-  return {
-    title: `${dict.taxonomy[group.slug as keyof typeof dict.taxonomy] ?? group.name} | ${dict.brand.name}`,
-    description: dict.taxonomy[`${group.slug}-intro` as keyof typeof dict.taxonomy] ?? group.intro,
-    alternates: {
-      canonical: localePath(locale, `topics/${group.slug}`),
-    },
-  };
+  const topic = dict.taxonomy[group.slug as keyof typeof dict.taxonomy] ?? group.name;
+  return pageMetadata({
+    locale,
+    path: `topics/${group.slug}`,
+    title: fill(dict.seo.topicTitle, { topic }),
+    description: fill(dict.seo.topicDescription, { topic }),
+  });
 }
 
 /**

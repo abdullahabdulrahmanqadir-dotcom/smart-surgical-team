@@ -49,7 +49,7 @@ export const EVENTS: TeamEvent[] = [
     location: "Smart Health Tower, Sulaymaniyah, Iraq",
     summary:
       "A two-day regional summit bringing together specialists across thyroid disease and cancer care for scientific exchange, practical education and multidisciplinary collaboration.",
-    image: "/events/met-summit-official-main.png",
+    image: "/events/met-summit-official-main.webp",
     officialUrl: "https://mets.smarthealth.group/",
     registrationUrl: "https://mets.smarthealth.group/register",
     programmeUrl: "https://mets.smarthealth.group/program",

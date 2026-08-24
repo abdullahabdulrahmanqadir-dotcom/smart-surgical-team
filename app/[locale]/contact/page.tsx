@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import SocialLinks from "../../components/SocialLinks";
@@ -5,7 +6,15 @@ import ScrollMotion from "../../components/ScrollMotion";
 import { IconArrowRight, IconClock, IconMail, IconPin } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
+import { pageMetadata } from "../../lib/seo";
 import { notFound } from "next/navigation";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
+  return pageMetadata({ locale: active, path: "contact", title: dict.seo.contactTitle, description: dict.seo.contactDescription });
+}
 
 /* Pinned by coordinates rather than by name: searching for "Smart Health Tower"
    drops the map on empty ground, these are the tower itself. */

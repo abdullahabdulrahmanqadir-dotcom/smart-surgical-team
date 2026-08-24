@@ -6,10 +6,10 @@ import type { Dictionary } from "../lib/dictionaries";
 type Tissue = "thyroid" | "trachea" | "artery" | "vessels";
 
 const tissueImages: Record<Tissue, string> = {
-  thyroid: "/hero-histology-thyroid.png",
-  trachea: "/hero-histology-trachea.png",
-  artery: "/hero-histology-artery.png",
-  vessels: "/hero-histology-vessels.png",
+  thyroid: "/hero-histology-thyroid.webp",
+  trachea: "/hero-histology-trachea.webp",
+  artery: "/hero-histology-artery.webp",
+  vessels: "/hero-histology-vessels.webp",
 };
 
 const route = [

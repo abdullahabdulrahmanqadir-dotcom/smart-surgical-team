@@ -4,11 +4,12 @@ import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import ScrollMotion from "../../components/ScrollMotion";
 import TopicsExplorer from "../../components/TopicsExplorer";
-import { LOCALES, isLocale, localePath, type Locale } from "../../lib/i18n";
+import { LOCALES, isLocale, type Locale } from "../../lib/i18n";
 import { getDictionary } from "../../lib/dictionaries";
 import { localizeTopicGroups } from "../../lib/topics";
 import { getPublicTopicTree } from "../../lib/topic-tree";
 import { getLibraryContent } from "../../lib/content";
+import { pageMetadata } from "../../lib/seo";
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -20,13 +21,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const dict = getDictionary(isLocale(locale) ? locale : "en");
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
 
-  return {
-    title: `${dict.topics.title} | ${dict.brand.name}`,
-    description: dict.topics.intro,
-    alternates: { canonical: localePath(isLocale(locale) ? locale : "en", "topics") },
-  };
+  return pageMetadata({ locale: active, path: "topics", title: dict.seo.topicsTitle, description: dict.seo.topicsDescription });
 }
 
 export default async function TopicsPage({ params }: { params: Promise<{ locale: string }> }) {

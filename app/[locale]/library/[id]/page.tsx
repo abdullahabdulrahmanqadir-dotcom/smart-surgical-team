@@ -18,6 +18,7 @@ import { contentCardArt } from "../../../lib/content-thumbnail";
 import CardArt from "../../../components/CardArt";
 import { TEAM_GROUPS } from "../../../lib/team";
 import TranslatableContent from "../../../components/TranslatableContent";
+import { pageMetadata, seoDescription } from "../../../lib/seo";
 
 const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
 
@@ -66,7 +67,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const content = await getContent(id);
-  return content ? { title: `${content.title} | ${dict.brand.name}`, description: content.summary } : { title: `${dict.library.contentNotFound} | ${dict.brand.name}` };
+  return content ? pageMetadata({
+    locale: active,
+    path: `library/${content.slug}`,
+    title: `${content.title} | ${dict.brand.name}`,
+    description: seoDescription(content.summary, dict.seo.topicsDescription),
+    ...(content.thumbnailUrl ? { image: { url: content.thumbnailUrl, alt: content.title } } : {}),
+  }) : { title: `${dict.library.contentNotFound} | ${dict.brand.name}`, robots: { index: false, follow: false } };
 }
 
 export default async function ContentPage({ params }: { params: Promise<{ locale: string; id: string }> }) {

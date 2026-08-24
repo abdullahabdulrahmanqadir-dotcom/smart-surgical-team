@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ResearchExplorer from "../../components/ResearchExplorer";
@@ -6,6 +7,14 @@ import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { getResearches, getResearchTopics } from "../../lib/research";
 import { notFound } from "next/navigation";
+import { pageMetadata } from "../../lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const active: Locale = isLocale(locale) ? locale : "en";
+  const dict = getDictionary(active);
+  return pageMetadata({ locale: active, path: "research", title: dict.seo.researchTitle, description: dict.seo.researchDescription });
+}
 
 export default async function ResearchPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

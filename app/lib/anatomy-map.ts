@@ -19,7 +19,7 @@
 export const ANATOMY_PLATE = {
   // This plate is magnified by the map camera, so use its lossless source.
   // The compressed WebP created visible artifacts in the focused views.
-  src: "/anatomy-topics-model-v2.png",
+  src: "/anatomy-topics-model-v2.webp",
   /** Intrinsic size, used to hold the stage at the plate's aspect ratio so that
    *  a focus point in plate percent lands on the same pixel on screen. */
   width: 1122,

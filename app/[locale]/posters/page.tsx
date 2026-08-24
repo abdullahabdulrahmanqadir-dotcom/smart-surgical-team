@@ -9,18 +9,20 @@ import { IconArrowRight } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getPosters, type PosterEntry } from "../../lib/posters";
+import { pageMetadata } from "../../lib/seo";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const posters = await getPosters();
-  return {
-    title: dict.posters.pageTitle,
-    description: dict.posters.pageDescription,
-    alternates: { canonical: `/${active}/posters` },
-    openGraph: posters[0] ? { title: dict.posters.pageTitle, description: dict.posters.pageDescription, images: [{ url: posters[0].imageUrl, alt: posters[0].imageAlt }] } : undefined,
-  };
+  return pageMetadata({
+    locale: active,
+    path: "posters",
+    title: dict.seo.postersTitle,
+    description: dict.seo.postersDescription,
+    image: posters[0] ? { url: posters[0].imageUrl, alt: posters[0].imageAlt } : undefined,
+  });
 }
 
 function PosterCard({ poster, locale, label }: { poster: PosterEntry; locale: Locale; label: string }) {

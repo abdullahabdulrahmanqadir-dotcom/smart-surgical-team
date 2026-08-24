@@ -9,6 +9,7 @@ import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight, IconCalendar } from "../../../components/icons";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
+import { pageMetadata, seoDescription } from "../../../lib/seo";
 import { getResearchById } from "../../../lib/research";
 
 function readableDate(value: string, locale: Locale, t: Dictionary["research"]) {
@@ -41,17 +42,18 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const paper = await getResearchById(id);
-  const summary = paper?.abstract ? paper.abstract.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
+  const summary = paper?.abstract ?? "";
   // The generated cover is the paper's link preview. It no longer appears on
   // this page, but it is still the one image that represents the paper, and
   // without this the SVG endpoint would have no caller at all.
-  const description = summary || fill(dict.research.readDescription, { title: paper?.title ?? "" });
-  return paper ? {
+  const description = seoDescription(summary, fill(dict.research.readDescription, { title: paper?.title ?? "" }));
+  return paper ? pageMetadata({
+    locale: active,
+    path: `research/${paper.id}`,
     title: `${paper.title} | ${dict.brand.name}`,
     description,
-    openGraph: { title: paper.title, description, images: [{ url: paper.coverUrl, alt: paper.title }] },
-    twitter: { card: "summary_large_image", title: paper.title, description, images: [paper.coverUrl] },
-  } : { title: `${dict.research.notFound} | ${dict.brand.name}` };
+    image: { url: paper.coverUrl, alt: paper.title },
+  }) : { title: `${dict.research.notFound} | ${dict.brand.name}`, robots: { index: false, follow: false } };
 }
 
 export default async function ResearchDetailPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
