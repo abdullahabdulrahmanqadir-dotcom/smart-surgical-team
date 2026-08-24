@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const MEASUREMENT_ID = "G-KZ5GNTTR1K";
 
@@ -18,12 +18,17 @@ type AnalyticsWindow = Window & {
  */
 export default function GoogleAnalytics() {
   const pathname = usePathname();
+  const initialPathname = useRef(pathname);
 
   useEffect(() => {
     const analytics = window as AnalyticsWindow;
+    const firstPathname = initialPathname.current;
     analytics.gtag?.("js", new Date());
     analytics.gtag?.("config", MEASUREMENT_ID, {
-      send_page_view: false,
+      send_page_view: true,
+      page_location: `${location.origin}${firstPathname}`,
+      page_path: firstPathname,
+      page_title: document.title,
       allow_google_signals: false,
       allow_ad_personalization_signals: false,
       ads_data_redaction: true,
@@ -40,6 +45,7 @@ export default function GoogleAnalytics() {
   }, []);
 
   useEffect(() => {
+    if (pathname === initialPathname.current) return;
     const analytics = window as AnalyticsWindow;
     analytics.gtag?.("event", "page_view", {
       send_to: MEASUREMENT_ID,

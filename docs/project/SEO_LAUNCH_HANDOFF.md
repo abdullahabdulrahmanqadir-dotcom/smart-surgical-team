@@ -107,8 +107,8 @@ after Google's consent-initialization phase.
 A local fix now initializes the same four denied storage/advertising purposes
 synchronously in the document head, before config or event commands. The
 privacy model is unchanged: no banner, no analytics cookies, no ad signals,
-and manual query-free page views only. Build and rendered-HTML checks pass, but
-Tag Assistant must be rerun after an approved deployment.
+and query-free page views only. The initial page view is sent by the config
+command; later client-side route changes use manual `page_view` events.
 
 ## Phase 4 — Google Business Profile assessment
 
