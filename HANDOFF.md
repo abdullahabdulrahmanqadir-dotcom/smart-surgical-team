@@ -1,8 +1,11 @@
 # Handoff — Smart Surgical Team website
 
-**Updated:** 2026-08-19
+**Updated:** 2026-08-24
 **Read this first.** It supersedes the old paused-Topics notes in this file and
 the stale Phase 1a status text in `docs/project/BUILD_PLAN.md`.
+
+**Latest work:** The launch SEO sequence is paused after sitemap and Google
+Analytics setup. Read `docs/project/SEO_LAUNCH_HANDOFF.md` before resuming it.
 
 ## 1. Project at a glance
 
