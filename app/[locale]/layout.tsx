@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Newsreader, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
+import AnalyticsConsent from "../components/AnalyticsConsent";
 import "../globals.css";
 
 // Type revised 2026-08-09 — see assets/design-system/smart-surgical-team/MASTER.md.
@@ -154,6 +155,7 @@ export default async function LocaleLayout({
           TranslatableContent). English pages stay fully translatable. */}
       <body className="antialiased" translate={locale === "ar" ? "no" : undefined}>
         {children}
+        <AnalyticsConsent locale={locale} />
       </body>
     </html>
   );

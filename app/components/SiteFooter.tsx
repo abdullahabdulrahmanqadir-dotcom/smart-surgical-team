@@ -3,6 +3,7 @@ import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import SocialLinks from "./SocialLinks";
+import AnalyticsPreferencesButton from "./AnalyticsPreferencesButton";
 import {
   BrandMark,
   IconMail,
@@ -71,6 +72,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
         <span className="footer-legal">
           <Link href={localePath(locale, "privacy")}>{dict.footer.privacy}</Link>
           <Link href={localePath(locale, "terms")}>{dict.footer.terms}</Link>
+          <AnalyticsPreferencesButton label={locale === "ar" ? "إعدادات التحليلات" : "Analytics settings"} />
         </span>
       </div>
     </footer>
