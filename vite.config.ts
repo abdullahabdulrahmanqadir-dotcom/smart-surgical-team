@@ -54,9 +54,18 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      // Vite 8 enables browser-console forwarding automatically when it detects
+      // an agent environment. Its client can try to forward an early page error
+      // before the HMR WebSocket has connected, which replaces the useful error
+      // with `Cannot read properties of undefined (reading 'send')`. Browser
+      // DevTools and Vite's normal error overlay still report errors with this
+      // optional forwarding bridge disabled.
+      forwardConsole: false,
+      ...(isCodexSeatbeltSandbox
+        ? { watch: { useFsEvents: false, usePolling: true } }
+        : {}),
+    },
     plugins: [
       vinext(),
       cloudflare({
