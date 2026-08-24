@@ -78,6 +78,9 @@ export async function generateMetadata({
     manifest: "/manifest.webmanifest",
     title,
     description,
+    verification: {
+      google: "r9oYyfOdYpMIg6pXNiBhv9-fUilFXtcSwYRrc9K4Y-A",
+    },
     alternates: {
       canonical: `/${active}`,
       // Lets search engines serve the right language and stops the three
