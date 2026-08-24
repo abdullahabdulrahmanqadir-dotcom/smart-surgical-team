@@ -3762,3 +3762,32 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    half-width orphan; let it take the row. Targets the last label rather than a
    position, because the Clear button only appears once a filter is active. */
 @media (max-width:620px) { .research-controls > label:last-of-type { grid-column:1/-1; } }
+
+/* Shared branded filter dropdowns. Topic, event, and research archives use
+   the same accessible listbox while retaining their own responsive layouts. */
+.content-select:not(.is-disabled):hover .content-control-field { border-color:color-mix(in srgb,var(--primary) 46%,var(--line-strong)); box-shadow:inset 0 1px color-mix(in srgb,#fff 55%,transparent),0 7px 18px color-mix(in srgb,var(--primary) 10%,transparent); }
+.content-select.is-disabled .content-select-trigger { cursor:not-allowed; opacity:.52; box-shadow:none; }
+.content-select.is-disabled .content-control-field::before { background:var(--text-soft); opacity:.45; transform:none; }
+.content-select.is-disabled:hover .content-control-field { border-color:var(--line-strong); box-shadow:none; }
+
+.event-filter-control { flex:1 1 9rem; min-width:8rem; }
+.event-filters .content-control-label { color:var(--text-soft); font-size:.67rem; letter-spacing:var(--tracking-label); text-transform:uppercase; }
+.event-filters .event-filter-clear { min-height:44px; }
+
+.research-filter-control { flex:0 1 11rem; min-width:8.6rem; }
+.research-controls .content-filter-control { gap:.35rem; color:var(--text-muted); }
+.research-controls .content-control-label { font-size:.69rem; font-weight:750; letter-spacing:var(--tracking-label); text-transform:uppercase; }
+
+@media (max-width:620px) {
+  .event-filter-control,.research-filter-control { min-width:0; }
+  .research-controls > .research-filter-control:last-of-type { grid-column:1/-1; }
+}
+
+.admin-content-filters .admin-filter-select { display:grid; min-width:0; gap:5px; color:#4f6b69; }
+.admin-content-filters .admin-filter-select .content-control-label { color:#4f6b69; font-size:11px; font-weight:700; letter-spacing:0; text-transform:uppercase; }
+.admin-shell .admin-filter-select .content-control-field { height:38px; min-height:38px; border-color:#cbdad7; border-radius:7px; background:#fff; color:#173c3b; box-shadow:none; font-size:13px; }
+.admin-shell .admin-filter-select .content-control-field::before { background:#167a78; }
+.admin-shell .admin-filter-select .content-select-menu { border-color:#cbdad7; border-radius:9px; background:#fff; box-shadow:0 14px 34px rgba(26,65,61,.16); }
+.admin-shell .admin-filter-select .content-select-option { color:#4f6b69; font-size:13px; text-transform:none; }
+.admin-shell .admin-filter-select .content-select-option.is-active { background:#e4efec; color:#173c3b; }
+.admin-shell .admin-filter-select .content-select-option.is-selected { background:linear-gradient(135deg,#218582,#14615f); color:#fff; }

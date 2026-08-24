@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconSearch } from "./icons";
 import { localePath, type Locale } from "../lib/i18n";
 import ResearchCover from "./ResearchCover";
+import FilterSelect from "./FilterSelect";
 import type { Publication, ResearchTopicTree } from "../lib/research";
 import type { Dictionary } from "../lib/dictionaries";
 
@@ -93,7 +94,13 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
 
   return <section className="research-archive" id="publications" aria-labelledby="publications-heading">
     <div className="research-archive-heading"><h1 id="publications-heading">{t.publications}</h1></div>
-    <div className="research-controls" aria-label={t.filterPublications}><label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label><label>{t.topic}<select value={topic} onChange={(event) => changeTopic(event.target.value)}><option value="all">{t.allTopics}</option>{topicOptions.map((option) => <option value={option.slug} key={option.slug}>{option.name}</option>)}</select></label><label>{t.subtopic}<select value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(event) => { setSubtopic(event.target.value); setPage(1); }}><option value="all">{t.allSubtopics}</option>{subtopicOptions.map((option) => <option value={option.slug} key={option.slug}>{option.name}</option>)}</select></label><label>{t.year}<select value={year} onChange={(event) => { setYear(event.target.value); setPage(1); }}><option value="all">{t.allYears}</option>{years.map((value) => <option value={value} key={value}>{value}</option>)}</select></label>{(query || year !== "all" || topic !== "all" || subtopic !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}</div>
+    <div className="research-controls" aria-label={t.filterPublications}>
+      <label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label>
+      <FilterSelect className="research-filter-control" label={t.topic} value={topic} onChange={changeTopic} options={[{ value: "all", label: t.allTopics }, ...topicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
+      <FilterSelect className="research-filter-control" label={t.subtopic} value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(value) => { setSubtopic(value); setPage(1); }} options={[{ value: "all", label: t.allSubtopics }, ...subtopicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
+      <FilterSelect className="research-filter-control" label={t.year} value={year} onChange={(value) => { setYear(value); setPage(1); }} options={[{ value: "all", label: t.allYears }, ...years.map((value) => ({ value, label: value }))]} />
+      {(query || year !== "all" || topic !== "all" || subtopic !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}
+    </div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
       <ResearchCover title={paper.title} journal={paper.journal} palette={paper.palette} paletteKey={paper.journal}/>
       <div className="research-card-copy"><p className="research-authors">{paper.authors}</p><p className="research-card-date">{dateLabel(paper)}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div>

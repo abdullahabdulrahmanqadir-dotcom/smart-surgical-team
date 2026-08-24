@@ -8,6 +8,7 @@ import { IconArrowRight, IconCalendar, IconPin } from "./icons";
 import { eventDateRange, type TeamEvent } from "../lib/event-data";
 import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
+import FilterSelect from "./FilterSelect";
 
 export default function EventsExplorer({ locale, events, t }: { locale: Locale; events: TeamEvent[]; t: Dictionary["events"] }) {
   const [status, setStatus] = useState("all");
@@ -40,11 +41,11 @@ export default function EventsExplorer({ locale, events, t }: { locale: Locale; 
       <p>{t.collectionIntro}</p>
     </div>
     <div className="event-filters" aria-label={t.filterEvents}>
-      <label>{t.status}<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">{t.allStatuses}</option><option value="upcoming">{t.upcoming}</option><option value="past">{t.past}</option></select></label>
-      <label>{t.type}<select value={type} onChange={(e) => setType(e.target.value)}><option value="all">{t.allTypes}</option>{options(events.map((event) => event.type)).map((value) => <option value={value} key={value}>{typeLabel(value)}</option>)}</select></label>
-      <label>{t.topic}<select value={topic} onChange={(e) => setTopic(e.target.value)}><option value="all">{t.allTopics}</option>{options(events.map((event) => event.topic)).map((value) => <option value={value} key={value}>{topicLabel(value)}</option>)}</select></label>
-      <label>{t.format}<select value={format} onChange={(e) => setFormat(e.target.value)}><option value="all">{t.allFormats}</option>{options(events.map((event) => event.format)).map((value) => <option value={value} key={value}>{formatLabel(value)}</option>)}</select></label>
-      <label>{t.year}<select value={year} onChange={(e) => setYear(e.target.value)}><option value="all">{t.allYears}</option>{options(events.map((event) => event.startDate.slice(0, 4))).sort((a, b) => b.localeCompare(a)).map((value) => <option value={value} key={value}>{value}</option>)}</select></label>
+      <FilterSelect className="event-filter-control" label={t.status} value={status} onChange={setStatus} options={[{ value: "all", label: t.allStatuses }, { value: "upcoming", label: t.upcoming }, { value: "past", label: t.past }]} />
+      <FilterSelect className="event-filter-control" label={t.type} value={type} onChange={setType} options={[{ value: "all", label: t.allTypes }, ...options(events.map((event) => event.type)).map((value) => ({ value, label: typeLabel(value) }))]} />
+      <FilterSelect className="event-filter-control" label={t.topic} value={topic} onChange={setTopic} options={[{ value: "all", label: t.allTopics }, ...options(events.map((event) => event.topic)).map((value) => ({ value, label: topicLabel(value) }))]} />
+      <FilterSelect className="event-filter-control" label={t.format} value={format} onChange={setFormat} options={[{ value: "all", label: t.allFormats }, ...options(events.map((event) => event.format)).map((value) => ({ value, label: formatLabel(value) }))]} />
+      <FilterSelect className="event-filter-control" label={t.year} value={year} onChange={setYear} options={[{ value: "all", label: t.allYears }, ...options(events.map((event) => event.startDate.slice(0, 4))).sort((a, b) => b.localeCompare(a)).map((value) => ({ value, label: value }))]} />
       {activeFilters && <button type="button" className="event-filter-clear" onClick={() => { setStatus("all"); setType("all"); setTopic("all"); setFormat("all"); setYear("all"); }}>{t.clearFilters}</button>}
     </div>
     <div aria-live="polite">
