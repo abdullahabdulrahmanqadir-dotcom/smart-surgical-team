@@ -102,8 +102,8 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
       {(query || year !== "all" || topic !== "all" || subtopic !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}
     </div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
-      <ResearchCover title={paper.title} journal={paper.journal} palette={paper.palette} paletteKey={paper.journal}/>
-      <div className="research-card-copy"><p className="research-authors">{paper.authors}</p><p className="research-card-date">{dateLabel(paper)}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div>
+      <ResearchCover title={paper.title} label={paper.topic?.name ?? t.unfiled} palette={paper.palette} paletteKey={paper.journal}/>
+      <div className="research-card-copy"><p className="research-authors">{paper.authors}</p><div className="research-card-footer"><p className="research-card-date">{dateLabel(paper)}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div></div>
     </Link>)}</div>
     {totalPages > 1 && <nav className="research-pagination" aria-label={t.publicationPages}><button type="button" onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>{t.previous}</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => goToPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>{t.next}</button></nav>}
     {!results.length && <div className="research-empty"><h3>{t.noMatches}</h3><button type="button" onClick={resetFilters}>{t.clearFilters}</button></div>}

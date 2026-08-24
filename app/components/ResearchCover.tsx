@@ -22,18 +22,17 @@ import { paletteFor } from "../lib/research-palettes";
  * the cover exists to tell one card apart from the next, and on a page showing
  * a single paper there is nothing to tell it apart from.
  *
- * The journal sits above the title as an eyebrow, and appears again in the
- * paper's Publication details — deliberately in both places: on the card it is
- * context while you are scanning, on the page it is the citation.
+ * The topic sits above the title so the cover's colour has a visible meaning
+ * while a reader scans the archive.
  */
 export default function ResearchCover({
   title,
-  journal,
+  label,
   palette,
   paletteKey = "",
 }: {
   title: string;
-  journal?: string;
+  label?: string;
   palette?: string;
   /** Distinguishes unfiled papers from each other when there is no palette. */
   paletteKey?: string;
@@ -46,10 +45,10 @@ export default function ResearchCover({
     >
       {/* Direction is set on the whole block rather than on the title alone.
           On the Arabic pages a Latin title marked dir="ltr" aligned left while
-          the journal above it inherited the page's right alignment, and the
+          the topic above it inherited the page's right alignment, and the
           two halves of one cover pulled apart. */}
       <div className="research-cover-body" {...authoredTitleProps(title)}>
-        {journal ? <p className="research-cover-journal">{journal}</p> : null}
+        {label ? <p className="research-cover-label">{label}</p> : null}
         {/* A real heading: the cover carries the card's only title, and the
             results grid needs headings to be navigable. */}
         <h3 className="research-cover-title">{title}</h3>
