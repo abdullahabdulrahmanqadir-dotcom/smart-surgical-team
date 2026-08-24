@@ -23,11 +23,11 @@ Chrome account was confirmed signed in during the work below.
 | 2 | Submit and verify XML sitemap | Completed and live |
 | 3 | Set up Google Analytics 4 | Completed and live |
 | 4 | Google Business Profile | Duplicate/eligibility assessment completed; profile not created |
-| 5 | Put the primary keyword in each page title | Completed locally; pending deploy |
-| 6 | Add the city to main service pages | Completed locally; pending deploy |
-| 7 | Write a unique meta description for every page | Completed locally; pending deploy |
-| 8 | Add relevant internal links | Completed locally; pending deploy |
-| 9 | Compress and optimize images | Completed locally; pending deploy |
+| 5 | Put the primary keyword in each page title | Completed and live |
+| 6 | Add the city to main service pages | Completed and live |
+| 7 | Write a unique meta description for every page | Completed and live |
+| 8 | Add relevant internal links | Completed and live |
+| 9 | Compress and optimize images | Completed and live |
 | 10 | Start backlinks/citations | Legitimate targets researched; outreach blocked on verified business facts |
 
 A final technical SEO audit should be run after phases 5–10.
@@ -108,7 +108,19 @@ A local fix now initializes the same four denied storage/advertising purposes
 synchronously in the document head, before config or event commands. The
 privacy model is unchanged: no banner, no analytics cookies, no ad signals,
 and query-free page views only. The initial page view is sent by the config
-command; later client-side route changes use manual `page_view` events.
+command; later client-side route changes use manual `page_view` events. This is
+live in commit `7450287` (`Send the initial cookieless GA4 page view`).
+
+Production Tag Assistant verification confirmed:
+
+- `Consent Default` runs before consent initialization and config.
+- Analytics storage, ad storage, ad user data, and ad personalization are all
+  denied.
+- The config command sends a `Page View` hit to `G-KZ5GNTTR1K`.
+- Ads data redaction is `true`, URL passthrough is `false`, and non-personalized
+  ads is enabled.
+- A debug visit containing query parameters transmitted only
+  `https://smart.ssteam.workers.dev/en` and `/en`; the query string was omitted.
 
 ## Phase 4 — Google Business Profile assessment
 
@@ -147,7 +159,7 @@ patients and may be rejected or suspended by Google.
 - Production Chrome smoke test: no banner/settings UI and
   `https://www.googletagmanager.com/gtag/js?id=G-KZ5GNTTR1K` present.
 
-## Local phases 5–9 work (2026-08-24)
+## Phases 5–9 work (deployed 2026-08-24)
 
 - Added localized, keyword-specific titles and unique descriptions for all
   public hubs plus database-backed event, poster, research, and library detail
@@ -166,10 +178,13 @@ patients and may be rejected or suspended by Google.
   canonical/hreflang output, synchronous denied-consent initialization, and
   optimized image references.
 
-Local verification: production build passed; targeted ESLint passed with one
+Verification: production build passed; targeted ESLint passed with one
 pre-existing `<img>` performance warning; cache/service-worker tests passed;
 the new SEO regression passed. The broader rendered-HTML suite retains exactly
-the three pre-existing fixture/content failures recorded above.
+the three pre-existing fixture/content failures recorded above. Production
+HTTP checks confirmed the new title, description, canonical URL, synchronous
+consent initializer, social image, and optimized WebP assets. Cloudflare served
+the final code as production version `c8860e99` before this handoff-only update.
 
 ## Phase 10 citation targets
 
