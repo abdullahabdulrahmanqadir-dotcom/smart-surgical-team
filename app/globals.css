@@ -2515,6 +2515,43 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    ============================================================ */
 
 @media (max-width: 1080px) {
+  /* Tablet and phone layouts cannot rely on hover discovery. Keep the topic
+     card's highlighted treatment visible, and reserve elevation for the
+     moment the card is pressed. */
+  .topic-card .topic-glyph {
+    background: var(--primary);
+    color: var(--on-primary);
+    transform: scale(1.06) rotate(-3deg);
+  }
+
+  .topic-card .topic-glyph-image .topic-image-icon {
+    filter: brightness(0) invert(1);
+  }
+
+  .topic-card .topic-go {
+    opacity: 1;
+    transform: translateX(0);
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .topic-card:hover,
+  .topic-card:focus-visible {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .topic-card:focus-visible {
+    outline: 3px solid var(--primary-ring);
+    outline-offset: 3px;
+  }
+
+  .topic-card:active {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+  }
+
   .hero-inner {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3078,7 +3115,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 [data-theme="dark"] .profile-dialog { border-color: #68434b; background: #211918; }
 @media (max-width: 760px) { .profile-account-grid { grid-template-columns: minmax(0, 1fr); }.profile-danger { grid-template-columns: auto minmax(0, 1fr); }.profile-danger .profile-delete-button { grid-column: 1 / -1; justify-content: center; width: 100%; }.profile-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }.profile-dialog-actions .btn { justify-content: center; } }
 @media (max-width: 900px) { .account-layout { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; min-height: 0; }.account-aside { max-width: 600px; padding-block: 0; }.account-aside h2 { max-width: 17ch; }.account-aside ul { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }.auth-card { justify-self: start; max-width: 560px; }.profile-layout { grid-template-columns: minmax(0, 1fr); }.profile-identity { position: static; grid-template-columns: auto minmax(0, 1fr); align-items: center; }.profile-completion, .profile-nav, .profile-signout { grid-column: 1 / -1; }.profile-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }.profile-signout { justify-content: center; }.profile-identity > div:nth-child(2) p { max-width: 42ch; } }
-@media (max-width: 620px) { .account-page { padding-block: 2rem 3.5rem; }.account-aside h2 { font-size: clamp(2.2rem, 11vw, 3.1rem); }.account-aside p { font-size: .95rem; }.account-aside ul { grid-template-columns: 1fr; gap: .55rem; margin-top: 1.15rem; }.auth-card { padding: 1.25rem; border-radius: var(--radius-lg); }.auth-card-head h1 { font-size: 2.05rem; }.profile-page { padding-inline: 1rem; }.profile-identity { padding: 1.05rem; }.profile-nav { grid-template-columns: 1fr; }.profile-welcome, .profile-panel { padding: 1.15rem; }.profile-welcome h2 { font-size: 2rem; }.profile-metrics { grid-template-columns: 1fr; }.profile-panel-heading { display: block; }.text-link { display: inline-block; margin-top: .8rem; }.profile-save-row { display: grid; align-items: start; }.profile-save-row .btn { width: 100%; justify-content: center; }.profile-details-form { grid-template-columns: 1fr; }.profile-details-actions { grid-column: auto; align-items: stretch; }.profile-details-actions .btn { justify-content: center; width: 100%; } }
+@media (max-width: 620px) { .account-page { padding-block: 2rem 3.5rem; }.account-aside h2 { font-size: clamp(2.2rem, 11vw, 3.1rem); }.account-aside p { font-size: .95rem; }.account-aside ul { grid-template-columns: 1fr; gap: .55rem; margin-top: 1.15rem; }.auth-card { padding: 1.25rem; border-radius: var(--radius-lg); }.auth-card-head h1 { font-size: 2.05rem; }.profile-page { padding-inline: 1rem; }.profile-identity { padding: 1.05rem; }.profile-nav { grid-template-columns: 1fr; }.profile-welcome, .profile-panel { padding: 1.15rem; }.profile-welcome h2 { font-size: 2rem; }.profile-metrics { grid-template-columns: 1fr; }.profile-panel-heading { display: block; }.text-link { display: inline-flex; margin-top: .8rem; white-space: nowrap; }.profile-save-row { display: grid; align-items: start; }.profile-save-row .btn { width: 100%; justify-content: center; }.profile-details-form { grid-template-columns: 1fr; }.profile-details-actions { grid-column: auto; align-items: stretch; }.profile-details-actions .btn { justify-content: center; width: 100%; } }
 
 /* Registration is intentionally progressive: verification comes before any
    professional details, and the password is reserved for the final step. */
