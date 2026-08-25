@@ -20,7 +20,7 @@ const FALLBACK_POSTER: PosterEntry = {
   slug: "epithelial-myoepithelial-carcinoma-salivary-glands",
   title: "Rare Insights: Epithelial-Myoepithelial Carcinoma of Salivary Glands",
   summary: "A single-centre Iraqi cohort examining the clinical presentation, surgical management and short-term outcomes of this ultra-rare salivary gland tumour.",
-  imageUrl: "/posters/emc-salivary-glands-cohort.jpg",
+  imageUrl: "/posters/emc-salivary-glands-cohort.webp",
   imageAlt: "Clinical poster summarising a five-patient cohort study of epithelial-myoepithelial carcinoma of the salivary glands",
   authors: "Abdulwahid M. Salih, Hiwa O. Baba, Ari M. Abdullah, Rebaz O. Mohammed, et al.",
   label: "5-patient cohort study · 2020–2025",

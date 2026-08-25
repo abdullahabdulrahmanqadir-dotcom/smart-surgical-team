@@ -684,6 +684,7 @@ input {
 .anatomy-hero--touch-interactive { touch-action:none; }
 .anatomy-hero:focus-visible { box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 38%,transparent); }
 .anatomy-hero-base { display:block; width:100%; min-height:420px; aspect-ratio:1/1.35; background:url('/hero-anatomy-base.webp') center/cover no-repeat; }
+[data-theme="dark"] .anatomy-hero-base { background-image:url('/hero-anatomy-base-dark.webp'); }
 .anatomy-hero-lens { position:absolute; z-index:2; left:var(--lens-x); top:var(--lens-y); width:clamp(7.2rem,14vw,9.2rem); aspect-ratio:1; transform:translate(-50%,-50%); border:2px solid rgba(5,132,143,.88); border-radius:50%; background-image:linear-gradient(135deg,rgba(255,255,255,.32),transparent 32%),var(--micro-image); background-size:auto,205%; background-position:center,var(--micro-x) var(--micro-y); box-shadow:0 12px 28px rgba(4,70,77,.2),inset 0 0 0 3px rgba(255,255,255,.55),inset 0 0 20px rgba(255,255,255,.15); transition:background-image 180ms ease; pointer-events:none; }
 .anatomy-hero-interact { display:none; }
 @media (hover:hover) and (pointer:fine) { .anatomy-hero { cursor:none; } }
@@ -1340,9 +1341,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-browser-hero-copy { align-self: center; padding: clamp(2rem, 5vw, 4.5rem); }
 .content-browser-hero-copy h2 { max-width: 10ch; margin-top: .35rem; font-size: clamp(2.55rem, 5.2vw, 5rem); line-height: .97; letter-spacing: var(--tracking-tighter); }
 .content-browser-hero-copy > p:not(.section-kicker) { max-width: 43ch; margin-top: 1.2rem; color: var(--text-muted); font-size: 1rem; line-height: 1.7; }
-/* Flat, and matched to the plate's own background (#fbf9f5) so the illustration
-   reads as filling the panel rather than floating on a coloured field. */
+/* Match the field around the theme-specific plate so the illustration reads as
+   filling the panel rather than floating on a coloured rectangle. */
 .content-browser-map-wrap { position: relative; isolation: isolate; background: #fbf9f5; }
+[data-theme="dark"] .content-browser-map-wrap { background: var(--bg-muted); }
 /* Head-and-neck map — one plate with a camera flown over it. The stage is held
    at the plate's own aspect ratio so a focus point expressed in plate percent
    lands on the same pixel on screen, which is what lets the hotspots, the
@@ -1361,7 +1363,8 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    stage is unaffected by the perspective projection, and the region still lands
    dead centre however far the plate is tilted. */
 .content-map-camera { position: absolute; inset: 0; transform-origin: var(--cam-origin-x) var(--cam-origin-y); transform: translate(var(--cam-shift-x), var(--cam-shift-y)) rotateX(var(--cam-tilt-x)) rotateY(var(--cam-tilt-y)) scale(var(--cam-zoom)); transition: transform 780ms cubic-bezier(.32,.72,.2,1); will-change: transform; }
-.content-map-camera img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.content-map-plate { position: absolute; inset: 0; width: 100%; height: 100%; background: var(--plate-image-light) center/cover no-repeat; }
+[data-theme="dark"] .content-map-plate { background-image: var(--plate-image-dark); }
 /* Depth of field. Blurring the backdrop of a stage-sized box is far cheaper
    than blurring the plate itself, and because this layer is outside the camera
    it is never re-rasterised while the camera moves. */

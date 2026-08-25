@@ -47,9 +47,16 @@ export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, 
     <div className={`content-map${region ? " is-focused" : ""}`} style={camera}>
       <div className="content-map-stage">
         <div className="content-map-camera">
-          {/* Static delivery avoids the Next Image compatibility route used by vinext. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="content-map-plate" src={ANATOMY_PLATE.src} alt="" />
+          {/* A CSS background lets the active theme fetch only its own plate;
+              two hidden img elements would still download both full assets. */}
+          <span
+            className="content-map-plate"
+            style={{
+              "--plate-image-light": `url(${ANATOMY_PLATE.src})`,
+              "--plate-image-dark": `url(${ANATOMY_PLATE.darkSrc})`,
+            } as CSSProperties}
+            aria-hidden="true"
+          />
         </div>
 
         {/* Softens everything outside the focus, so the surrounding anatomy

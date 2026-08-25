@@ -101,19 +101,25 @@ test("public hubs expose unique localized SEO metadata and optimized imagery", a
   assert.match(events, /smart-health-tower-events-hero\.webp/);
 });
 
-test("renders the complete staff directory with its local portraits", async () => {
+test("renders the public staff directory with its local portraits", async () => {
   const response = await fetchPath("/en/about");
   assert.equal(response.status, 200);
   const html = await response.text();
 
   for (const [name, portrait] of [
-    ["Imad S. Sedeeq", "/staff/Imad S. Sedeeq.avif"],
+    ["Prof. Abdulwahid M. Salih", "/staff/Prof. Abdulwahid M. Salih.avif"],
     ["Shko H. Hassan", "/staff/Shko H. Hassan.avif"],
-    ["Kaihan A. Najar", "/staff/Kaihan A. Najar.avif"],
-    ["Ahmad L. Ali", "/staff/Ahmad L. Ali.avif"],
+    ["Mohammed L. Ahmad", "/staff/Mohammed L. Ahmad.avif"],
+    ["Abdullah O. Hassan", "/staff/Abdullah O. Hassan.avif"],
   ]) {
     assert.ok(html.includes(name), `${name} should appear in the staff directory`);
     assert.ok(html.includes(portrait), `${name} should use their local portrait`);
+  }
+
+  // These people remain in TEAM_GROUPS for author matching, but were
+  // deliberately removed from the public About roster.
+  for (const name of ["Hardi M. Zahir", "Imad S. Sedeeq", "Kaihan A. Najar", "Ahmad L. Ali"]) {
+    assert.ok(!html.includes(name), `${name} should remain hidden from the public directory`);
   }
 });
 
@@ -138,7 +144,7 @@ test("renders the bilingual clinical poster archive", async () => {
     const html = await response.text();
     const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
     assert.match(main, new RegExp(heading));
-    assert.match(main, /emc-salivary-glands-cohort\.jpg/);
+    assert.match(main, /emc-salivary-glands-cohort\.webp/);
     assert.match(main, /2020[–-]2025/);
     assert.match(html, new RegExp(`href="/${locale}/posters"`));
     assert.doesNotMatch(main, /class="posters-hero"/);
@@ -157,7 +163,7 @@ test("opens a poster detail page with its image and written sections", async () 
   assert.match(html, /Rare Insights: Epithelial-Myoepithelial Carcinoma/);
   assert.match(html, /Study overview/);
   assert.match(html, /Key findings/);
-  assert.match(html, /emc-salivary-glands-cohort\.jpg/);
+  assert.match(html, /emc-salivary-glands-cohort\.webp/);
   assert.match(html, /Back to all posters/);
   assert.match(html, /poster-image-viewer/);
   assert.doesNotMatch(html, /class="btn btn-outline poster-original"/);
@@ -216,8 +222,8 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
   assert.match(html, /href="\/en\/topics"/);
   // Preserve the approved thyroid and parotid artwork; lower cards use the
   // shared lymph and skin glyphs rather than their older standalone assets.
-  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
-  assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
+  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
+  assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
   assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
   assert.match(html, /M4 8\.1h16M4 10\.8h16/);
 });
@@ -238,8 +244,8 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     assert.match(html, new RegExp(`href="/${locale}/topics/neck-lymphatic"`));
 
     assert.doesNotMatch(html, /Upper Aerodigestive Tract/);
-    assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
-    assert.match(html, /\/topic-icons\/parotid-sst-cropped\.png/);
+    assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
+    assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
 
     // The map waits for a click: no region is focused, so the case library and
     // its filters stay closed and the reader is prompted to choose a region.
@@ -259,10 +265,10 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     );
     const labels = locale === "ar"
       ? [
-          "الغدة الدرقية وجارات الدرقية (Thyroid &amp; Parathyroid)",
-          "الغدد اللعابية (Salivary Glands)",
-          "جراحة العنق والجهاز اللمفاوي (Neck &amp; Lymphatic Surgery)",
-          "الجلد والأنسجة الرخوة (Skin &amp; Soft Tissue)",
+          "الغدة الدرقية وجارات الدرقية",
+          "الغدد اللعابية",
+          "جراحة العنق والجهاز اللمفاوي",
+          "الجلد والأنسجة الرخوة",
         ]
       : ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"];
     for (const label of labels) {
@@ -276,27 +282,33 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
   }
 });
 
-test("every topic detail route renders its searchable admin-managed content library", async () => {
-  // [slug, heading, a condition it lists]
+test("every topic detail route streams its searchable admin-managed content library", async () => {
+  // [slug, English heading, Arabic heading, a current database-aligned subtopic]
   const routes = [
-    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "Papillary Carcinoma"],
-    ["salivary-glands", "Salivary Glands", "Submandibular"],
-    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "Neck Masses"],
-    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "Skin Lesions"],
+    ["thyroid-parathyroid", "Thyroid &amp; Parathyroid", "الغدة الدرقية وجارات الدرقية", "Papillary Thyroid Carcinoma"],
+    ["salivary-glands", "Salivary Glands", "الغدد اللعابية", "Pleomorphic Adenoma"],
+    ["neck-lymphatic", "Neck &amp; Lymphatic Surgery", "جراحة العنق والجهاز اللمفاوي", "Congenital Neck Cysts"],
+    ["skin-soft-tissue", "Skin &amp; Soft Tissue", "الجلد والأنسجة الرخوة", "Squamous Cell Carcinoma"],
   ];
 
   for (const locale of ["en", "ar"]) {
-    for (const [slug, heading, condition] of routes) {
+    for (const [slug, englishHeading, arabicHeading, condition] of routes) {
       const response = await fetchPath(`/${locale}/topics/${slug}`);
       assert.equal(response.status, 200, `${locale}/${slug} should resolve`);
       const html = await response.text();
+      const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
 
-      assert.match(html, new RegExp(heading));
-      assert.match(html, /class="content-search"/, `${locale}/${slug} renders content search`);
-      assert.equal((html.match(/class="content-select"/g) ?? []).length, 3, `${locale}/${slug} renders three filters`);
+      assert.match(html, new RegExp(locale === "ar" ? arabicHeading : englishHeading));
+      assert.equal((main.match(/content-case-card is-skeleton/g) ?? []).length, 3, `${locale}/${slug} renders its loading shape while the library streams`);
+      assert.match(html, /class="content-filter-control content-search"/, `${locale}/${slug} streams content search`);
+      assert.equal((html.match(/class="content-filter-control content-select"/g) ?? []).length, 3, `${locale}/${slug} streams three filters`);
       assert.match(html, new RegExp(condition), `${locale}/${slug} lists ${condition}`);
-      assert.match(html, /No content matches this search./, `${locale}/${slug} has an honest empty state before content is published`);
-      assert.doesNotMatch(html, /class="content-case-card"/, `${locale}/${slug} does not show placeholder cards`);
+      assert.match(
+        html,
+        locale === "ar" ? /لا يوجد محتوى يطابق هذا البحث\./ : /No content matches this search\./,
+        `${locale}/${slug} streams a locale-correct empty state when no database binding is supplied`,
+      );
+      assert.doesNotMatch(html, /class="content-case-card"/, `${locale}/${slug} does not invent case records`);
       assert.match(html, new RegExp(`href="/${locale}/topics"`));
     }
   }
@@ -310,8 +322,8 @@ test("topic routes do not render placeholder case records", async () => {
 
 test("thyroid detail keeps the approved topic and case artwork", async () => {
   const html = await (await fetchPath("/en/topics/thyroid-parathyroid")).text();
-  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.png/);
-  assert.match(html, /\/topic-icons\/parathyroid-sst-cropped\.png/);
+  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
+  assert.match(html, /\/topic-icons\/parathyroid-sst-cropped\.webp/);
   assert.doesNotMatch(html, /_next\/image|_vinext\/image/);
 });
 

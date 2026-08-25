@@ -23,12 +23,12 @@ export const TOPIC_GROUPS: TopicGroup[] = [
   {
     slug: "thyroid-parathyroid", name: "Thyroid & Parathyroid", blurb: "Thyroidectomy and parathyroid preservation.",
     intro: "Operative technique across the thyroid and parathyroid glands.",
-    icon: "thyroid", imageIcon: "/topic-icons/thyroid-sst-cropped.png", featured: true,
+    icon: "thyroid", imageIcon: "/topic-icons/thyroid-sst-cropped.webp", featured: true,
     subTopics: [
-      { slug: "papillary-carcinoma", name: "Papillary Thyroid Carcinoma", imageIcon: "/topic-icons/papillary-carcinoma.png" },
-      { slug: "goiter", name: "Multinodular Goiter", imageIcon: "/topic-icons/goiter.png" },
-      { slug: "thyroglossal-cyst", name: "Thyroglossal & Ectopic Thyroid", imageIcon: "/topic-icons/thyroglossal-cyst.png" },
-      { slug: "parathyroid", name: "Parathyroid Disease", imageIcon: "/topic-icons/parathyroid-sst-cropped.png" },
+      { slug: "papillary-carcinoma", name: "Papillary Thyroid Carcinoma", imageIcon: "/topic-icons/papillary-carcinoma.webp" },
+      { slug: "goiter", name: "Multinodular Goiter", imageIcon: "/topic-icons/goiter.webp" },
+      { slug: "thyroglossal-cyst", name: "Thyroglossal & Ectopic Thyroid", imageIcon: "/topic-icons/thyroglossal-cyst.webp" },
+      { slug: "parathyroid", name: "Parathyroid Disease", imageIcon: "/topic-icons/parathyroid-sst-cropped.webp" },
       { slug: "thyroid-nodules", name: "Thyroid Nodules & Cysts" },
       { slug: "anaplastic-carcinoma", name: "Anaplastic & Aggressive Carcinoma" },
       { slug: "revision-thyroid-surgery", name: "Revision & Post-Operative Thyroid" },
@@ -37,10 +37,10 @@ export const TOPIC_GROUPS: TopicGroup[] = [
   {
     slug: "salivary-glands", name: "Salivary Glands", blurb: "Parotidectomy approaches and salivary gland surgery.",
     intro: "Surgery of the salivary glands.",
-    icon: "parotid", imageIcon: "/topic-icons/parotid-sst-cropped.png", featured: true,
+    icon: "parotid", imageIcon: "/topic-icons/parotid-sst-cropped.webp", featured: true,
     subTopics: [
-      { slug: "pleomorphic-adenoma", name: "Pleomorphic Adenoma", imageIcon: "/topic-icons/parotid-sst-cropped.png" },
-      { slug: "benign-salivary-tumours", name: "Other Benign Salivary Tumours", imageIcon: "/topic-icons/submandibular-sst-cropped.png" },
+      { slug: "pleomorphic-adenoma", name: "Pleomorphic Adenoma", imageIcon: "/topic-icons/parotid-sst-cropped.webp" },
+      { slug: "benign-salivary-tumours", name: "Other Benign Salivary Tumours", imageIcon: "/topic-icons/submandibular-sst-cropped.webp" },
       { slug: "salivary-malignancy", name: "Salivary Gland Malignancy" },
       { slug: "sialolithiasis-sialadenitis", name: "Sialolithiasis & Sialadenitis" },
     ],
@@ -63,6 +63,7 @@ export const TOPIC_GROUPS: TopicGroup[] = [
       { slug: "squamous-cell-carcinoma", name: "Squamous Cell Carcinoma" },
       { slug: "basal-cell-carcinoma", name: "Basal Cell Carcinoma" },
       { slug: "benign-soft-tissue", name: "Benign Soft-Tissue Lesions" },
+      { slug: "other-skin-malignancies", name: "Other Skin Malignancies" },
     ],
   },
 ];
