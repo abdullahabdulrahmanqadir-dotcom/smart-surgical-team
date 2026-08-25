@@ -166,7 +166,7 @@ export const en = {
     portraitOf: "Portrait of {name}",
     heroEyebrow: "Smart Surgical Team events",
     heroTitle: "New events,",
-    heroAccent: "Opportunities to learn.",
+    heroAccent: "opportunities to learn.",
     heroIntro: "Meet the conferences, workshops and teaching moments connecting the region’s head and neck community.",
     browseEvents: "Browse events",
     featuredEvent: "Featured event",
