@@ -13,7 +13,7 @@ import { fill } from "../lib/dictionaries";
 import { contentCardArt } from "../lib/content-thumbnail";
 import CardArt from "./CardArt";
 import FilterSelect from "./FilterSelect";
-import { IconFile, IconPlay, IconSearch } from "./icons";
+import { IconFile, IconSearch } from "./icons";
 
 type LibraryItem = ContentCard & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
 
@@ -45,10 +45,6 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIco
         {cardImage ? <CardArt item={item} className="content-case-thumbnail" labels={{ before: t.beforeLabel, after: t.afterLabel }} /> : <span className="content-case-art-glyph" aria-hidden="true">
           <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
         </span>}
-        <span className="content-case-type">
-          {item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}
-          {item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}
-        </span>
       </div>
       <div className="content-case-copy">
         <p className="content-case-topic">{item.subTopic}</p>
@@ -70,7 +66,7 @@ function LatestCaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: To
         ? <img src={cardImage.url} alt="" loading="eager" decoding="async" />
         : <CardArt item={item} eager labels={{ before: t.beforeLabel, after: t.afterLabel }} />)
       : <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={104} />}</div>
-    <div className="latest-case-copy"><span className="content-case-type">{item.hasVideo ? <IconPlay size={12} /> : <IconFile size={12} />}{item.hasVideo ? t.caseVideoLabel : t.caseReadLabel}</span><p className="content-case-topic">{item.subTopic}</p><h2 {...authoredTitleProps(item.title)}>{item.title}</h2><p>{item.summary}</p><div className="content-case-meta"><span>{item.date}</span></div></div>
+    <div className="latest-case-copy"><p className="content-case-topic">{item.subTopic}</p><h2 {...authoredTitleProps(item.title)}>{item.title}</h2><p>{item.summary}</p><div className="content-case-meta"><span>{item.date}</span></div></div>
   </a>;
 }
 
