@@ -5,6 +5,11 @@ import { defineConfig } from "vite";
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 
 const localBindingConfig = {
+  // Production is the Worker `smart` (smart.ssteam.workers.dev). Without this
+  // the generated dist/server/wrangler.json takes its name from package.json
+  // (`sst`), and a deploy silently creates a new empty Worker instead of
+  // updating the live one. Keep it.
+  name: "smart",
   main: "./worker/index.ts",
   // Newest date supported by the workerd runtime bundled with the currently
   // pinned Cloudflare Vite plugin. Upgrade this with that plugin, not alone.
