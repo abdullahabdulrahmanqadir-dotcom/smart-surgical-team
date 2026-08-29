@@ -336,6 +336,25 @@ block above the cover keeps its narrower measure; it reads as a heading
 treatment rather than as part of the article. Client's call, made looking at
 the page.
 
+**The share row is icons, and has every network that can take a link**
+(2026-08-29). Four named buttons — Copy link, Facebook, X, WhatsApp — became
+seven circular icon buttons: copy, Facebook, X, WhatsApp, Telegram, LinkedIn
+and email. Named in full, seven would have wrapped onto two or three lines and
+read as a paragraph of links; as icons they are one 286px row. The name lives
+in the `title` and the `aria-label`.
+
+Instagram, TikTok and YouTube are **deliberately absent**. None of them accepts
+a shared link over a web URL, so a button for them could only look like it
+worked; a reader on a phone reaches those through their own share sheet.
+
+Two details the icons forced. The copy button no longer has a caption to swap,
+so its confirmation is a tick and a solid fill, plus a visually hidden
+`role="status"` node carrying "Link copied" for a screen reader. And the
+circles grow from 2.25rem to 2.6rem under `@media (pointer:coarse)`, so the tap
+target stays comfortable on a phone without padding out the desktop row.
+`IconLink`, `IconWhatsApp` and `IconTelegram` are new in `icons.tsx`; the mail,
+Facebook, X and LinkedIn glyphs were already there.
+
 ### Fixed along the way
 
 A failed section load left the previous section's rows on screen. Opening News

@@ -3941,12 +3941,21 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .news-original-link:hover { background:var(--primary); color:var(--surface); transform:translateY(-2px); }
 .news-original-link:focus-visible { outline:3px solid var(--primary-ring); outline-offset:3px; }
 .news-original-link svg { flex:none; }
-.news-share { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem 1rem; padding-top:1.25rem; border-top:1px solid var(--line); }
+.news-share { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .9rem; padding-top:1.25rem; border-top:1px solid var(--line); }
 .news-share-label { color:var(--text-soft); font-size:.72rem; font-weight:750; letter-spacing:var(--tracking-label); text-transform:uppercase; }
-.news-share-actions { display:flex; flex-wrap:wrap; gap:.5rem; }
-.news-share-actions button { min-height:2.4rem; padding:.4rem .85rem; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text-muted); font:650 .82rem var(--font-body-stack); cursor:pointer; transition:border-color .18s ease,color .18s ease; }
-.news-share-actions button:hover { border-color:color-mix(in srgb,var(--primary) 34%,var(--line)); color:var(--primary); }
+/* Icons rather than names: seven networks named in full wrapped onto two or
+   three lines and read as a paragraph of links. As circles they are one short
+   row, and the name lives in the tooltip and the accessible label. */
+.news-share-actions { display:flex; flex-wrap:wrap; gap:.35rem; }
+.news-share-actions button { display:grid; place-items:center; width:2.25rem; height:2.25rem; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--surface); color:var(--text-muted); cursor:pointer; transition:border-color .18s ease,color .18s ease,background .18s ease; }
+.news-share-actions button:hover { border-color:color-mix(in srgb,var(--primary) 34%,var(--line)); background:var(--primary-soft); color:var(--primary); }
 .news-share-actions button:focus-visible { outline:3px solid var(--primary-ring); outline-offset:2px; }
+.news-share-actions button.is-copied { border-color:var(--primary); background:var(--primary); color:var(--on-primary); }
+/* A finger is not a cursor: the circles grow where there is no hover to aim
+   with, keeping the tap target comfortable without padding out the desktop row. */
+@media (pointer:coarse) { .news-share-actions button { width:2.6rem; height:2.6rem; } }
+/* Spoken, never shown — the tick is what a sighted reader sees. */
+.news-share-status { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 /* The photographs sit under the story in rows of four, and the card runs the
    full width to give those four a usable size — the same full measure the
    cover above and the More-news rail below already take, rather than the

@@ -168,6 +168,33 @@ export function IconTikTok(props: IconProps) {
   );
 }
 
+export function IconLink(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M10.4 13.6a3.9 3.9 0 0 0 5.6 0l2.7-2.7a3.9 3.9 0 0 0-5.5-5.6l-1.3 1.3" />
+      <path d="M13.6 10.4a3.9 3.9 0 0 0-5.6 0l-2.7 2.7a3.9 3.9 0 0 0 5.5 5.6l1.3-1.3" />
+    </svg>
+  );
+}
+
+export function IconWhatsApp(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M20.4 11.8a8.4 8.4 0 0 1-12.4 7.4l-4.4 1.2 1.2-4.3A8.4 8.4 0 1 1 20.4 11.8Z" />
+      <path d="M9.4 8.8c.5-.2 1 .1 1.2.5l.5 1a.9.9 0 0 1-.2 1l-.4.4c.5 1 1.3 1.8 2.3 2.3l.4-.4a.9.9 0 0 1 1-.2l1 .5c.4.2.7.7.5 1.2-.2.7-.9 1.2-1.7 1.1a7.5 7.5 0 0 1-5.7-5.7c-.1-.8.4-1.5 1.1-1.7Z" />
+    </svg>
+  );
+}
+
+export function IconTelegram(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M20.7 4.4 3.4 11c-.6.2-.6 1.1 0 1.3l4.3 1.4 1.6 4.9c.2.5.9.6 1.2.2l2.3-2.5 4.3 3.2c.4.3 1 .1 1.1-.4l3-13.9c.1-.5-.4-1-1-.8Z" />
+      <path d="m7.7 13.7 11-8-8 9" />
+    </svg>
+  );
+}
+
 export function IconX(props: IconProps) {
   return (
     <svg {...svgProps(props)}>
