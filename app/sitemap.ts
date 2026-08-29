@@ -6,7 +6,7 @@ import { getPosters } from "./lib/posters";
 import { getResearches } from "./lib/research";
 import { PUBLIC_TOPIC_GROUPS } from "./lib/topics";
 
-const SITE_ORIGIN = "https://smart.ssteam.workers.dev";
+const SITE_ORIGIN = "https://ssthyroid.com";
 const PUBLIC_ROUTES = ["", "about", "topics", "events", "posters", "research", "contact", "privacy", "terms"];
 
 type SitemapPage = {
