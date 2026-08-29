@@ -313,13 +313,20 @@ them until the Phase 2 pages exist.
 
 ### Changed after the build
 
-**The item page's gallery is a horizontal strip** (2026-08-29). The
-"Photographs" list under the article scrolls sideways rather than stacking, so a
-set of ten stays a glance wide instead of pushing the related links and the
-More-news rail off the bottom. One or two photographs share the row; three or
-more scroll, with the next one peeking as the affordance. Purely
-`.news-detail-gallery` CSS in `app/globals.css` — `ImageGallery` is untouched
-and nothing else on the site changed.
+**The item page's gallery is a grid of four** (2026-08-29). The "Photographs"
+card under the article lays its thumbnails out four to a row rather than
+stacking them full width, stepping down to three, two and finally one as the
+screen narrows (1000px, 620px, 430px). The card runs the page's full 1104px
+rather than the 46rem reading measure, because four across a reading column
+would be postage stamps — the cover above and the More-news rail below already
+take that full width.
+
+It is the case pages' image card in every other respect: same component, same
+16:10 thumbnails at ~256px, same hover badge, same lightbox. A case shows them
+one above another only because its aside is 300px wide. A horizontal scrolling
+strip was tried first and rejected by the client in favour of matching the
+cases. Purely `.news-detail-gallery` CSS in `app/globals.css` — `ImageGallery`
+is untouched and nothing else on the site changed.
 
 ### Fixed along the way
 

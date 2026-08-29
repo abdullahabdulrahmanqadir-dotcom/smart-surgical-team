@@ -3943,17 +3943,15 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .news-share-actions button { min-height:2.4rem; padding:.4rem .85rem; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text-muted); font:650 .82rem var(--font-body-stack); cursor:pointer; transition:border-color .18s ease,color .18s ease; }
 .news-share-actions button:hover { border-color:color-mix(in srgb,var(--primary) 34%,var(--line)); color:var(--primary); }
 .news-share-actions button:focus-visible { outline:3px solid var(--primary-ring); outline-offset:2px; }
-.news-detail-gallery { max-width:46rem; padding-top:clamp(1.75rem,4vw,2.5rem); }
-/* Photographs on an item page read as one horizontal strip rather than a
-   stack: a set of ten stays a glance wide and scrolls sideways instead of
-   pushing the related links and the rest of the feed off the bottom. The
-   items grow to fill the row when there are only one or two, so a short set
-   still looks deliberate. The inline padding is the focus ring's room, given
-   back by the matching negative margin, because a scroll container clips. */
-.news-detail-gallery .case-image-thumbnails { display:flex; overflow-x:auto; margin:calc(.9rem - 6px) -6px 0; padding:6px 6px .55rem; scroll-snap-type:x proximity; scroll-padding-inline:6px; overscroll-behavior-x:contain; scrollbar-width:thin; }
-.news-detail-gallery .case-image-thumbnails > button { flex:1 0 clamp(13rem,56%,19rem); scroll-snap-align:start; }
-/* One or two photographs share the row rather than scrolling by a sliver. */
-.news-detail-gallery .case-image-thumbnails:not(:has(> :nth-child(3))) > button { flex:1 1 0; }
+/* The photographs sit under the story in rows of four, and the card runs the
+   full width to give those four a usable size — the same full measure the
+   cover above and the More-news rail below already take, rather than the
+   reading column's 46rem, where four across would be postage stamps. The card
+   itself, the thumbnails and the lightbox are the case pages' unchanged; only
+   the column count differs, because a case shows them one at a time inside a
+   300px aside. */
+.news-detail-gallery { padding-top:clamp(1.75rem,4vw,2.5rem); }
+.news-detail-gallery .case-image-thumbnails { grid-template-columns:repeat(4,minmax(0,1fr)); }
 .news-related { max-width:46rem; padding-top:clamp(1.75rem,4vw,2.5rem); }
 .news-related-card { display:flex; align-items:center; gap:1rem; margin-top:.75rem; padding:1.1rem 1.2rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface); color:var(--text); transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
 .news-related-card:hover { border-color:color-mix(in srgb,var(--primary) 32%,var(--line)); box-shadow:var(--shadow-md); transform:translateY(-2px); }
@@ -3973,12 +3971,13 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .news-back svg { transform:rotate(180deg); }
 [dir="rtl"] .news-back svg { transform:none; }
 
-@media (max-width:1000px) { .news-grid,.news-more-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:1000px) { .news-grid,.news-more-list { grid-template-columns:repeat(2,minmax(0,1fr)); }.news-detail-gallery .case-image-thumbnails { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 @media (max-width:900px) { .news-lead { grid-template-columns:1fr; }.news-lead-media { aspect-ratio:16/9; }.news-detail-cover-generated { aspect-ratio:16/9; } }
 @media (max-width:620px) {
   .news-page,.news-detail-page { padding-top:1.2rem; }
   .news-feed-head h1 { font-size:clamp(1.8rem,9vw,2.4rem); }
   .news-grid,.news-more-list { grid-template-columns:1fr; gap:1rem; }
+  .news-detail-gallery .case-image-thumbnails { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
   .news-detail-heading h1 { font-size:clamp(1.75rem,9vw,2.5rem); }
   .news-banner { margin-top:.75rem; }
   .news-banner-link { padding:.7rem .85rem; }
@@ -3986,6 +3985,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   .news-banner-go { display:none; }
   .news-share { align-items:flex-start; flex-direction:column; }
 }
+/* Two 16:10 thumbnails on a narrow phone are about 140px wide, too small to
+   make out a face in. One at a time is the readable answer, which is also
+   what a case page's aside does at this size. */
+@media (max-width:430px) { .news-detail-gallery .case-image-thumbnails { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) {
   .news-lead,.news-card,.news-card-image,.news-card-action svg,.news-banner-go svg,.news-banner-dismiss,.news-related-card,.news-more-card,.news-original-link,.news-chips button,.news-share-actions button { transition:none; }
 }
