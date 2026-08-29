@@ -328,6 +328,14 @@ strip was tried first and rejected by the client in favour of matching the
 cases. Purely `.news-detail-gallery` CSS in `app/globals.css` — `ImageGallery`
 is untouched and nothing else on the site changed.
 
+**The story runs the cover's width** (2026-08-29). Everything below the cover —
+the body, the share row, the related card — took the full 1104px instead of the
+46rem reading measure §17 recorded, because the page stepped in and out as it
+scrolled: cover 1104, story 736, photographs 1104, related 736. The heading
+block above the cover keeps its narrower measure; it reads as a heading
+treatment rather than as part of the article. Client's call, made looking at
+the page.
+
 ### Fixed along the way
 
 A failed section load left the previous section's rows on screen. Opening News

@@ -3928,7 +3928,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .news-detail-cover .content-hero-caption { padding:.7rem .95rem; border-top:1px solid color-mix(in srgb,var(--primary) 14%,var(--line)); background:var(--surface); }
 .news-detail-cover-generated { aspect-ratio:16/7; }
 .news-detail-cover-generated .research-cover { width:100%; height:100%; }
-.news-detail-body { display:grid; max-width:46rem; gap:1.75rem; padding-top:clamp(1.75rem,4vw,2.75rem); }
+/* Everything below the cover runs the cover's own width. The story used to be
+   held to a 46rem reading measure while the cover, the photographs and the
+   More-news rail took the full 1104px, which left the page stepping in and out
+   as it scrolled. */
+.news-detail-body { display:grid; gap:1.75rem; padding-top:clamp(1.75rem,4vw,2.75rem); }
 .news-detail-body h2 { font-size:clamp(1.4rem,2.4vw,1.85rem); }
 .news-detail-body .rich-text { margin-top:.7rem; color:var(--text-muted); line-height:1.8; }
 .news-detail-body .rich-text p + p,.news-detail-body .rich-text ul,.news-detail-body .rich-text ol { margin-top:.8rem; }
@@ -3952,7 +3956,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    300px aside. */
 .news-detail-gallery { padding-top:clamp(1.75rem,4vw,2.5rem); }
 .news-detail-gallery .case-image-thumbnails { grid-template-columns:repeat(4,minmax(0,1fr)); }
-.news-related { max-width:46rem; padding-top:clamp(1.75rem,4vw,2.5rem); }
+.news-related { padding-top:clamp(1.75rem,4vw,2.5rem); }
 .news-related-card { display:flex; align-items:center; gap:1rem; margin-top:.75rem; padding:1.1rem 1.2rem; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface); color:var(--text); transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease; }
 .news-related-card:hover { border-color:color-mix(in srgb,var(--primary) 32%,var(--line)); box-shadow:var(--shadow-md); transform:translateY(-2px); }
 .news-related-card b { flex:1; min-width:0; font-size:1rem; font-weight:700; line-height:1.45; }
