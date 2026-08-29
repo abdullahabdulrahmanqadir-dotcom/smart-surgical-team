@@ -2,12 +2,13 @@ import type { MetadataRoute } from "next";
 import { getPublicEvents } from "./lib/events";
 import { getLibraryContent } from "./lib/content";
 import { LOCALES, LOCALE_META } from "./lib/i18n";
+import { getNewsItems, newsItemShape } from "./lib/news";
 import { getPosters } from "./lib/posters";
 import { getResearches } from "./lib/research";
 import { PUBLIC_TOPIC_GROUPS } from "./lib/topics";
 
 const SITE_ORIGIN = "https://smart.ssteam.workers.dev";
-const PUBLIC_ROUTES = ["", "about", "topics", "events", "posters", "research", "contact", "privacy", "terms"];
+const PUBLIC_ROUTES = ["", "about", "topics", "events", "news", "posters", "research", "contact", "privacy", "terms"];
 
 type SitemapPage = {
   route: string;
@@ -44,11 +45,12 @@ function localizedEntries({ route, lastModified }: SitemapPage): MetadataRoute.S
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [content, events, posters, researches] = await Promise.all([
+  const [content, events, posters, researches, news] = await Promise.all([
     getLibraryContent(),
     getPublicEvents(),
     getPosters(),
     getResearches(),
+    getNewsItems(),
   ]);
 
   const pages: SitemapPage[] = [
@@ -62,6 +64,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...events.map((event) => ({ route: `events/${event.slug}` })),
     ...posters.map((poster) => ({ route: `posters/${poster.slug}`, lastModified: poster.publishedAt })),
     ...researches.map((paper) => ({ route: `research/${paper.id}`, lastModified: paper.date })),
+    // Only items that have a page of their own. An item whose card links
+    // straight out to an external article has no URL here to advertise.
+    ...news
+      .filter((item) => newsItemShape(item) === "article")
+      .map((item) => ({ route: `news/${item.slug}`, lastModified: item.date || undefined })),
   ];
 
   return pages.flatMap(localizedEntries);

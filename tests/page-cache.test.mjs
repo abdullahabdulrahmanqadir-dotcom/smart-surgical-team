@@ -54,6 +54,9 @@ function context() {
 test("only public, anonymous document requests are cacheable", () => {
   assert.equal(isPublicDocumentRequest(publicRequest("/en/topics")), true);
   assert.equal(isPublicDocumentRequest(publicRequest("/ar/events/summit")), true);
+  // News is cached on the same terms as every other public section.
+  assert.equal(isPublicDocumentRequest(publicRequest("/en/news")), true);
+  assert.equal(isPublicDocumentRequest(publicRequest("/ar/news/example-summit-recap")), true);
   assert.equal(isPublicDocumentRequest(publicRequest("/en/sign-in")), false);
   assert.equal(isPublicDocumentRequest(publicRequest("/api/profile")), false);
   assert.equal(isPublicDocumentRequest(publicRequest("/en?preview=1")), false);

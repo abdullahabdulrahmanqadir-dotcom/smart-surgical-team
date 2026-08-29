@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from "../../lib/supabase/server";
 export const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
-export type AdminResource = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "research" | "research-topics";
+export type AdminResource = "overview" | "content" | "topics" | "events" | "contributors" | "people" | "research" | "research-topics" | "news" | "news-categories";
 
 // Membership in STAFF_ROLES alone used to grant every staff tier the power to
 // delete any record. The four tiers are now actually enforced: writing content
@@ -13,17 +13,21 @@ export type AdminResource = "overview" | "content" | "topics" | "events" | "cont
 // Research topics sit with the other taxonomy: renaming one rewrites the label
 // and cover colour of every paper filed under it, so it is a senior-role edit
 // even though writing an individual paper is not.
+// News speaks for the institution rather than describing a case, so writing it
+// starts at Editor — a Contributor writes clinical material, not announcements.
+// Its categories are a taxonomy like the other two: renaming one relabels every
+// item filed under it and changes a public filter chip, so they stay senior.
 const WRITABLE: Record<StaffRole, AdminResource[]> = {
-  owner: ["content", "research", "research-topics", "topics", "events", "contributors", "people"],
-  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors"],
-  editor: ["content", "research", "events", "contributors"],
+  owner: ["content", "research", "research-topics", "topics", "events", "contributors", "people", "news", "news-categories"],
+  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors", "news", "news-categories"],
+  editor: ["content", "research", "events", "contributors", "news"],
   contributor: ["content", "research"],
 };
 
 const DELETABLE: Record<StaffRole, AdminResource[]> = {
-  owner: ["content", "research", "research-topics", "topics", "events", "contributors"],
-  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors"],
-  editor: ["content", "research"],
+  owner: ["content", "research", "research-topics", "topics", "events", "contributors", "news", "news-categories"],
+  content_manager: ["content", "research", "research-topics", "topics", "events", "contributors", "news", "news-categories"],
+  editor: ["content", "research", "news"],
   contributor: [],
 };
 

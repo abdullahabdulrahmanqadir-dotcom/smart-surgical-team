@@ -4,6 +4,7 @@ export const CACHE_TAGS = {
   content: "published-content",
   events: "published-events",
   research: "published-research",
+  news: "published-news",
 } as const;
 
 export type PublicCacheTag = (typeof CACHE_TAGS)[keyof typeof CACHE_TAGS];

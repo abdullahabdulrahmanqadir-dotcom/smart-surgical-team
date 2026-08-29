@@ -363,3 +363,87 @@ test("unknown event slugs return not found", async () => {
   const response = await fetchPath("/en/events/not-an-event");
   assert.equal(response.status, 404);
 });
+
+// ---------------------------------------------------------------------------
+// News
+//
+// News is database-backed and has no fallback content. This suite runs without
+// Supabase credentials, so `canUseDatabase()` is false and every read returns
+// an empty list — which is exactly the contract worth pinning here: the routes,
+// the shell, the empty state and the SEO surface must all hold up with nothing
+// published, and **nothing may be invented to fill the gap**.
+//
+// The labelled placeholder set that these tests were originally written
+// against was removed on 2026-08-29 (spec §15, §19). The rules it used to
+// demonstrate through fixtures — the item-shape rule, the per-field Arabic
+// fallback, section resolution, date handling — are now tested directly
+// against `app/lib/news-data.ts` in `tests/news-rules.test.mjs`, which is
+// stronger: they are asserted on the functions themselves rather than inferred
+// from rendered markup.
+// ---------------------------------------------------------------------------
+
+test("the news feed renders in both locales with nothing published", async () => {
+  for (const locale of ["en", "ar"]) {
+    const response = await fetchPath(`/${locale}/news`);
+    assert.equal(response.status, 200, `${locale} feed should render`);
+    const html = await response.text();
+
+    // The page shell is present regardless of content.
+    assert.match(html, /class="news-feed"/);
+    assert.match(html, /id="news-feed-heading"/);
+    // With no items there is no lead story, no grid and no chip row: a chip
+    // that can only ever produce an empty feed is worse than no chip.
+    assert.doesNotMatch(html, /class="news-lead(?: |")/);
+    assert.doesNotMatch(html, /class="news-grid"/);
+    assert.doesNotMatch(html, /class="news-chips"/);
+    // The empty state is explicit and in the reader's language.
+    assert.match(html, /class="news-empty"/);
+    assert.match(html, locale === "ar" ? /لا توجد أخبار بعد/ : /No news yet/);
+    // The header still offers News as its own destination.
+    assert.match(html, new RegExp(`href="/${locale}/news"`));
+  }
+});
+
+test("an empty news feed invents nothing to fill itself", async () => {
+  // The guard that matters after removing the placeholder set: no example
+  // headline, no placeholder disclaimer and no example slug may survive
+  // anywhere in the bundle's output. A silent reintroduction of stand-in
+  // content on a clinical site is the failure this test exists to catch.
+  for (const locale of ["en", "ar"]) {
+    const html = await (await fetchPath(`/${locale}/news`)).text();
+    assert.doesNotMatch(html, /Example:/, `${locale} feed must carry no example headline`);
+    assert.doesNotMatch(html, /This is a placeholder/, `${locale} feed must carry no placeholder note`);
+    assert.doesNotMatch(html, /example-(summit|press|publication|arabic|body)/, `${locale} feed must link no example slug`);
+  }
+  // The homepage banner is driven by the pinned item, so it must be absent too
+  // rather than falling back to a stand-in announcement.
+  const home = await (await fetchPath("/en")).text();
+  assert.doesNotMatch(home, /data-news-banner/);
+});
+
+test("the news feed keeps its own localized SEO metadata", async () => {
+  // Metadata is code, not content, so it must survive an empty database.
+  const english = await (await fetchPath("/en/news")).text();
+  assert.match(english, /<title>[^<]*News[^<]*<\/title>/i);
+  const arabic = await (await fetchPath("/ar/news")).text();
+  assert.match(arabic, /<html[^>]+lang="ar"[^>]*dir="rtl"/i);
+  assert.match(arabic, /<title>[^<]*الأخبار[^<]*<\/title>/);
+});
+
+test("news item routes 404 rather than rendering an empty shell", async () => {
+  // Both an invented slug and a slug that used to belong to the placeholder
+  // set: with nothing published, every item URL must be a genuine 404.
+  for (const slug of ["not-a-news-item", "example-summit-recap"]) {
+    const response = await fetchPath(`/en/news/${slug}`);
+    assert.equal(response.status, 404, `/en/news/${slug} should not resolve`);
+  }
+});
+
+test("the sitemap advertises the news feed but no unpublished item", async () => {
+  const sitemap = await (await fetchPath("/sitemap.xml", { accept: "application/xml" })).text();
+  // The feed itself is code-defined, so it is listed in both locales.
+  assert.match(sitemap, /\/en\/news<\/loc>/);
+  assert.match(sitemap, /\/ar\/news<\/loc>/);
+  // Item URLs come from the database. With nothing published, none may appear.
+  assert.doesNotMatch(sitemap, /\/news\/[a-z0-9-]+<\/loc>/);
+});

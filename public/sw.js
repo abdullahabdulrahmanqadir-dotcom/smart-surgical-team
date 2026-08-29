@@ -1,12 +1,20 @@
 /* Smart Surgical Team public/offline cache.
  * Keep this a classic service worker: every browser can register it without
  * loading the application's React bundle first. */
-const VERSION = "v1";
+// Bumped to v2 on 2026-08-26: the public-document rule below now also covers
+// /:locale/news, and an installed worker keeps serving the old rule from its
+// old caches until the name changes.
+// Bumped to v3 on 2026-08-29 with the navigation fix below. The rename is the
+// point, not a formality: devices that browsed the news section while it ran on
+// placeholder items still hold those pages in `sst-pages-v2`, and `activate`
+// deletes every `sst-` cache that is not a current name. Without the bump those
+// readers keep their withdrawn copies.
+const VERSION = "v3";
 const PAGE_CACHE = `sst-pages-${VERSION}`;
 const ASSET_CACHE = `sst-assets-${VERSION}`;
 const CACHE_NAMES = new Set([PAGE_CACHE, ASSET_CACHE]);
 
-const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
+const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
 const PRECACHE = ["/en", "/ar", "/sst-mark.png", "/favicon.svg", "/manifest.webmanifest"];
 
 function mayStore(response) {
@@ -58,8 +66,15 @@ async function publicNavigation(request) {
       await cache.put(request, response.clone());
       return response;
     }
-    // An Error 1102/5xx response must not replace a last-known-good page.
-    return cached || response;
+    // A response that simply must not be *stored* — `no-store`, `private` — is
+    // still the truth, and is served as it is. Only an unsuccessful one falls
+    // back to the last known-good page, which is what this branch is for: an
+    // Error 1102 or a 5xx must not replace a page that worked.
+    //
+    // Returning `cached` for any unstorable response, as this once did, meant a
+    // good 200 marked `no-store` was answered from the cache instead — serving
+    // content the server had already stopped sending, indefinitely.
+    return response.ok ? response : (cached || response);
   } catch {
     if (cached) return cached;
     const localeFallback = new URL(request.url).pathname.startsWith("/ar") ? "/ar" : "/en";

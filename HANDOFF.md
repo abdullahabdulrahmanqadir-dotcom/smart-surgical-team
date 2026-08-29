@@ -387,6 +387,136 @@ defects — the language menu appeared not to open, and the light theme appeared
 not to apply. Both behaved correctly after a hard reload. Always hard-navigate
 before believing a computed style or interaction failure in dev.
 
+## 6b. News section — built end to end on placeholders (2026-08-26)
+
+A News section was designed with the client and **both phases are implemented**:
+the data model and admin workspace, and the public feed, item page and homepage
+banner. Read `docs/superpowers/specs/2026-08-26-news-section-design.md` first —
+it carries the design, every client decision, the deviations and the
+verification actually performed (§14 Phase 1, §15 Phase 2).
+
+**Two things are outstanding, in this order.**
+
+1. ~~Apply `supabase/migrations/0021_news.sql`.~~ **APPLIED 2026-08-29** with
+   `npx supabase db query --linked -f supabase/migrations/0021_news.sql`. The
+   stored CLI login turned out to be on the correct account already — 
+   `projects list` returns exactly one project, `smartsurgicalteam` at
+   `elcjynpdcqxpxfqcamuw`, `linked: true`, and `supabase/.temp/project-ref`
+   matches the ref inside the app's own `SUPABASE_URL`. The admin News section
+   can now be opened. Verified afterwards **through the app's own service-role
+   credentials**, not the CLI, so the check was independent of the write path:
+   all three tables return 200 where they returned `PGRST205` before; the four
+   categories are seeded with their Arabic names; RLS is on with a select-only
+   read policy on each table; and every index exists, including
+   `news_items_single_pin_idx`.
+
+   Both guarantees were then exercised against the live database with two
+   throwaway rows, since neither can be proved by reading the schema: an
+   anonymous reader saw the published row and **not** the draft, and a second
+   `pinned = true` was refused with
+   `23505 … violates unique constraint news_items_single_pin_idx` — which is
+   exactly why the admin API clears the old pin before setting the new one.
+   Both rows were deleted; `news_items` and `news_media` are empty again and
+   the four categories are intact.
+2. **The first real news item is published (2026-08-29)** —
+   `international-consultants-join-our-mdt-meeting`, Event recaps, pinned to the
+   homepage, with a 15-image gallery. Spec §19 has the detail. Publishing it
+   **retired the placeholders on its own**: `getNewsItems()` prefers the
+   database, so the six `Example:` items left the feed, the sitemap and the
+   banner with no code change.
+
+   Its images were 204 MB of 6720x3776 PNG; they are 2.6 MB of 2200px WebP in
+   R2 under the usual `topics/news/<slug>/…` keys. **The media route does no
+   resizing** — the stored file is the delivered file, so size images before
+   upload.
+
+3. ~~Remove the placeholders before the first release carrying real news.~~
+   **DONE 2026-08-29** (spec §20). The example set is deleted;
+   `getNewsItems`/`getNewsCategories` are now straight pass-throughs with **no
+   fallback content**, so an empty database renders the feed's own empty state
+   rather than anything invented.
+
+   The nine placeholder-dependent tests were **rewritten, not deleted**: five
+   rendered-route tests for what must hold with nothing published, plus a new
+   `tests/news-rules.test.mjs` with 14 unit tests covering the item-shape rule,
+   section resolution, the per-field Arabic fallback and date handling
+   directly. Node 24 strips TypeScript natively and `news-data.ts` has no
+   server imports, so it imports straight into the test runner. **`npm test` is
+   now 46/46**, up from 36; lint and `tsc` are at their documented baselines.
+
+   One of the new tests is a deliberate regression guard — *"an empty news feed
+   invents nothing to fill itself"* — asserting no example headline, disclaimer
+   or slug can reappear in either locale.
+
+Public routes: `/:locale/news` (lead story, 3/2/1 grid, category chips) and
+`/:locale/news/:slug` (body, cover, gallery, related event/case/paper, share
+actions, more-news rail). The homepage carries only the dismissible pinned
+banner, by the client's decision — no latest-news strip.
+
+**A cache decision to leave alone:** a newly pinned item can take up to an hour
+to reach every reader, because the page cache is not tag-aware. The client chose
+this explicitly over a client-side fetch or cache purging. Do not "fix" it
+without asking.
+
+**Verifying a cached route: send the browser's header.** `curl` without
+`accept: text/html` fails `isPublicDocumentRequest` and bypasses the page cache
+entirely, so it measures raw SSR and says nothing about what a reader sees. A
+"the page is clean" check made that way is worthless for any cached route — use
+`curl -H "accept: text/html"` and read `x-sst-page-cache`. This cost a wrong
+"it's fixed" on 2026-08-29; spec §21.
+
+**Stale content in dev is usually a zombie dev server.** If the dev log says
+"Port 3000 is in use, trying another one", the port being looked at is served by
+an older run. Stop every `workerd` process (they hold miniflare's sqlite open),
+delete `.wrangler/state/v3/cache` and `.wrangler/state/v3/kv`, then restart.
+Those are local caches only — production KV is untouched.
+
+**Service-worker navigation fix (2026-08-29, `VERSION` v3).**
+`publicNavigation()` answered from the device cache for *any* unstorable
+response, so a healthy 200 marked `no-store` served withdrawn content
+indefinitely. It now falls back only when the response is unsuccessful. The v3
+rename is what actually evicts already-stored pages from a reader's device,
+since `activate` deletes every `sst-` cache it no longer names. Two tests guard
+both halves.
+
+**Caching now matches the rest of the site.** News was initially uncached: both
+`worker/page-cache.ts` (edge + KV) and `public/sw.js` (device/offline) gate on a
+`PUBLIC_DOCUMENT` path whitelist that news was missing from. Both now include
+it, `sw.js` `VERSION` is bumped to `v2`, and a test asserts the two copies of
+that rule stay identical — a section added to one and not the other would be
+edge-cached with no offline copy. `PAGE_CACHE_VERSION` was deliberately left at
+`v1`; the reason is written at the top of that file, and §16 of the spec explains
+it. Measured: `/en/news` returns `MISS` then `HIT` with the same
+`cache-control` as `/en/topics`.
+
+Verified: `npm test` 36/36, `npm run lint` at the documented baseline (1
+pre-existing error, 17 warnings), `npx tsc --noEmit` unchanged at 78, build
+passing, and every route plus every cache bypass exercised against the real dev
+server.
+
+**The browser QA list is now done too (2026-08-29)** — see §17 of the spec.
+Both locales, light and dark, at 375/768/1024/1440: zero horizontal overflow,
+zero non-normal letter-spacing, correct grid breakpoints, the banner dismissal
+persisting across a reload and returning when a different item is pinned, and
+all four share actions. Console clean.
+
+That pass found and fixed one **site-wide** defect: `[lang="ar"]` in
+`globals.css` out-specifies `h1, h2, h3`, so every Arabic-authored heading was
+rendering in the Arabic *body* face instead of the display face. One rule was
+added beneath it scoping headings back to `--font-display-arabic-stack`. It
+would have hit Arabic event, case and research titles too; the Arabic
+placeholder news item is simply the first Arabic-authored title the site has
+ever rendered.
+
+The same pass also checked heading order, alt text, accessible names, focus
+visibility, keyboard chip activation, `prefers-reduced-motion`, the link-only
+card's `noindex` + sitemap exclusion, and a dangling related record — all
+correct. One nit was fixed: `NewsShare`'s copy button now returns to its resting
+label after 2.2s instead of reading "Link copied" for the rest of the visit.
+`npm test` 36/36 and `npm run lint` at the documented baseline after both fixes.
+
+Local only, unpushed, uncommitted.
+
 ## 7. Remaining work, in priority order
 
 ### Immediate maintenance before another release

@@ -1,3 +1,12 @@
+// Deliberately still v1 after adding /:locale/news to PUBLIC_DOCUMENT below.
+// The convention is to bump this whenever the cached-route rules change, so
+// entries stored under the old semantics are never reused — but here the change
+// only widens which paths qualify. Keys are the prefix plus the pathname, so no
+// existing entry changes meaning, and no /news entry can exist under v1 because
+// isPublicDocumentRequest rejected those requests until now. Bumping would
+// discard every cached page and re-render the whole site at once, which is the
+// exact CPU spike the Free plan's 10 ms ceiling cannot absorb. Bump it for a
+// change that alters what a stored entry *means*.
 const PAGE_CACHE_VERSION = "v1";
 const PAGE_CACHE_PREFIX = `page:${PAGE_CACHE_VERSION}:`;
 const FRESH_SECONDS = 60;
@@ -28,7 +37,7 @@ function defaultCache(): Cache {
 // Only cache public HTML documents. In particular, never cache authenticated
 // screens, API responses, React Server Component requests, or URLs with query
 // strings (which would create an unbounded attacker-controlled key space).
-const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
+const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
 
 export function isPublicDocumentRequest(request: Request): boolean {
   if (request.method !== "GET") return false;

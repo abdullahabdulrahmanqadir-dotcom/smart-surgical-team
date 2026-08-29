@@ -6,6 +6,7 @@ import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import IntroductionVideo from "../components/IntroductionVideo";
 import JoinCtaLink from "../components/JoinCtaLink";
+import NewsBanner from "../components/NewsBanner";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
@@ -21,6 +22,7 @@ import { fill, getDictionary, type Dictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/events";
 import { getLocalizedTeamGroups } from "../lib/team";
+import { getPinnedNewsItem } from "../lib/news";
 import { getResearches } from "../lib/research";
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
@@ -95,6 +97,8 @@ export default async function Home({
   const benefits = [dict.home.benefitAccess, dict.home.benefitSave];
   const research = await getResearches();
   const latestResearch = research[0];
+  // At most one item is ever pinned; the banner is the homepage's only news.
+  const pinnedNews = await getPinnedNewsItem();
   // Abstracts can be rich HTML; the card excerpt wants clean text.
   const latestResearchExcerpt = latestResearch?.abstract ? latestResearch.abstract.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : "";
 
@@ -108,6 +112,9 @@ export default async function Home({
       <ScrollMotion />
 
       <main id="main-content">
+        {/* ---------------- Pinned announcement ---------------- */}
+        {pinnedNews ? <NewsBanner locale={active} item={pinnedNews} t={dict.news} /> : null}
+
         {/* ---------------- Hero ---------------- */}
         <section className="hero">
           <div className="hero-inner">

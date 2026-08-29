@@ -6,7 +6,7 @@ import { isPaletteName } from "../../../lib/research-palettes";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
-const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research", "research-topics"] as const;
+const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research", "research-topics", "news", "news-categories"] as const;
 type Resource = (typeof allowedResources)[number];
 
 function asResource(value: string): Resource | null {
@@ -47,6 +47,17 @@ let caseSectionsColumn = true;
 function missingCaseSections(message: string | undefined) { return Boolean(message) && /case_sections/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
 let posterCtaColumns = true;
 function missingPosterCtaColumns(message: string | undefined) { return Boolean(message) && /poster_cta_(text|url)/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
+// Migration 0021 creates the three news tables. There is nothing to degrade
+// gracefully to — without them the section has no data at all — so the raw
+// Postgres/PostgREST message is replaced with the one instruction that fixes
+// it, the same courtesy the case-sections and poster-CTA columns get.
+const NEWS_MIGRATION_HINT = "The news tables are not in the database yet. Apply supabase/migrations/0021_news.sql, then reload this page.";
+function missingNewsTables(message: string | undefined) {
+  return Boolean(message) && /news_(items|categories|media)/.test(message!) && /does not exist|find the table|in the schema cache|schema cache/i.test(message!);
+}
+function newsError(message: string | undefined, fallback: string) {
+  return missingNewsTables(message) ? NEWS_MIGRATION_HINT : message ?? fallback;
+}
 
 /**
  * Removes stored objects from R2, reporting whether they actually went.
@@ -94,6 +105,8 @@ function cacheTagsFor(resource: Resource): PublicCacheTag[] {
   // A topic edit changes the label and cover colour of every paper under it,
   // so it invalidates the same public cache a paper edit does.
   if (resource === "research" || resource === "research-topics") return [CACHE_TAGS.research];
+  // Renaming a category relabels every card filed under it and its filter chip.
+  if (resource === "news" || resource === "news-categories") return [CACHE_TAGS.news];
   return [];
 }
 
@@ -119,15 +132,19 @@ export async function GET(request: Request, context: RouteContext) {
   const client = getSupabaseServerClient();
 
   if (resource === "overview") {
-    const [content, drafts, events, contributors, members, research] = await Promise.all([
+    const [content, drafts, events, contributors, members, research, news] = await Promise.all([
       client.from("content_items").select("id", { count: "exact", head: true }).eq("status", "published"),
       client.from("content_items").select("id", { count: "exact", head: true }).neq("status", "published"),
       client.from("events").select("id", { count: "exact", head: true }).eq("status", "published"),
       client.from("contributors").select("id", { count: "exact", head: true }),
       client.from("profiles").select("id", { count: "exact", head: true }).eq("role", "member"),
       client.from("researches").select("id", { count: "exact", head: true }).eq("status", "published"),
+      // Until migration 0021 is applied this table does not exist. That is safe
+      // here: the client resolves with an error rather than throwing, so the
+      // count reads as 0 and the rest of the overview still renders.
+      client.from("news_items").select("id", { count: "exact", head: true }).eq("status", "published"),
     ]);
-    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, research: research.count ?? 0 } });
+    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, research: research.count ?? 0, news: news.count ?? 0 } });
   }
 
   if (resource === "content") {
@@ -172,6 +189,21 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "research-topics") {
     const { data, error } = await client.from("research_topics").select("id,name,slug,parent_id,palette,sort_order,created_at").order("sort_order");
     if (error) return apiError(error.message, 500);
+    return Response.json({ data });
+  }
+  if (resource === "news") {
+    // Newest publication date first, then the most recently touched, so a draft
+    // with no date yet does not sink below everything already published.
+    const { data, error } = await client.from("news_items")
+      .select("id,title,title_ar,slug,summary,summary_ar,body,body_ar,category_id,status,published_at,link_url,cover_url,pinned,related_type,related_ref,created_at,updated_at,news_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
+      .order("published_at", { ascending: false, nullsFirst: true })
+      .order("updated_at", { ascending: false });
+    if (error) return apiError(newsError(error.message, "Could not read the news items."), 500);
+    return Response.json({ data });
+  }
+  if (resource === "news-categories") {
+    const { data, error } = await client.from("news_categories").select("id,name,name_ar,slug,sort_order,created_at").order("sort_order");
+    if (error) return apiError(newsError(error.message, "Could not read the news categories."), 500);
     return Response.json({ data });
   }
 
@@ -435,6 +467,167 @@ export async function POST(request: Request, context: RouteContext) {
     return Response.json({ data });
   }
 
+  if (resource === "news") {
+    const title = text(body.title);
+    if (!title) return apiError("A news title is required.");
+    // Only three honest states. `content_status` also has `scheduled`, but
+    // nothing in this application promotes a scheduled row to published, so
+    // offering it would be a promise the site does not keep.
+    const status = ["published", "draft", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
+    const slug = slugify(text(body.slug) || title);
+    if (!slug) return apiError("Add a usable title or URL slug.");
+    const existingId = idValue(body.id);
+
+    // A typed-but-unusable link must not be silently dropped: the item's whole
+    // behaviour depends on it (a link with no body is a link-out card).
+    const linkUrl = externalUrl(body.link_url);
+    if (text(body.link_url) && !linkUrl) return apiError("The external link must be a full http:// or https:// URL.");
+
+    // The item's own uploaded files, read before anything is written so the
+    // cover can be checked against them. `news_id` is filled in after the row
+    // exists.
+    const media = Array.isArray(body.media) ? body.media : [];
+    const mediaRows = media.flatMap((entry, sort_order) => {
+      const item = jsonObject(entry); const public_url = text(item?.public_url); const storage_path = text(item?.storage_path);
+      return public_url && storage_path ? [{ storage_path, public_url, kind: text(item?.kind) === "document" ? "document" : "image", alt_text: optionalText(item?.alt_text), caption: optionalText(item?.caption), sort_order }] : [];
+    });
+
+    // The cover is one of the item's own photographs, chosen in the editor —
+    // never a separate upload. Anything else would be a stored object the media
+    // list does not own, so nothing would ever clean it up, and a pasted
+    // external image would break the moment the other site moved it.
+    const coverUrl = text(body.cover_url);
+    const coverKey = storageKeyFromUrl(coverUrl);
+    if (coverUrl && !mediaRows.some((row) => row.kind === "image" && row.public_url === coverUrl)) {
+      return apiError("The cover must be one of this item's own images. Choose one under Cover photo, or clear it to use the generated cover.");
+    }
+
+    // An unpublished item on the homepage banner would render nothing at all,
+    // so the contradiction is refused rather than quietly ignored.
+    const wantsPin = body.pinned === true;
+    if (wantsPin && status !== "published") return apiError("Only a published item can be pinned to the homepage. Publish it, or clear the pin.");
+
+    // A stale editor tab can hold a category that has since been deleted; the
+    // foreign key would reject the save with a Postgres message nobody can act
+    // on, so it is checked here instead.
+    const categoryId = optionalText(body.category_id);
+    if (categoryId) {
+      const { data: category, error: categoryError } = await client.from("news_categories").select("id").eq("id", categoryId).maybeSingle();
+      if (categoryError) return apiError(missingNewsTables(categoryError.message) ? NEWS_MIGRATION_HINT : `Could not check that category: ${categoryError.message}`, 500);
+      if (!category) return apiError("That category no longer exists. Reload the workspace and choose another.");
+    }
+
+    // Both bodies are ordered lists of named rich-text sections, the same shape
+    // and sanitiser as a case record. A section needs a heading and text to be
+    // stored; the editor already says so beside any half-finished one.
+    const sectionsFrom = (value: unknown) => (Array.isArray(value) ? value : []).flatMap((entry, index) => {
+      const section = jsonObject(entry);
+      const label = text(section?.label);
+      const sectionBody = safeRichText(section?.body);
+      const key = text(section?.key) || slugify(label) || `section-${index + 1}`;
+      return label && sectionBody ? [{ key, label, body: sectionBody }] : [];
+    });
+    const sections = sectionsFrom(body.body);
+    const sectionsAr = sectionsFrom(body.body_ar);
+
+    // One related record, or none. A type without a reference (or the reverse)
+    // would render a card pointing nowhere.
+    const relatedType = ["content", "event", "research"].includes(text(body.related_type)) ? text(body.related_type) : null;
+    const relatedRef = optionalText(body.related_ref);
+
+    // The editor owns the date: a recap or a press clipping is dated when it
+    // happened, not when it was typed. Publishing without one falls back to
+    // today rather than leaving the item undated at the bottom of the feed.
+    const publishedAt = date(body.published_at) ?? (status === "published" ? new Date().toISOString().slice(0, 10) : null);
+
+    const priorRow = existingId
+      ? await client.from("news_items").select("cover_url").eq("id", existingId).maybeSingle()
+      : null;
+    const priorCoverKey = storageKeyFromUrl(priorRow?.data?.cover_url);
+
+    const payload = {
+      title,
+      title_ar: optionalText(body.title_ar),
+      slug,
+      summary: optionalText(body.summary),
+      summary_ar: optionalText(body.summary_ar),
+      body: sections.length ? sections : null,
+      body_ar: sectionsAr.length ? sectionsAr : null,
+      category_id: categoryId,
+      status,
+      published_at: publishedAt,
+      link_url: linkUrl,
+      cover_url: coverUrl || null,
+      // Written unpinned, then pinned below once the row exists. Setting it
+      // here would collide with the single-pin unique index while the previous
+      // item is still pinned.
+      pinned: false,
+      related_type: relatedType && relatedRef ? relatedType : null,
+      related_ref: relatedType && relatedRef ? relatedRef : null,
+      updated_by: identity.id,
+      updated_at: new Date().toISOString(),
+    };
+    const { data: saved, error } = existingId
+      ? await client.from("news_items").update(payload).eq("id", existingId).select("id").single()
+      : await client.from("news_items").insert(payload).select("id").single();
+    if (error || !saved) return apiError(error?.message.includes("news_items_slug_key") ? "Another news item already uses that URL slug. Change the title, or give this one its own slug." : newsError(error?.message, "Could not save this news item."), 500);
+
+    // Pinning is a two-step on purpose: clear whatever was pinned, then pin
+    // this row. Doing it after the save means a failed write leaves the
+    // previous banner in place rather than the wrong item on the homepage.
+    let pinWarning = "";
+    if (wantsPin) {
+      const cleared = await client.from("news_items").update({ pinned: false }).eq("pinned", true);
+      const pinned = cleared.error ? cleared : await client.from("news_items").update({ pinned: true }).eq("id", saved.id);
+      if (pinned.error) pinWarning = `Saved, but this item could not be pinned to the homepage: ${pinned.error.message}`;
+    }
+
+    const validMedia = mediaRows.map((row) => ({ news_id: saved.id, ...row }));
+    // Which stored objects this save no longer keeps, worked out before the
+    // rows are rewritten below.
+    const keptMediaPaths = new Set(validMedia.map((entry) => entry.storage_path));
+    const { data: priorMedia } = await client.from("news_media").select("storage_path").eq("news_id", saved.id);
+    const removedMediaKeys = (priorMedia ?? []).map((row) => text(row.storage_path)).filter((path) => path && !keptMediaPaths.has(path));
+
+    const removed = await client.from("news_media").delete().eq("news_id", saved.id);
+    if (removed.error) return apiError(`Saved the item, but could not update its images: ${removed.error.message}`, 500);
+    if (validMedia.length) {
+      const inserted = await client.from("news_media").insert(validMedia);
+      if (inserted.error) return apiError(`Saved the item, but could not update its images: ${inserted.error.message}`, 500);
+    }
+    // A cover swapped from one attached photograph to another leaves the first
+    // one exactly where it was, in the gallery. Only a cover the item no longer
+    // holds at all is deleted — and if it left as part of this save it is
+    // already in `removedMediaKeys`.
+    const staleCoverKeys = priorCoverKey && priorCoverKey !== coverKey && !keptMediaPaths.has(priorCoverKey) && !removedMediaKeys.includes(priorCoverKey)
+      ? [priorCoverKey]
+      : [];
+    const purged = await deleteFromStorage([...removedMediaKeys, ...staleCoverKeys]);
+    await invalidatePublicCache(resource);
+    return Response.json({ data: saved, warning: pinWarning || (purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand.") });
+  }
+
+  if (resource === "news-categories") {
+    const name = text(body.name);
+    if (!name) return apiError("A category name is required.");
+    const payload = {
+      name,
+      name_ar: optionalText(body.name_ar),
+      // The stored slug is sent back unchanged on an edit: it is the value the
+      // public filter chips are addressed by, so regenerating it from a
+      // reworded name would break a shared filtered link.
+      slug: slugify(text(body.slug) || name),
+      sort_order: Number(body.sort_order) || 0,
+      updated_at: new Date().toISOString(),
+    };
+    const { data, error } = idValue(body.id)
+      ? await client.from("news_categories").update(payload).eq("id", idValue(body.id)).select("id").single()
+      : await client.from("news_categories").insert(payload).select("id").single();
+    if (error) return apiError(error.message.includes("news_categories_slug_key") ? "Another category already uses that name. Give this one a different name." : newsError(error.message, "Could not save this category."), 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
+  }
+
   if (resource === "topics") {
     const name = text(body.name);
     if (!name) return apiError("A topic name is required.");
@@ -484,14 +677,14 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
-  if (!resource || !["content", "topics", "events", "contributors", "research", "research-topics"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
+  if (!resource || !["content", "topics", "events", "contributors", "research", "research-topics", "news", "news-categories"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
   const access = await resolveAdminIdentity(request);
   if (!access.identity) return apiError(access.message, access.status);
   if (!canDelete(access.identity.role, resource)) return apiError(`${roleLabel(access.identity.role)} accounts cannot delete ${resource}. Ask the Owner or a Content manager.`, 403);
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return apiError("Choose an item to delete.");
   const client = getSupabaseServerClient();
-  const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource === "research-topics" ? "research_topics" : resource;
+  const table = resource === "content" ? "content_items" : resource === "research" ? "researches" : resource === "research-topics" ? "research_topics" : resource === "news" ? "news_items" : resource === "news-categories" ? "news_categories" : resource;
 
   // Deleting a major topic would take every item filed under it out of the
   // public listings, so it is refused for the same reason renaming one is.
@@ -521,7 +714,15 @@ export async function DELETE(request: Request, context: RouteContext) {
   } else if (resource === "contributors") {
     const { data } = await client.from("contributors").select("photo_url").eq("id", id).maybeSingle();
     storageKeys = [storageKeyFromUrl(data?.photo_url)];
+  } else if (resource === "news") {
+    const [gallery, row] = await Promise.all([
+      client.from("news_media").select("storage_path").eq("news_id", id),
+      client.from("news_items").select("cover_url").eq("id", id).maybeSingle(),
+    ]);
+    storageKeys = [...(gallery.data ?? []).map((entry) => text(entry.storage_path)), storageKeyFromUrl(row.data?.cover_url)];
   }
+  // Deleting a category never deletes news. `category_id` is `on delete set
+  // null`, so its items become unfiled and the admin refiles them.
 
   const { error } = await client.from(table).delete().eq("id", id);
   if (error) return apiError(error.message, 500);

@@ -81,7 +81,10 @@ export default function SiteHeader({
     [dict.nav.research, localePath(locale, "research")],
     [dict.nav.posters, localePath(locale, "posters")],
   ];
+  // News is timely and first-party, so it gets its own slot rather than sitting
+  // inside the Publications menu with the academic output.
   const navLinks: [string, string][] = [
+    [dict.nav.news, localePath(locale, "news")],
     [dict.nav.events, localePath(locale, "events")],
   ];
   const aboutLinks: [string, string][] = [
