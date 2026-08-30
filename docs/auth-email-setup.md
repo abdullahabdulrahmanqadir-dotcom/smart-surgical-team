@@ -145,6 +145,39 @@ Run with a disposable `+ssttest` plus-address, deleted afterwards.
 | Wizard validation | consent gate, required details, short password, mismatched passwords all refused |
 | Cleanup | test account deleted; 5 users / 5 profiles, 0 orphans, 0 dual-method accounts |
 
+## Second pass — driven through the UI (2026-08-30)
+
+The matrix above was driven mostly through the auth API. It was re-run entirely
+through the browser, signed out first, with a second disposable address that was
+deleted afterwards.
+
+| Check | Result |
+| --- | --- |
+| Steps 1 → 2 → 3 | consent gate, details, password — each advanced correctly |
+| Arrival at step 4 | code field present, resend disabled with a live countdown, no status message |
+| Code field hygiene | strips non-digits (`12ab34cd56789` → `123456`), `maxLength=6`, `dir="ltr"`, numeric keypad |
+| Wrong code | "That code is not valid, or it has expired." — stays on step 4 |
+| Real code | signs in, lands on `/profile`, details prefilled, no completion prompt |
+| Sign in, wrong password | "Invalid login credentials" |
+| Sign in, right password | straight to `/profile` |
+| Duplicate signup | **bounced to step 1** with the existing-email message |
+
+**The duplicate case took a different branch than in the first pass**, and this is
+the one worth remembering. With "Confirm email" *off*, `signUp()` errors and the
+wizard stays on step 3. With it *on*, Supabase hides the reason behind a decoy
+user carrying no identities; the wizard detects that and sends the person back to
+step 1 to change the address. Only the second branch matters now that
+confirmations are live, and it had never actually run before this pass.
+
+**A caveat on evidence:** the Admin API's `/admin/users` listing returns users
+with an empty `identities` array, so it cannot be used to prove how many accounts
+have two sign-in methods. Count that from `auth.identities` in SQL instead.
+
+**Not testable with the accounts on hand:** Google sign-in against an address that
+already has a password. Both Google accounts available are already Google-only
+users, and a `+alias` does not help because Google returns the canonical address.
+The trigger is covered by the transactional probe instead.
+
 ## Account state
 
 `sarkrda.mohammed04@gmail.com` (Owner) was linked to both `email` and `google`
