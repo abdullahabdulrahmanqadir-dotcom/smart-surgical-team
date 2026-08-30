@@ -4,6 +4,7 @@ import { KVCacheHandler } from "vinext/cloudflare";
 import { setCacheHandler } from "vinext/shims/cache";
 import handler from "vinext/server/app-router-entry";
 import { servePublicDocument } from "./page-cache";
+import { legacyRedirect } from "./legacy-redirects";
 
 interface Env {
   ASSETS: Fetcher;
@@ -41,6 +42,12 @@ const ALLOWED_IMAGE_WIDTHS = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // Old ssthyroid.com URLs and the www hostname, both of which now land here
+    // rather than on Hostinger. Runs before everything else so a redirect never
+    // costs a cache lookup or a render.
+    const legacy = legacyRedirect(url);
+    if (legacy) return legacy;
 
     // Installed per request but stored on globalThis, so this is a cheap
     // no-op once an isolate is warm. Skipped entirely when the binding is
