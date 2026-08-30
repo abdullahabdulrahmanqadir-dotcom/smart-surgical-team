@@ -537,15 +537,98 @@ input {
 .flag-us::before { content: ""; position: absolute; inset: 0 auto auto 0; width: 42%; height: 54%; background: #3c3b6e; }
 .flag-iraq { background: url("/flags/iraq.svg") center / cover no-repeat; }
 
-/* Both icons are rendered; CSS picks the one for the active mode so the
-   toggle needs no client state and cannot mismatch during hydration. */
-.theme-toggle .theme-icon-dark,
-[data-theme="dark"] .theme-toggle .theme-icon-light {
-  display: none;
+/* The knob is placed from <html data-theme>, so the switch needs no client
+   state to render and cannot mismatch during hydration. */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
 }
 
-[data-theme="dark"] .theme-toggle .theme-icon-dark {
+.theme-toggle-track {
+  position: relative;
   display: block;
+  width: 52px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  transition: background 0.22s ease, border-color 0.22s ease;
+}
+
+.theme-toggle:hover .theme-toggle-track {
+  border-color: var(--primary);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+}
+
+.theme-toggle:focus-visible .theme-toggle-track {
+  outline: 3px solid var(--primary-ring);
+  outline-offset: 2px;
+}
+
+/* Both glyphs stay on the track; the knob slides over the inactive one. */
+.theme-toggle-glyph {
+  position: absolute;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  color: var(--text-muted);
+  transition: color 0.22s ease, opacity 0.22s ease;
+}
+
+.theme-toggle-glyph-sun {
+  inset-inline-start: 7px;
+  color: var(--brand-copper);
+}
+
+.theme-toggle-glyph-moon {
+  inset-inline-end: 7px;
+  opacity: 0.55;
+}
+
+.theme-toggle-knob {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(64, 50, 42, 0.28);
+  transition: inset-inline-start 0.22s ease, background 0.22s ease;
+}
+
+[data-theme="dark"] .theme-toggle-track {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+[data-theme="dark"] .theme-toggle-knob {
+  inset-inline-start: 27px;
+  background: var(--primary);
+}
+
+[data-theme="dark"] .theme-toggle-glyph-sun {
+  opacity: 0.45;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .theme-toggle-glyph-moon {
+  opacity: 1;
+  color: var(--primary-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-track,
+  .theme-toggle-knob,
+  .theme-toggle-glyph {
+    transition: none;
+  }
 }
 
 .menu-button {
@@ -617,7 +700,16 @@ input {
 
 .member-content-gate { max-width: 680px; margin: 70px auto; padding: clamp(28px, 5vw, 55px); border-radius: 16px; background: var(--surface-raised, #fff); text-align: center; }.member-content-gate h1 { margin: 8px 0 12px; font-family: var(--font-display), Georgia, serif; font-size: clamp(32px, 5vw, 50px); font-weight: 500; }.member-content-gate p { margin: 0 auto 24px; color: var(--muted, #60736f); line-height: 1.7; }.member-rich-content { margin-top: 30px; color: var(--ink, #173c3b); font-size: 16px; line-height: 1.8; }.member-rich-content h2, .member-rich-content h3 { margin-top: 28px; font-family: var(--font-display), Georgia, serif; font-weight: 500; }.member-rich-content a { color: var(--brand-teal); text-decoration: underline; }.member-rich-content blockquote { margin: 22px 0; padding-inline-start: 18px; border-inline-start: 3px solid var(--brand-copper); color: var(--muted, #60736f); }.member-content-image { margin: 28px 0; }.member-content-image img { width: 100%; height: auto; border-radius: 12px; }.member-content-image figcaption { margin-top: 8px; color: var(--muted, #60736f); font-size: 13px; }.content-downloads { margin-top: 2rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }.content-downloads ul { display: grid; gap: .5rem; margin: 1rem 0 0; padding: 0; list-style: none; }.content-downloads a { display: flex; align-items: center; gap: .55rem; min-height: 44px; color: var(--primary); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 
-.header-profile, .mobile-profile { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border: 1px solid var(--line); background: var(--surface); color: var(--text-muted); }.header-profile { width:44px; height:44px; padding:0; }.header-profile:hover, .mobile-profile:hover { border-color: var(--line-strong); background: var(--surface-2); color: var(--brand-brown); }.header-profile-avatar { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: var(--surface-2); color: var(--brand-brown); font-size: .62rem; font-weight: 800; letter-spacing: 0; }.header-profile-avatar svg { width: .95rem; height: .95rem; }.mobile-profile { grid-column: 1 / -1; }.header-signup { background: var(--brand-copper); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-copper) 28%, transparent); }.header-signup:hover { background: #b96e38; }
+.mobile-profile { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border: 1px solid var(--line); background: var(--surface); color: var(--text-muted); }
+.mobile-profile:hover { border-color: var(--line-strong); background: var(--surface-2); color: var(--brand-brown); }
+/* The header avatar is the circle itself — no button chrome around it. */
+.header-profile { display: inline-grid; place-items: center; padding: 0; border: 0; background: none; border-radius: 50%; }
+.header-profile:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
+.header-profile .header-profile-avatar { width: 2.15rem; height: 2.15rem; font-size: .8rem; transition: background .18s, color .18s, box-shadow .18s; }
+.header-profile:hover .header-profile-avatar { box-shadow: 0 0 0 2px var(--primary-soft); }
+.header-profile-avatar { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: var(--surface-2); color: var(--brand-brown); font-size: .62rem; font-weight: 800; letter-spacing: 0; }
+.header-profile-avatar svg { width: .95rem; height: .95rem; }
+.header-profile .header-profile-avatar svg { width: 1.15rem; height: 1.15rem; }.mobile-profile { grid-column: 1 / -1; }.header-signup { background: var(--brand-copper); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-copper) 28%, transparent); }.header-signup:hover { background: #b96e38; }
 
 /* ============================================================
    Hero
@@ -2678,12 +2770,6 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     display: none;
   }
 
-  .header-profile {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-  }
-
   .header-actions .icon-button {
     width: 42px;
     height: 42px;
@@ -3154,10 +3240,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 /* Profile controls remain quiet, but must be immediately legible on dark
    surfaces. The switch is deliberately a 48px control with both position and
    colour changes so its state never relies on a faint border alone. */
-.header-profile, .mobile-profile { color: var(--text); font-weight: 700; }
+.mobile-profile { color: var(--text); font-weight: 700; }
 .header-profile-avatar { background: var(--primary-soft); color: var(--primary-strong); }
-[data-theme="dark"] .header-profile, [data-theme="dark"] .mobile-profile { border-color: #5b4a3e; background: #2c241e; color: #f5efe6; }
-[data-theme="dark"] .header-profile:hover, [data-theme="dark"] .mobile-profile:hover { border-color: #827062; background: #382e27; color: #fff; }
+[data-theme="dark"] .mobile-profile { border-color: #5b4a3e; background: #2c241e; color: #f5efe6; }
+[data-theme="dark"] .mobile-profile:hover { border-color: #827062; background: #382e27; color: #fff; }
 [data-theme="dark"] .header-profile-avatar { background: #314944; color: #d6f4ed; }
 
 .preference-toggle { margin-top: .8rem; padding: .8rem .9rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-2); transition: border-color .2s ease, background .2s ease; }

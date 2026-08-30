@@ -131,14 +131,7 @@ const CANONICAL_HOST = "ssthyroid.com";
  * `<version>-smart.ssteam.workers.dev`, and those have to keep working as the
  * way to reach a deployment directly when the real domain is misbehaving.
  */
-const ALIAS_HOSTS = new Set([
-  "www.ssthyroid.com",
-  // TEMPORARILY OUT — restore the moment the ssthyroid.com certificate issues.
-  // This redirect forces https, and https on the apex still fails the TLS
-  // handshake, so enabling it now would point the one hostname that still works
-  // at one that does not.
-  // "smart.ssteam.workers.dev",
-]);
+const ALIAS_HOSTS = new Set(["www.ssthyroid.com", "smart.ssteam.workers.dev"]);
 
 /**
  * A 301 onto the canonical host and, where the path is an old one, onto its new

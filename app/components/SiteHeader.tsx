@@ -68,6 +68,10 @@ export default function SiteHeader({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [member, setMember] = useState<HeaderMember | null>(null);
   const [isStaff, setIsStaff] = useState(false);
+  // The switch is positioned by CSS from <html data-theme>, so this state exists
+  // only to publish the checked state to screen readers. It starts false to match
+  // the server render and is corrected on mount.
+  const [isDark, setIsDark] = useState(false);
 
   const home = localePath(locale);
 
@@ -91,6 +95,10 @@ export default function SiteHeader({
     [dict.nav.about, localePath(locale, "about")],
     [dict.nav.contact, localePath(locale, "contact")],
   ];
+
+  useEffect(() => {
+    setIsDark(document.documentElement.dataset.theme === "dark");
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("nav-open", menuOpen);
@@ -149,9 +157,11 @@ export default function SiteHeader({
 
   function toggleTheme() {
     // The active mode lives on <html data-theme>, set before paint by the inline
-    // script in the layout — read it from there so there is nothing to hydrate.
+    // script in the layout — read it from there so the knob can never disagree
+    // with the rendered colours. `isDark` only mirrors it for assistive tech.
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
+    setIsDark(next === "dark");
     try {
       localStorage.setItem("sst-theme", next);
     } catch {
@@ -170,7 +180,7 @@ export default function SiteHeader({
   const accountAction = member ? (
     <>
       {adminLink}
-      <Link className="btn btn-ghost header-profile" href={profilePath} aria-label={dict.header.openProfile.replace("{name}", member.name)}>
+      <Link className="header-profile" href={profilePath} aria-label={dict.header.openProfile.replace("{name}", member.name)}>
         <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
       </Link>
     </>
@@ -212,13 +222,18 @@ export default function SiteHeader({
 
           <button
             type="button"
-            className="icon-button theme-toggle"
+            role="switch"
+            aria-checked={isDark}
+            className="theme-toggle"
             onClick={toggleTheme}
             aria-label={dict.header.switchColourMode}
             title={dict.header.switchColourMode}
           >
-            <IconMoon className="theme-icon-light" />
-            <IconSun className="theme-icon-dark" />
+            <span className="theme-toggle-track" aria-hidden="true">
+              <IconSun className="theme-toggle-glyph theme-toggle-glyph-sun" size={13} />
+              <IconMoon className="theme-toggle-glyph theme-toggle-glyph-moon" size={13} />
+              <span className="theme-toggle-knob" />
+            </span>
           </button>
 
           {accountAction}
