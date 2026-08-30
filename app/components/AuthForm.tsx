@@ -13,11 +13,17 @@ export default function AuthForm({ mode, locale, t, signUpT }: { mode: Mode; loc
   return mode === "sign-up" ? <SignUpWizard locale={locale} t={signUpT} /> : <SignInForm locale={locale} t={t} />;
 }
 
+/**
+ * Lands on /complete-profile rather than /profile because Google only ever
+ * gives us a name and an email address. That page forwards straight to the
+ * profile once the practice details are on file, so returning members notice
+ * nothing, and it is also where a failed OAuth round trip reports itself.
+ */
 export async function signInWithGoogle(locale: string) {
   const client = getSupabaseBrowserClient();
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${window.location.origin}/${locale}/profile` },
+    options: { redirectTo: `${window.location.origin}/${locale}/complete-profile` },
   });
   if (error) throw error;
 }

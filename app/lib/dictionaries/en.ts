@@ -361,7 +361,7 @@ export const en = {
     existingAccount: "Already have an account?", newToTeam: "New to Smart Surgical Team?", createAnAccount: "Create an account",
   },
   signUp: {
-    emailStep: "Email", detailsStep: "Details", passwordStep: "Password", registrationStep: "Registration step {step} of 3", stepKicker: "Step {step} of 3",
+    emailStep: "Email", detailsStep: "Details", passwordStep: "Password", verifyStep: "Verify", registrationStep: "Registration step {step} of {total}", stepKicker: "Step {step} of {total}",
     emailHeading: "Let’s start with your email.", detailsHeading: "Tell us about your practice.", passwordHeading: "Secure your account.",
     emailDescription: "We’ll use this to secure your account.", detailsDescription: "These details help us make your learning space more relevant from day one.", passwordDescription: "Choose a password you will remember. You can update your account later from your profile.",
     requestError: "We could not complete that request. Please try again.", confirmationUnavailable: "Email confirmation is not configured yet. Add the Supabase public URL and anonymous key to enable registration.", existingEmail: "An account with this email already exists. If you signed up with Google, use “Continue with Google” above, or sign in below.",
@@ -369,6 +369,9 @@ export const en = {
     redirecting: "Redirecting…", continueGoogle: "Continue with Google", emailDivider: "or use your email", emailAddress: "Email address", emailPlaceholder: "you@example.com", emailHelp: "We use this only to secure your account and send important learning updates.", continue: "Continue",
     firstName: "First name", lastName: "Last name", organisation: "Organisation", organisationPlaceholder: "Hospital, university, or practice", jobTitle: "Job title", jobPlaceholder: "e.g. Otolaryngology resident", city: "City", country: "Country", backEmail: "Back to your email",
     password: "Password", passwordPlaceholder: "At least 8 characters", hidePassword: "Hide password", showPassword: "Show password", confirmPassword: "Confirm password", repeatPassword: "Repeat your password", creating: "Creating your account…", createAccount: "Create account", backDetails: "Back to your details", existingAccount: "Already have an account?", signIn: "Sign in",
+    verifyHeading: "Check your inbox.", verifyDescription: "We sent a six-digit verification code to {email}. Enter it below to finish creating your account.", verificationCode: "Verification code", codePlaceholder: "000000",
+    codeRequired: "Enter the six-digit code from the email.", verifying: "Verifying…", verify: "Verify and continue", resendCode: "Send a new code", resendIn: "You can ask for another code in {seconds}s", codeResent: "A new code is on its way to {email}.",
+    codeInvalid: "That code is not valid, or it has expired. Ask for a new one below.", codeSendError: "We could not send the verification email. Please try again in a few minutes.", useDifferentEmail: "Use a different email address",
   },
   recovery: {
     sendError: "We could not send the reset link. Please try again.", unavailable: "Password recovery is not available here yet. Please contact the Smart Surgical Team for help.", mismatch: "The two passwords do not match. Please try again.", updateError: "We could not update your password. Please request a new link and try again.",
@@ -378,7 +381,15 @@ export const en = {
     newPassword: "New password", passwordPlaceholder: "At least 8 characters", confirmPassword: "Confirm new password", confirmationPlaceholder: "Enter it again", updating: "Updating password…", updatePassword: "Update password",
     emailAddress: "Email address", emailPlaceholder: "you@example.com", sending: "Sending link…", sendLink: "Send reset link",
   },
+  completeProfile: {
+    kicker: "One more step", title: "Complete your profile.", body: "Google shared your name and email address only. Tell us where you practise so your learning space is set up properly from day one.",
+    save: "Finish setting up", saving: "Saving…", required: "Complete each field so we can personalise your learning profile.", error: "We could not save your details. Please try again.",
+    loading: "Loading your account…", signInRequired: "Sign in to finish setting up your account.", goToSignIn: "Go to sign in",
+    problemKicker: "Sign-in problem", conflictTitle: "This email already has an account.", conflictBody: "This address is already registered with a password. Sign in with your email and password instead — one email address can use one sign-in method.",
+    problemTitle: "We could not complete Google sign-in.", tryAgain: "Back to sign in",
+  },
   profile: {
+    completeProfile: "Finish your profile", completeProfileBody: "A few practice details are still missing.", completeProfileAction: "Complete",
     overview: "Overview", savedLearning: "Saved learning", events: "Events", preferences: "Preferences", accountKicker: "Your account", signedOutTitle: "Your learning profile is ready when you are.", signedOutBody: "Sign in to save cases, keep track of your learning interests, and receive considered updates from the team.", signInContinue: "Sign in to continue",
     profileLabel: "{name} profile", memberProfile: "Member profile", sections: "Profile sections", signOut: "Sign out", learningSpace: "Your learning space", welcome: "Good to have you here, {name}.", welcomeBody: "Keep the topics you care about close, and return to the library whenever you are ready to explore.",
     accountDetails: "Account details", profileChanges: "Profile changes", profileChangesBody: "Keep the name shown across your Smart Surgical Team account up to date.", fullName: "Full name", emailAddress: "Email address", emailReadOnly: "Your sign-in email cannot be changed here.", saveProfile: "Save changes", savingProfile: "Saving…", profileSaved: "Your profile has been updated.", profileSaveError: "We could not update your profile. Please try again.", nameRequired: "Enter your full name before saving.",

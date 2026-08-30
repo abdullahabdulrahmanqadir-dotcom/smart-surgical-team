@@ -1,0 +1,36 @@
+<!-- Supabase → Authentication → Emails → "Confirm signup".
+     {{ .Token }} is the six-digit code the sign-up wizard's step 4 asks for.
+     {{ .ConfirmationURL }} is kept as a fallback for anyone who would rather
+     click than type; it lands on /en/sign-in. Both confirm the same account. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0;padding:32px 0;background:#f4f7f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e3eae9;border-radius:16px;overflow:hidden;">
+        <tr>
+          <td style="padding:28px 32px 0;">
+            <p style="margin:0;color:#167a78;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Smart Surgical Team</p>
+            <h1 style="margin:12px 0 0;color:#0d3838;font-size:26px;font-weight:700;line-height:1.25;">Confirm your email address</h1>
+            <p style="margin:12px 0 0;color:#4a5c5b;font-size:15px;line-height:1.6;">Enter this six-digit code on the sign-up page to finish creating your account.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <div style="padding:18px;background:#f0f7f6;border:1px solid #cdebe5;border-radius:12px;text-align:center;color:#0d3838;font-size:32px;font-weight:700;letter-spacing:8px;">{{ .Token }}</div>
+            <p style="margin:12px 0 0;color:#71817f;font-size:13px;line-height:1.6;text-align:center;">The code expires in one hour and can be used once.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px 0;">
+            <a href="{{ .ConfirmationURL }}" style="display:block;padding:14px 20px;background:#167a78;border-radius:10px;color:#ffffff;font-size:15px;font-weight:700;text-align:center;text-decoration:none;">Or confirm with one click</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:24px 32px 28px;">
+            <p style="margin:0;color:#71817f;font-size:13px;line-height:1.6;">If you did not create a Smart Surgical Team account, you can ignore this email — nothing will happen without the code above.</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:20px 0 0;color:#8b9998;font-size:12px;">Smart Surgical Team · ssthyroid.com</p>
+    </td>
+  </tr>
+</table>

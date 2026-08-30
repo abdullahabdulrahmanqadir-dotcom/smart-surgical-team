@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import { contentThumbnailUrl } from "../lib/content-thumbnail";
+import { isAccountComplete } from "../lib/account";
 import { IconArrowRight, IconBookmark, IconCheck, IconFile, IconLock, IconLogOut, IconMail, IconPlay, IconSparkle, IconTrash, IconUser } from "./icons";
 import TopicGlyph from "./TopicGlyph";
 import { fill, type Dictionary } from "../lib/dictionaries";
@@ -31,6 +32,11 @@ export default function MemberProfile({ locale, initialMember, t }: { locale: st
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  // Google supplies a name and an email address only, so an account created
+  // that way reaches the profile without the practice details the email wizard
+  // collects. Nothing here is blocked by it — the prompt just stays visible
+  // until /complete-profile has been through.
+  const [detailsMissing, setDetailsMissing] = useState(false);
   const initials = useMemo(() => (member?.name ?? "SST").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase(), [member]);
   const memberSince = member?.createdAt ? new Intl.DateTimeFormat(locale, { month: "short", year: "numeric" }).format(new Date(member.createdAt)) : t.activeMember;
   const profileSections: { id: ProfileSection; label: string; icon: typeof IconUser }[] = [
@@ -45,6 +51,7 @@ export default function MemberProfile({ locale, initialMember, t }: { locale: st
         const client = getSupabaseBrowserClient();
         const [{ data: sessionData }, { data: userData }] = await Promise.all([client.auth.getSession(), client.auth.getUser()]);
         if (!active || !userData.user) return;
+        setDetailsMissing(!isAccountComplete(userData.user.user_metadata as Record<string, unknown> | null));
         if (userData.user.email) {
           const name = String(userData.user.user_metadata.full_name ?? userData.user.email);
           setMember({ name, email: userData.user.email, createdAt: userData.user.created_at, emailVerified: Boolean(userData.user.email_confirmed_at) });
@@ -164,6 +171,7 @@ export default function MemberProfile({ locale, initialMember, t }: { locale: st
       <aside className="profile-identity">
         <div className="profile-avatar" aria-label={fill(t.profileLabel, { name: member.name })}>{initials}</div>
         <div><span className="auth-kicker">{t.memberProfile}</span><h1>{member.name}</h1><p><IconMail size={16} />{member.email}</p></div>
+        {detailsMissing && <div className="profile-completion"><div><b>{t.completeProfile}</b><span>{t.completeProfileBody}</span></div><Link className="text-link" href={`/${locale}/complete-profile`}>{t.completeProfileAction}</Link></div>}
         <nav className="profile-nav" aria-label={t.sections}>
           {profileSections.map(({ id, label, icon: Icon }) => {
             const isActive = activeSection === id;

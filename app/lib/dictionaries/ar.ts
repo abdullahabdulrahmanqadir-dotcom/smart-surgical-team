@@ -361,7 +361,7 @@ export const ar: Dictionary = {
     existingAccount: "لديك حساب بالفعل؟", newToTeam: "جديد في Smart Surgical Team؟", createAnAccount: "إنشاء حساب",
   },
   signUp: {
-    emailStep: "البريد الإلكتروني", detailsStep: "البيانات", passwordStep: "كلمة المرور", registrationStep: "خطوة التسجيل {step} من 3", stepKicker: "الخطوة {step} من 3",
+    emailStep: "البريد الإلكتروني", detailsStep: "البيانات", passwordStep: "كلمة المرور", verifyStep: "التحقق", registrationStep: "خطوة التسجيل {step} من {total}", stepKicker: "الخطوة {step} من {total}",
     emailHeading: "لنبدأ ببريدك الإلكتروني.", detailsHeading: "أخبرنا عن ممارستك المهنية.", passwordHeading: "أمّن حسابك.",
     emailDescription: "سنستخدمه لتأمين حسابك.", detailsDescription: "تساعدنا هذه البيانات على جعل مساحتك التعليمية أكثر ملاءمة منذ اليوم الأول.", passwordDescription: "اختر كلمة مرور يسهل عليك تذكّرها. ويمكنك تحديث حسابك لاحقاً من ملفك الشخصي.",
     requestError: "تعذّر إكمال الطلب. يُرجى المحاولة مرة أخرى.", confirmationUnavailable: "تأكيد البريد الإلكتروني غير مُعدّ بعد. أضف رابط Supabase العام والمفتاح المجهول لتفعيل التسجيل.", existingEmail: "يوجد حساب بهذا البريد الإلكتروني. إذا سجلت عبر Google، فاستخدم «المتابعة عبر Google» أعلاه، أو سجّل الدخول أدناه.",
@@ -369,6 +369,9 @@ export const ar: Dictionary = {
     redirecting: "جارٍ التحويل…", continueGoogle: "المتابعة عبر Google", emailDivider: "أو استخدم بريدك الإلكتروني", emailAddress: "البريد الإلكتروني", emailPlaceholder: "you@example.com", emailHelp: "نستخدمه فقط لتأمين حسابك وإرسال التحديثات التعليمية المهمة.", continue: "متابعة",
     firstName: "الاسم الأول", lastName: "اسم العائلة", organisation: "المؤسسة", organisationPlaceholder: "مستشفى أو جامعة أو عيادة", jobTitle: "المسمى الوظيفي", jobPlaceholder: "مثلاً: طبيب مقيم في الأنف والأذن والحنجرة", city: "المدينة", country: "البلد", backEmail: "العودة إلى بريدك",
     password: "كلمة المرور", passwordPlaceholder: "8 أحرف على الأقل", hidePassword: "إخفاء كلمة المرور", showPassword: "إظهار كلمة المرور", confirmPassword: "تأكيد كلمة المرور", repeatPassword: "أعد إدخال كلمة المرور", creating: "جارٍ إنشاء حسابك…", createAccount: "إنشاء الحساب", backDetails: "العودة إلى بياناتك", existingAccount: "لديك حساب بالفعل؟", signIn: "تسجيل الدخول",
+    verifyHeading: "تحقق من بريدك الإلكتروني.", verifyDescription: "أرسلنا رمز تحقق من ستة أرقام إلى {email}. أدخله أدناه لإكمال إنشاء حسابك.", verificationCode: "رمز التحقق", codePlaceholder: "000000",
+    codeRequired: "أدخل رمز التحقق المكوّن من ستة أرقام الوارد في البريد.", verifying: "جارٍ التحقق…", verify: "تحقق وتابع", resendCode: "إرسال رمز جديد", resendIn: "يمكنك طلب رمز جديد بعد {seconds} ثانية", codeResent: "أُرسل رمز جديد إلى {email}.",
+    codeInvalid: "الرمز غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً أدناه.", codeSendError: "تعذّر إرسال بريد التحقق. يُرجى المحاولة بعد بضع دقائق.", useDifferentEmail: "استخدام بريد إلكتروني آخر",
   },
   recovery: {
     sendError: "تعذّر إرسال رابط إعادة التعيين. يُرجى المحاولة مرة أخرى.", unavailable: "استرداد كلمة المرور غير متاح هنا حالياً. يُرجى التواصل مع Smart Surgical Team للمساعدة.", mismatch: "كلمتا المرور غير متطابقتين. يُرجى المحاولة مرة أخرى.", updateError: "تعذّر تحديث كلمة المرور. اطلب رابطاً جديداً ثم حاول مرة أخرى.",
@@ -378,7 +381,15 @@ export const ar: Dictionary = {
     newPassword: "كلمة المرور الجديدة", passwordPlaceholder: "8 أحرف على الأقل", confirmPassword: "تأكيد كلمة المرور الجديدة", confirmationPlaceholder: "أدخلها مرة أخرى", updating: "جارٍ تحديث كلمة المرور…", updatePassword: "تحديث كلمة المرور",
     emailAddress: "البريد الإلكتروني", emailPlaceholder: "you@example.com", sending: "جارٍ إرسال الرابط…", sendLink: "إرسال رابط إعادة التعيين",
   },
+  completeProfile: {
+    kicker: "خطوة أخيرة", title: "أكمل ملفك الشخصي.", body: "شارك Google اسمك وبريدك الإلكتروني فقط. أخبرنا أين تمارس عملك كي نهيّئ مساحتك التعليمية منذ اليوم الأول.",
+    save: "إكمال الإعداد", saving: "جارٍ الحفظ…", required: "أكمل جميع الحقول كي نخصص ملفك التعليمي.", error: "تعذّر حفظ بياناتك. يُرجى المحاولة مرة أخرى.",
+    loading: "جارٍ تحميل حسابك…", signInRequired: "سجّل الدخول لإكمال إعداد حسابك.", goToSignIn: "الانتقال إلى تسجيل الدخول",
+    problemKicker: "مشكلة في تسجيل الدخول", conflictTitle: "يوجد حساب بهذا البريد الإلكتروني.", conflictBody: "هذا العنوان مسجّل بالفعل بكلمة مرور. سجّل الدخول ببريدك الإلكتروني وكلمة المرور بدلاً من ذلك — لكل بريد إلكتروني طريقة دخول واحدة.",
+    problemTitle: "تعذّر إكمال تسجيل الدخول عبر Google.", tryAgain: "العودة إلى تسجيل الدخول",
+  },
   profile: {
+    completeProfile: "أكمل ملفك الشخصي", completeProfileBody: "لا تزال بعض بيانات ممارستك المهنية ناقصة.", completeProfileAction: "إكمال",
     overview: "نظرة عامة", savedLearning: "المواد المحفوظة", events: "الفعاليات", preferences: "التفضيلات", accountKicker: "حسابك", signedOutTitle: "ملفك التعليمي جاهز متى كنت جاهزاً.", signedOutBody: "سجّل الدخول لحفظ الحالات ومتابعة اهتماماتك التعليمية وتلقي تحديثات منتقاة من الفريق.", signInContinue: "تسجيل الدخول للمتابعة",
     profileLabel: "الملف الشخصي لـ {name}", memberProfile: "ملف العضو", sections: "أقسام الملف الشخصي", signOut: "تسجيل الخروج", learningSpace: "مساحتك التعليمية", welcome: "يسعدنا وجودك هنا، {name}.", welcomeBody: "أبقِ المواضيع التي تهمك قريبة، وعُد إلى المكتبة متى كنت مستعداً للاستكشاف.",
     accountDetails: "تفاصيل الحساب", profileChanges: "تعديلات الملف الشخصي", profileChangesBody: "حافظ على تحديث الاسم الظاهر في حسابك لدى Smart Surgical Team.", fullName: "الاسم الكامل", emailAddress: "البريد الإلكتروني", emailReadOnly: "لا يمكن تغيير بريد تسجيل الدخول من هنا.", saveProfile: "حفظ التغييرات", savingProfile: "جارٍ الحفظ…", profileSaved: "تم تحديث ملفك الشخصي.", profileSaveError: "تعذّر تحديث ملفك الشخصي. يُرجى المحاولة مرة أخرى.", nameRequired: "أدخل اسمك الكامل قبل الحفظ.",
