@@ -581,26 +581,40 @@ input {
   transition: color 0.22s ease, opacity 0.22s ease;
 }
 
+/* Each track glyph sits on the side the knob is not on, so the knob never
+   covers it: light shows the moon it can switch to, dark shows the sun. */
 .theme-toggle-glyph-sun {
   inset-inline-start: 7px;
-  color: var(--brand-copper);
+  opacity: 0;
 }
 
 .theme-toggle-glyph-moon {
   inset-inline-end: 7px;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
 .theme-toggle-knob {
   position: absolute;
   inset-block-start: 3px;
   inset-inline-start: 3px;
+  display: grid;
+  place-items: center;
   width: 20px;
   height: 20px;
   border-radius: 50%;
   background: var(--surface);
+  color: var(--brand-copper);
   box-shadow: 0 1px 3px rgba(64, 50, 42, 0.28);
-  transition: inset-inline-start 0.22s ease, background 0.22s ease;
+  transition: inset-inline-start 0.22s ease, background 0.22s ease, color 0.22s ease;
+}
+
+.theme-toggle-knob-moon,
+[data-theme="dark"] .theme-toggle-knob-sun {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle-knob-moon {
+  display: block;
 }
 
 [data-theme="dark"] .theme-toggle-track {
@@ -611,16 +625,15 @@ input {
 [data-theme="dark"] .theme-toggle-knob {
   inset-inline-start: 27px;
   background: var(--primary);
+  color: var(--on-primary);
 }
 
 [data-theme="dark"] .theme-toggle-glyph-sun {
-  opacity: 0.45;
-  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 [data-theme="dark"] .theme-toggle-glyph-moon {
-  opacity: 1;
-  color: var(--primary-strong);
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -703,7 +716,8 @@ input {
 .mobile-profile { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; border: 1px solid var(--line); background: var(--surface); color: var(--text-muted); }
 .mobile-profile:hover { border-color: var(--line-strong); background: var(--surface-2); color: var(--brand-brown); }
 /* The header avatar is the circle itself — no button chrome around it. */
-.header-profile { display: inline-grid; place-items: center; padding: 0; border: 0; background: none; border-radius: 50%; }
+/* Padding, not chrome, keeps the bare circle at a 44px touch target. */
+.header-profile { display: inline-grid; place-items: center; padding: .3rem; border: 0; background: none; border-radius: 50%; }
 .header-profile:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
 .header-profile .header-profile-avatar { width: 2.15rem; height: 2.15rem; font-size: .8rem; transition: background .18s, color .18s, box-shadow .18s; }
 .header-profile:hover .header-profile-avatar { box-shadow: 0 0 0 2px var(--primary-soft); }

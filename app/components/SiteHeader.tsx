@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { BrandMark, IconChevronDown, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -14,6 +14,18 @@ type HeaderUser = { id?: string; email?: string; user_metadata?: Record<string, 
 // Mirrors STAFF_ROLES in app/lib/admin-server.ts. The link is a convenience
 // only: /admin re-checks the role on the server before showing anything.
 const STAFF_ROLES = ["owner", "content_manager", "editor", "contributor"];
+
+// <html data-theme> is written by the inline script in the layout and by the
+// switch below, so it is the single source of truth for the active mode.
+function getThemeIsDark() {
+  return document.documentElement.dataset.theme === "dark";
+}
+
+function subscribeToTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
 
 // One dropdown, used by both the desktop bar and the mobile sheet. `open` is
 // controlled so that choosing a link closes it; the functional update stops a
@@ -68,10 +80,11 @@ export default function SiteHeader({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [member, setMember] = useState<HeaderMember | null>(null);
   const [isStaff, setIsStaff] = useState(false);
-  // The switch is positioned by CSS from <html data-theme>, so this state exists
-  // only to publish the checked state to screen readers. It starts false to match
-  // the server render and is corrected on mount.
-  const [isDark, setIsDark] = useState(false);
+  // The switch is positioned by CSS from <html data-theme>; this only mirrors
+  // that attribute so the checked state reaches assistive tech. Reading it
+  // through useSyncExternalStore keeps the server snapshot (false) and the
+  // post-hydration value in step without a state write during render.
+  const isDark = useSyncExternalStore(subscribeToTheme, getThemeIsDark, () => false);
 
   const home = localePath(locale);
 
@@ -95,10 +108,6 @@ export default function SiteHeader({
     [dict.nav.about, localePath(locale, "about")],
     [dict.nav.contact, localePath(locale, "contact")],
   ];
-
-  useEffect(() => {
-    setIsDark(document.documentElement.dataset.theme === "dark");
-  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("nav-open", menuOpen);
@@ -161,7 +170,6 @@ export default function SiteHeader({
     // with the rendered colours. `isDark` only mirrors it for assistive tech.
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
-    setIsDark(next === "dark");
     try {
       localStorage.setItem("sst-theme", next);
     } catch {
@@ -232,7 +240,10 @@ export default function SiteHeader({
             <span className="theme-toggle-track" aria-hidden="true">
               <IconSun className="theme-toggle-glyph theme-toggle-glyph-sun" size={13} />
               <IconMoon className="theme-toggle-glyph theme-toggle-glyph-moon" size={13} />
-              <span className="theme-toggle-knob" />
+              <span className="theme-toggle-knob">
+                <IconSun className="theme-toggle-knob-icon theme-toggle-knob-sun" size={12} />
+                <IconMoon className="theme-toggle-knob-icon theme-toggle-knob-moon" size={12} />
+              </span>
             </span>
           </button>
 
