@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "./cache-tags";
 import { researchCoverPath } from "./research-cover";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { noteDegradedRead } from "../../lib/render-health";
 import { TEAM_GROUPS } from "./team";
 
 /**
@@ -152,6 +153,9 @@ async function safeResearches(): Promise<Publication[]> {
     return await cachedResearches();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    // Degraded, not empty — see `lib/render-health.ts`. The distinction keeps
+    // this one bad response from being cached as the state of the site.
+    noteDegradedRead();
     return [];
   }
 }
@@ -187,6 +191,9 @@ export async function getResearchTopics(): Promise<ResearchTopicTree[]> {
     return await cachedTopicTree();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    // Degraded, not empty — see `lib/render-health.ts`. The distinction keeps
+    // this one bad response from being cached as the state of the site.
+    noteDegradedRead();
     return [];
   }
 }

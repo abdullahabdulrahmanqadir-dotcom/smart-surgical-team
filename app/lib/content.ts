@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { noteDegradedRead } from "../../lib/render-health";
 import { CACHE_TAGS } from "./cache-tags";
 import type { CaseSection, ContentCard, ContentKind, ContentRecord } from "./content-types";
 
@@ -301,6 +302,9 @@ async function safeCards(): Promise<ContentCard[]> {
     return await cachedCards();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    // An empty catalogue is the right answer for this one response and the
+    // wrong thing to cache as the site's HTML. See `lib/render-health.ts`.
+    noteDegradedRead();
     return [];
   }
 }
@@ -322,6 +326,7 @@ async function safeRecord(identifier: string, includeMembersOnly: boolean) {
     return await cachedRecord(identifier, includeMembersOnly);
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    noteDegradedRead();
     return null;
   }
 }

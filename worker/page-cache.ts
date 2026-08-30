@@ -1,3 +1,5 @@
+import { degradationMarker } from "../lib/render-health";
+
 // Deliberately still v1 after adding /:locale/news to PUBLIC_DOCUMENT below.
 // The convention is to bump this whenever the cached-route rules change, so
 // entries stored under the old semantics are never reused — but here the change
@@ -77,22 +79,49 @@ function cacheableRenderedResponse(response: Response): boolean {
     && !response.headers.has("set-cookie");
 }
 
-async function writeCaches(request: Request, env: PageCacheEnv, response: Response): Promise<void> {
+async function writeCaches(
+  request: Request,
+  env: PageCacheEnv,
+  response: Response,
+  marker: number,
+): Promise<void> {
   if (!env.VINEXT_CACHE || !response.body || !cacheableRenderedResponse(response)) return;
 
   const contentType = response.headers.get("content-type") ?? "text/html; charset=utf-8";
   const metadata: PageCacheMetadata = { storedAt: Date.now(), contentType };
+  const key = pageCacheKey(request);
 
   // Write one stream on the expensive render path. The first KV hit promotes
   // it into the regional Cache API; avoiding a second tee here reduces CPU and
   // backpressure on the request that had to render the page.
-  await env.VINEXT_CACHE.put(pageCacheKey(request), response.body, {
+  await env.VINEXT_CACHE.put(key, response.body, {
     expirationTtl: STALE_FALLBACK_SECONDS,
     metadata,
   });
+
+  // Only now is the page known to be whole. The document streams, so a
+  // Supabase read can still fail long after `render()` resolved — the check
+  // has to wait until the body has ended, which is what the `put` above
+  // awaits. A section that was dropped from this one response must not be
+  // dropped from every response for the next day, so the entry goes back out.
+  //
+  // Deleting after writing, rather than deciding before, is what makes this
+  // safe against a partial write too: whatever happens, no degraded document
+  // is left addressable.
+  if (degradationMarker() !== marker) {
+    await env.VINEXT_CACHE.delete(key);
+  }
 }
 
-async function renderAndStore(request: Request, env: PageCacheEnv, render: RenderPage): Promise<Response> {
+async function renderAndStore(
+  request: Request,
+  env: PageCacheEnv,
+  ctx: WorkerContext,
+  render: RenderPage,
+): Promise<Response> {
+  // Taken before the render begins, so a read that degrades while the shell is
+  // still being assembled is counted along with the ones that degrade later.
+  const marker = degradationMarker();
   const response = await render();
   if (!cacheableRenderedResponse(response) || !env.VINEXT_CACHE) return response;
 
@@ -103,14 +132,17 @@ async function renderAndStore(request: Request, env: PageCacheEnv, render: Rende
   );
   browserResponse.headers.set("x-sst-page-cache", "MISS");
 
-  // The caller clones this response before returning it, so both the browser
-  // and the background cache write can consume their own stream branch.
+  // Both the browser and the background write get their own branch of the
+  // stream. Cloning here rather than in the caller keeps `marker` — which is
+  // only meaningful next to the `render()` it was taken around — local.
+  ctx.waitUntil(writeCaches(request, env, browserResponse.clone(), marker));
   return browserResponse;
 }
 
 async function refreshInBackground(request: Request, env: PageCacheEnv, render: RenderPage): Promise<void> {
+  const marker = degradationMarker();
   const response = await render();
-  await writeCaches(request, env, response);
+  await writeCaches(request, env, response, marker);
 }
 
 export async function servePublicDocument(
@@ -145,9 +177,5 @@ export async function servePublicDocument(
     return response;
   }
 
-  const rendered = await renderAndStore(request, env, render);
-  if (rendered.headers.get("x-sst-page-cache") === "MISS") {
-    ctx.waitUntil(writeCaches(request, env, rendered.clone()));
-  }
-  return rendered;
+  return renderAndStore(request, env, ctx, render);
 }

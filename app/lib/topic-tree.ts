@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { noteDegradedRead } from "../../lib/render-health";
 import { CACHE_TAGS } from "./cache-tags";
 import { PUBLIC_TOPIC_GROUPS, type SubTopic, type TopicGroup } from "./topics";
 
@@ -86,6 +87,9 @@ export async function getPublicTopicTree(): Promise<TopicGroup[]> {
     rows = await cachedTopicRows();
   } catch (error) {
     console.error("Could not read the topic tree:", error);
+    // The merge below still yields the code-defined groups, so the page holds
+    // together — but without the admin's subtopics. See `lib/render-health.ts`.
+    noteDegradedRead();
   }
   return merge(PUBLIC_TOPIC_GROUPS, rows);
 }

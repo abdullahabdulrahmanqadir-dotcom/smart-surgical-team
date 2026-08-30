@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "./cache-tags";
 import { isNewsRelationType, resolveNewsSections, type NewsCategory, type NewsItem } from "./news-data";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
+import { noteDegradedRead } from "../../lib/render-health";
 
 /**
  * Server-side news reads.
@@ -115,6 +116,9 @@ export async function getNewsItems(): Promise<NewsItem[]> {
     return await cachedNewsItems();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    // Degraded, not empty — see `lib/render-health.ts`. The distinction keeps
+    // this one bad response from being cached as the state of the site.
+    noteDegradedRead();
     return [];
   }
 }
@@ -156,6 +160,9 @@ export async function getNewsCategories(): Promise<NewsCategory[]> {
     return await cachedNewsCategories();
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
+    // Degraded, not empty — see `lib/render-health.ts`. The distinction keeps
+    // this one bad response from being cached as the state of the site.
+    noteDegradedRead();
     return [];
   }
 }

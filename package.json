@@ -9,7 +9,7 @@
     "dev": "node scripts/vinext.mjs dev",
     "build": "node scripts/vinext.mjs build",
     "start": "node scripts/vinext.mjs start",
-    "test": "npm run build && node --import ./tests/register-hooks.mjs --test tests/rendered-html.test.mjs tests/news-rules.test.mjs tests/page-cache.test.mjs tests/service-worker.test.mjs tests/service-worker-navigation.test.mjs",
+    "test": "npm run build && node --import ./tests/register-hooks.mjs --test tests/rendered-html.test.mjs tests/news-rules.test.mjs tests/page-cache.test.mjs tests/page-cache-degraded.test.mjs tests/service-worker.test.mjs tests/service-worker-navigation.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
