@@ -116,23 +116,44 @@ const LEGACY_PATHS: Record<string, string> = {
 /** Locale prefix every redirect target gets. The old site was English-only. */
 const LEGACY_LOCALE = "en";
 
+/** The canonical hostname. Everything else that reaches us folds onto it. */
+const CANONICAL_HOST = "ssthyroid.com";
+
 /**
- * A 301 for a legacy URL, or null when the path is not one.
+ * Hostnames that serve the same site but must not be indexed as separate
+ * copies of it.
  *
- * Also folds `www` onto the apex: the old site was indexed entirely under
- * `www.ssthyroid.com`, so without this every inbound link would either serve
- * duplicate content or take a second hop. Doing both in one step keeps an old
- * `www` link to a single redirect.
+ * `www` because the old site was indexed entirely under it. The bare
+ * workers.dev hostname because it is still a complete second copy of the site
+ * declaring itself canonical, which splits ranking between the two.
+ *
+ * Matched exactly, never by suffix: wrangler's version-preview hostnames are
+ * `<version>-smart.ssteam.workers.dev`, and those have to keep working as the
+ * way to reach a deployment directly when the real domain is misbehaving.
+ */
+const ALIAS_HOSTS = new Set(["www.ssthyroid.com", "smart.ssteam.workers.dev"]);
+
+/**
+ * A 301 onto the canonical host and, where the path is an old one, onto its new
+ * home — both in a single hop, so an old inbound link never chains redirects.
+ *
+ * Returns null for anything already canonical, which is every request on the
+ * apex that is not a legacy path, plus localhost and the preview hostnames.
  */
 export function legacyRedirect(url: URL): Response | null {
-  const isWww = url.hostname === "www.ssthyroid.com";
+  const isAlias = ALIAS_HOSTS.has(url.hostname);
   const key = decodeURIComponent(url.pathname).replace(/^\/+|\/+$/g, "").toLowerCase();
   const mapped = Object.prototype.hasOwnProperty.call(LEGACY_PATHS, key) ? LEGACY_PATHS[key] : undefined;
 
-  if (mapped === undefined && !isWww) return null;
+  if (mapped === undefined && !isAlias) return null;
 
   const target = new URL(url.toString());
-  if (isWww) target.hostname = "ssthyroid.com";
+  if (isAlias) {
+    target.hostname = CANONICAL_HOST;
+    // The alias may have been reached over http while the apex is https-only.
+    target.protocol = "https:";
+    target.port = "";
+  }
   if (mapped !== undefined) target.pathname = mapped ? `/${LEGACY_LOCALE}/${mapped}` : `/${LEGACY_LOCALE}`;
 
   if (target.toString() === url.toString()) return null;
