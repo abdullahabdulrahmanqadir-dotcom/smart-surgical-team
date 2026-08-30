@@ -42,6 +42,46 @@ prose at all — only a video embedded from Google Drive, which the site's playe
 cannot play. It needs its video re-hosted (YouTube, or R2 as a direct file)
 before it can be published.
 
+## Audit of the import (2026-08-30)
+
+Every imported record was diffed back against the archived source page.
+
+**Images — clean.** All 81 files trace to their own legacy page: each is either
+in that page's own body elements or is that page's own declared cover. Nothing
+leaked between records, and no duplicate renditions remain.
+
+Three files are genuinely shared between two posts, by the old site's own doing,
+not by the import:
+
+- `1-A3Qp6zpZ88tVn3aP.webp` and `1-YZ92BJXqlPc9WEek.webp` are in the body of both
+  `48-year-old-female-with-neck-swelling` and the TIRADS teaching post, where they
+  are Picture 1 and Picture 2.
+- `eda211e9-…-YKbJGBNgppI1DKVB.jpg` is the declared cover of *both* the anaplastic
+  and tall-cell posts, and sits in the tall-cell post's body.
+
+Because that first pair is shared, the 48-year-old record has no patient history,
+no procedure and no outcome — only a radiology description illustrated with two
+images the teaching post also uses. **It is filed as a clinical case but reads as
+a radiology teaching item;** worth re-checking with the client.
+
+**Two defects were found and fixed:**
+
+1. The dermatofibrosarcoma case had lost the source post's entire *Figure Legend*
+   block (Figure 1 A–E, Figure 2 A–B) when its prose was folded into the five
+   canonical sections — 63 words. Restored as an inline lead-in, in source order.
+2. `thyroglossal-duct-cyst-tgdc` showed the same picture twice: its cover was a
+   second Zyro rendition of an image already in its body. The duplicate is gone;
+   it now has 4 images.
+
+A "Worked examples" section on the TIRADS record had been written here rather
+than taken from the source, and was removed.
+
+**Edits knowingly made to source prose.** Unit formatting was normalised
+(`15x12mm` → `15 × 12 mm`, `1:3000` → `1:3,000`), and a few obvious typos were
+corrected: `hypoid` → `hyoid`, `reposted` → `reported`, `lymph nods` → `lymph
+nodes`, `with out` → `without`. A stray footnote marker was dropped from the
+agenesis text. No clinical figure, measurement or finding was changed.
+
 ## Deliberately not migrated
 
 These were reviewed on 2026-08-30 and left behind by decision, not oversight.
