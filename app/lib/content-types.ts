@@ -88,6 +88,8 @@ export type ContentCard = {
   beforeUrl?: string;
   afterUrl?: string;
   accessLevel?: "public" | "members_only";
+  /** Teaching & reference material rather than a clinical case (migration 0022). */
+  isTeaching?: boolean;
 };
 
 export type ContentRecord = ContentCard & {

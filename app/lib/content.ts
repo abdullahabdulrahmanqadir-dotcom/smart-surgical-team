@@ -50,6 +50,7 @@ type ContentBaseRow = {
   level: string | null;
   published_at: string | null;
   access_level: "public" | "members_only" | null;
+  is_teaching: boolean | null;
   content_topics: OneOrMany<{ topics: OneOrMany<TopicRow> }>;
 };
 
@@ -75,7 +76,7 @@ type FullRow = ContentBaseRow & {
 };
 
 const BASE_COLUMNS =
-  "id,title,slug,summary,kind,video_url,thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,access_level,content_topics(topics(name,slug))";
+  "id,title,slug,summary,kind,video_url,thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,access_level,is_teaching,content_topics(topics(name,slug))";
 
 const CARD_SELECT = `${BASE_COLUMNS},content_media(storage_path,public_url)`;
 
@@ -164,6 +165,7 @@ function mapBase(row: ContentBaseRow, artwork: ThumbnailUrls): ContentCard {
     beforeUrl: artwork.beforeUrl,
     afterUrl: artwork.afterUrl,
     accessLevel: row.access_level ?? "public",
+    isTeaching: row.is_teaching ?? false,
   };
 }
 

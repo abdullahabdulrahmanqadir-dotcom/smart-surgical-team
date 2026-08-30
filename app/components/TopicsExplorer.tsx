@@ -47,7 +47,10 @@ function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIco
         </span>}
       </div>
       <div className="content-case-copy">
-        <p className="content-case-topic">{item.subTopic}</p>
+        <p className="content-case-topic">
+          {item.subTopic}
+          {item.isTeaching ? <span className="content-case-tag">{t.teachingBadge}</span> : null}
+        </p>
         <h3 {...authoredTitleProps(item.title)}>{item.title}</h3>
         <p className="content-case-summary">{item.summary}</p>
         <div className="content-case-meta">
@@ -178,7 +181,13 @@ export default function TopicsExplorer({
     const searchTerm = searchQuery.trim().toLocaleLowerCase();
     const matchesTopic = subTopic === "all" || item.subTopicNames.includes(subTopic);
     const matchesYear = year === "all" || item.publishedAt?.startsWith(year);
-    const matchesFormat = format === "all" || (format === "video" ? item.hasVideo : !item.hasVideo);
+    // "All formats" shows everything; the three explicit choices are mutually
+    // exclusive, so teaching material never turns up under video or article.
+    const matchesFormat =
+      format === "all" ||
+      (format === "teaching"
+        ? item.isTeaching
+        : !item.isTeaching && (format === "video" ? item.hasVideo : !item.hasVideo));
     const matchesSearch = !searchTerm || [item.title, item.summary, item.subTopic, item.date]
       .join(" ")
       .toLocaleLowerCase()
@@ -338,6 +347,7 @@ export default function TopicsExplorer({
               { value: "all", label: t.allFormats },
               { value: "video", label: t.videoLessons },
               { value: "article", label: t.articlesResources },
+              { value: "teaching", label: t.teachingReference },
             ]}
             onChange={setFormat}
           />

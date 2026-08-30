@@ -150,7 +150,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "content") {
     const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,"
       + (posterCtaColumns ? "poster_cta_text,poster_cta_url," : "")
-      + "thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+      + "thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,is_teaching,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
       + (caseSectionsColumn ? "case_sections," : "")
       + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
     const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
@@ -306,6 +306,10 @@ export async function POST(request: Request, context: RouteContext) {
       duration_seconds: Number.isFinite(Number(body.duration_seconds)) && Number(body.duration_seconds) > 0 ? Number(body.duration_seconds) : null,
       reading_minutes: Number.isFinite(Number(body.reading_minutes)) && Number(body.reading_minutes) > 0 ? Number(body.reading_minutes) : null,
       level: optionalText(body.level), contributor_id: contributorIds[0] ?? optionalText(body.contributor_id),
+      // Teaching & reference material rather than a clinical case (0022). Only
+      // ever true when the editor asked for it, so an older client that does
+      // not send the field leaves a record a case.
+      is_teaching: body.is_teaching === true || text(body.is_teaching) === "true",
       case_sections: caseSections.length ? caseSections : null,
       // A save that carries sections defines the legacy columns entirely: a
       // built-in section the editor removed or renamed away must clear its

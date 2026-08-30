@@ -1525,7 +1525,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-case-art-glyph .topic-image-icon { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1) brightness(4); opacity: .42; }
 .content-case-card:hover .content-case-art-glyph { transform: translateY(-3px) scale(1.04); }
 .content-case-copy { display: flex; flex: 1; flex-direction: column; padding: 1.15rem; }
-.content-case-topic { color: var(--primary); font-size: .7rem; font-weight: 750; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.content-case-topic { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; color: var(--primary); font-size: .7rem; font-weight: 750; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+/* Teaching & reference items sit in the topic grids beside cases, so the
+   card says which it is. Neutral rather than coloured: the subtopic label
+   next to it already cycles through the brand accents. */
+.content-case-tag { padding: .12rem .42rem; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text-muted); font-size: .62rem; font-weight: 700; letter-spacing: var(--tracking-label); }
 .content-case-copy h3 { margin-top: .4rem; font-size: 1.05rem; line-height: 1.32; letter-spacing: var(--tracking-snug); text-wrap: balance; }
 .content-case-summary { display: -webkit-box; margin-top: .65rem; overflow: hidden; color: var(--text-muted); font-size: .83rem; line-height: 1.58; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .content-case-meta { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: auto; padding-top: 1rem; color: var(--text-soft); font-size: .75rem; }
