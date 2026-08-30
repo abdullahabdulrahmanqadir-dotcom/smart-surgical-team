@@ -9,7 +9,16 @@
 // placeholder items still hold those pages in `sst-pages-v2`, and `activate`
 // deletes every `sst-` cache that is not a current name. Without the bump those
 // readers keep their withdrawn copies.
-const VERSION = "v3";
+// Bumped to v4 on 2026-08-30 with the navigation rewrite below. Writes used to
+// be awaited on the response path, so a write cut short by a closing tab could
+// leave a partial document behind; nothing under the old rules is reused.
+const VERSION = "v4";
+
+// A stalled connection used to mean an indefinitely blank window: the fetch
+// never settled, so neither the network's page nor the saved one was shown, and
+// nothing told the reader to try again. Past this point the saved copy is
+// served and the network keeps running to refresh it for next time.
+const NETWORK_TIMEOUT_MS = 4000;
 const PAGE_CACHE = `sst-pages-${VERSION}`;
 const ASSET_CACHE = `sst-assets-${VERSION}`;
 const CACHE_NAMES = new Set([PAGE_CACHE, ASSET_CACHE]);
@@ -56,16 +65,50 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
-async function publicNavigation(request) {
+/**
+ * Saving a page must never be able to fail the navigation that produced it.
+ *
+ * This was `await cache.put(...)` on the response path, and the reader saw both
+ * consequences. The document had to arrive in full and be written to disk
+ * before the browser was handed a single byte, so a streamed page painted only
+ * at the end; and a rejected write — a full quota, storage denied in a private
+ * window — threw into the offline branch below, answering a perfectly good 200
+ * with the offline page. Both read as a page that came up empty for no reason.
+ */
+function storeInBackground(event, cache, request, response) {
+  event.waitUntil(cache.put(request, response).catch(() => undefined));
+}
+
+/** Resolves with `fallback` if `promise` has not settled within the timeout. */
+function withTimeout(promise, fallback) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(fallback), NETWORK_TIMEOUT_MS);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
+async function publicNavigation(event) {
+  const request = event.request;
   const cache = await caches.open(PAGE_CACHE);
   const cached = await cache.match(request);
 
+  const network = fetch(request).then((response) => {
+    if (mayStore(response)) storeInBackground(event, cache, request, response.clone());
+    return response;
+  });
+  // Whichever branch below consumes this promise handles its rejection. The
+  // no-op keeps it from being reported as unhandled in the case where the
+  // timeout wins the race and nothing is awaiting it on this turn.
+  network.catch(() => undefined);
+
   try {
-    const response = await fetch(request);
-    if (mayStore(response)) {
-      await cache.put(request, response.clone());
-      return response;
-    }
+    // Without a saved copy there is no alternative to fall back to, so never
+    // cut the network short: a slow first visit still has to be waited out.
+    const response = cached ? await withTimeout(network, cached) : await network;
+    if (response === cached) return cached;
     // A response that simply must not be *stored* — `no-store`, `private` — is
     // still the truth, and is served as it is. Only an unsuccessful one falls
     // back to the last known-good page, which is what this branch is for: an
@@ -80,11 +123,38 @@ async function publicNavigation(request) {
     const localeFallback = new URL(request.url).pathname.startsWith("/ar") ? "/ar" : "/en";
     const home = await cache.match(localeFallback);
     if (home) return home;
-    return new Response("You are offline and this page has not been saved on this device yet.", {
-      status: 503,
-      headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
-    });
+    return offlineDocument(request);
   }
+}
+
+/**
+ * The last resort: offline, and this page has never been saved on this device.
+ *
+ * It used to be one line of `text/plain`, which in a browser window is
+ * indistinguishable from the site having loaded and rendered nothing — the
+ * exact failure this file exists to prevent. A page that says what happened and
+ * carries its own retry button is the difference between a reader who tries
+ * again and one who assumes the site is broken.
+ */
+function offlineDocument(request) {
+  const arabic = new URL(request.url).pathname.startsWith("/ar");
+  const copy = arabic
+    ? { lang: "ar", dir: "rtl", title: "لا يوجد اتصال بالإنترنت", body: "لم يتم حفظ هذه الصفحة على هذا الجهاز بعد. تحقق من اتصالك ثم حاول مرة أخرى.", retry: "إعادة المحاولة" }
+    : { lang: "en", dir: "ltr", title: "You are offline", body: "This page has not been saved on this device yet. Check your connection and try again.", retry: "Try again" };
+
+  const html = `<!doctype html><html lang="${copy.lang}" dir="${copy.dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${copy.title}</title><style>
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2rem; background: #faf7f1; color: #40322a; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center; }
+main { max-width: 26rem; }
+h1 { margin: 0 0 .75rem; font-size: 1.5rem; font-weight: 600; }
+p { margin: 0 0 1.75rem; color: #6b5b4e; }
+button { padding: .7rem 1.6rem; border: 0; border-radius: 999px; background: #167a78; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+@media (prefers-color-scheme: dark) { body { background: #1b1512; color: #f5efe6; } p { color: #b9a99b; } button { background: #4aa9a5; color: #0b2321; } }
+</style></head><body><main><h1>${copy.title}</h1><p>${copy.body}</p><button type="button" onclick="location.reload()">${copy.retry}</button></main></body></html>`;
+
+  return new Response(html, {
+    status: 503,
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+  });
 }
 
 async function immutableAsset(request) {
@@ -119,7 +189,7 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     // Query-bearing documents and all account/admin screens remain network-only.
-    if (!url.search && PUBLIC_DOCUMENT.test(url.pathname)) event.respondWith(publicNavigation(request));
+    if (!url.search && PUBLIC_DOCUMENT.test(url.pathname)) event.respondWith(publicNavigation(event));
     return;
   }
 
