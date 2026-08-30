@@ -27,19 +27,20 @@ function canUseContentDatabase() {
 
 type TopicRow = { id: string; name: string | null; slug: string | null; parent_id: string | null; sort_order: number | null };
 
+/**
+ * Throws on failure so it is never cached. `merge` already treats a null as
+ * "keep the hardcoded subtopics", but caching that null would hold the site on
+ * the fallback taxonomy for the whole revalidate window rather than for the one
+ * request that actually failed.
+ */
 async function fetchTopicRows(): Promise<TopicRow[] | null> {
   if (!canUseContentDatabase()) return null;
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("topics")
-      .select("id,name,slug,parent_id,sort_order")
-      .order("sort_order");
-    if (error) throw error;
-    return (data ?? []) as TopicRow[];
-  } catch (error) {
-    console.error("Could not read the topic tree:", error);
-    return null;
-  }
+  const { data, error } = await getSupabaseServerClient()
+    .from("topics")
+    .select("id,name,slug,parent_id,sort_order")
+    .order("sort_order");
+  if (error) throw error;
+  return (data ?? []) as TopicRow[];
 }
 
 // Shares the content tag, so the admin's topic write — which already expires
@@ -80,7 +81,13 @@ function merge(groups: TopicGroup[], rows: TopicRow[] | null): TopicGroup[] {
 
 /** Every visible group, subtopics included. */
 export async function getPublicTopicTree(): Promise<TopicGroup[]> {
-  return merge(PUBLIC_TOPIC_GROUPS, await cachedTopicRows());
+  let rows: TopicRow[] | null = null;
+  try {
+    rows = await cachedTopicRows();
+  } catch (error) {
+    console.error("Could not read the topic tree:", error);
+  }
+  return merge(PUBLIC_TOPIC_GROUPS, rows);
 }
 
 /** One group by slug, or undefined when the slug is not a public major topic. */

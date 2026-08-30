@@ -128,23 +128,36 @@ function mapRow(row: ResearchRow): Publication {
   });
 }
 
+/**
+ * Throws rather than returning an empty list when the query fails: the result
+ * of this function is cached, and an empty list is a legitimate thing to cache.
+ * A single failure would otherwise publish "nothing here" for the whole
+ * revalidate window. Callers degrade outside the cache instead.
+ */
 async function fetchResearches(): Promise<Publication[]> {
   if (!canUseDatabase()) return [];
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("researches")
-      .select(RESEARCH_SELECT)
-      .eq("status", "published")
-      .order("published_date", { ascending: false });
-    if (error) { console.error("published researches query failed:", error.message); return []; }
-    return (data as unknown as ResearchRow[]).map(mapRow);
-  } catch { return []; }
+  const { data, error } = await getSupabaseServerClient()
+    .from("researches")
+    .select(RESEARCH_SELECT)
+    .eq("status", "published")
+    .order("published_date", { ascending: false });
+  if (error) throw new Error(`published researches query failed: ${error.message}`);
+  return ((data ?? []) as unknown as ResearchRow[]).map(mapRow);
 }
 
 const cachedResearches = unstable_cache(fetchResearches, ["published-researches"], { revalidate: REVALIDATE_SECONDS, tags: [RESEARCH_CACHE_TAG] });
 
+async function safeResearches(): Promise<Publication[]> {
+  try {
+    return await cachedResearches();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 export async function getResearches(): Promise<Publication[]> {
-  return cachedResearches();
+  return safeResearches();
 }
 
 /** A topic with its subtopics, in the order the admin arranged them. */
@@ -152,32 +165,35 @@ export type ResearchTopicTree = ResearchTopic & { palette: string; subtopics: Re
 
 async function fetchTopicTree(): Promise<ResearchTopicTree[]> {
   if (!canUseDatabase()) return [];
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("research_topics")
-      .select("id,name,slug,palette,parent_id,sort_order")
-      .order("sort_order", { ascending: true });
-    if (error) { console.error("research topics query failed:", error.message); return []; }
-    const rows = (data ?? []) as { id: string; name: string; slug: string; palette: string; parent_id: string | null }[];
-    return rows.filter((row) => !row.parent_id).map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      palette: row.palette,
-      subtopics: rows.filter((child) => child.parent_id === row.id).map((child) => ({ id: child.id, name: child.name, slug: child.slug })),
-    }));
-  } catch { return []; }
+  const { data, error } = await getSupabaseServerClient()
+    .from("research_topics")
+    .select("id,name,slug,palette,parent_id,sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(`research topics query failed: ${error.message}`);
+  const rows = (data ?? []) as { id: string; name: string; slug: string; palette: string; parent_id: string | null }[];
+  return rows.filter((row) => !row.parent_id).map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    palette: row.palette,
+    subtopics: rows.filter((child) => child.parent_id === row.id).map((child) => ({ id: child.id, name: child.name, slug: child.slug })),
+  }));
 }
 
 const cachedTopicTree = unstable_cache(fetchTopicTree, ["research-topic-tree"], { revalidate: REVALIDATE_SECONDS, tags: [RESEARCH_CACHE_TAG] });
 
 export async function getResearchTopics(): Promise<ResearchTopicTree[]> {
-  return cachedTopicTree();
+  try {
+    return await cachedTopicTree();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 /** Finds one publication for its public, stable detail URL. */
 export async function getResearchById(id: string): Promise<Publication | undefined> {
   const numericId = Number(id);
   if (!Number.isSafeInteger(numericId) || numericId < 1) return undefined;
-  return (await cachedResearches()).find((paper) => paper.id === numericId);
+  return (await safeResearches()).find((paper) => paper.id === numericId);
 }

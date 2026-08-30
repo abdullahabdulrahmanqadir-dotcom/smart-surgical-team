@@ -91,23 +91,32 @@ function mapRow(row: NewsRow): NewsItem {
   };
 }
 
+/**
+ * Throws rather than returning an empty list when the query fails: the result
+ * of this function is cached, and an empty list is a legitimate thing to cache.
+ * A single failure would otherwise publish "nothing here" for the whole
+ * revalidate window. Callers degrade outside the cache instead.
+ */
 async function fetchNewsItems(): Promise<NewsItem[]> {
   if (!canUseDatabase()) return [];
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("news_items")
-      .select(NEWS_SELECT)
-      .eq("status", "published")
-      .order("published_at", { ascending: false, nullsFirst: false });
-    if (error) { console.error("published news query failed:", error.message); return []; }
-    return (data as unknown as NewsRow[]).map(mapRow);
-  } catch { return []; }
+  const { data, error } = await getSupabaseServerClient()
+    .from("news_items")
+    .select(NEWS_SELECT)
+    .eq("status", "published")
+    .order("published_at", { ascending: false, nullsFirst: false });
+  if (error) throw new Error(`published news query failed: ${error.message}`);
+  return ((data ?? []) as unknown as NewsRow[]).map(mapRow);
 }
 
 const cachedNewsItems = unstable_cache(fetchNewsItems, ["published-news"], { revalidate: REVALIDATE_SECONDS, tags: [NEWS_CACHE_TAG] });
 
 export async function getNewsItems(): Promise<NewsItem[]> {
-  return cachedNewsItems();
+  try {
+    return await cachedNewsItems();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 export async function getNewsItem(slug: string): Promise<NewsItem | undefined> {
@@ -127,14 +136,12 @@ export async function getPinnedNewsItem(): Promise<NewsItem | undefined> {
 
 async function fetchNewsCategories(): Promise<NewsCategory[]> {
   if (!canUseDatabase()) return [];
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("news_categories")
-      .select("id,name,name_ar,slug,sort_order")
-      .order("sort_order", { ascending: true });
-    if (error) { console.error("news categories query failed:", error.message); return []; }
-    return ((data ?? []) as NonNullable<CategoryRow>[]).map((row) => ({ id: row.id, name: row.name, nameAr: row.name_ar ?? "", slug: row.slug }));
-  } catch { return []; }
+  const { data, error } = await getSupabaseServerClient()
+    .from("news_categories")
+    .select("id,name,name_ar,slug,sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(`news categories query failed: ${error.message}`);
+  return ((data ?? []) as NonNullable<CategoryRow>[]).map((row) => ({ id: row.id, name: row.name, nameAr: row.name_ar ?? "", slug: row.slug }));
 }
 
 const cachedNewsCategories = unstable_cache(fetchNewsCategories, ["news-categories"], { revalidate: REVALIDATE_SECONDS, tags: [NEWS_CACHE_TAG] });
@@ -145,5 +152,10 @@ const cachedNewsCategories = unstable_cache(fetchNewsCategories, ["news-categori
  * so an empty chip is never offered.
  */
 export async function getNewsCategories(): Promise<NewsCategory[]> {
-  return cachedNewsCategories();
+  try {
+    return await cachedNewsCategories();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return [];
+  }
 }

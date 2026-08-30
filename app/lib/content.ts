@@ -183,123 +183,154 @@ function thumbnailUrlFor(
   return {};
 }
 
+/**
+ * Throws when the query fails, and that is deliberate — see `safeCards`.
+ *
+ * Returning `[]` on failure is what a caller wants, but this function's result
+ * goes straight into `unstable_cache`, and an empty array is a perfectly valid
+ * thing to cache. One timeout at a cold start would therefore publish "this
+ * site has no content" to every reader for the whole revalidate window. A
+ * throw is not cached, so the next request simply tries again.
+ */
 async function fetchCards(): Promise<ContentCard[]> {
   if (!canUseContentDatabase()) return [];
-  try {
-    const { data, error } = await getSupabaseServerClient()
-      .from("content_items")
-      .select(CARD_SELECT)
-      .eq("status", "published")
-      .eq("access_level", "public")
-      .order("published_at", { ascending: false });
-    // A query error used to be indistinguishable from "no content published
-    // yet" — the exact PostgREST ambiguous-embed failure this file once had.
-    if (error) console.error("published content cards query failed:", error.message);
-    if (error || !data) return [];
-    return (data as unknown as CardRow[]).map((row) => mapBase(row, thumbnailUrlFor(row, row.content_media)));
-  } catch {
-    return [];
-  }
+  const { data, error } = await getSupabaseServerClient()
+    .from("content_items")
+    .select(CARD_SELECT)
+    .eq("status", "published")
+    .eq("access_level", "public")
+    .order("published_at", { ascending: false });
+  // A query error used to be indistinguishable from "no content published
+  // yet" — the exact PostgREST ambiguous-embed failure this file once had.
+  if (error) throw new Error(`published content cards query failed: ${error.message}`);
+  if (!data) throw new Error("published content cards query returned no payload");
+  // An empty `data` is not an error: it is a site with nothing published yet,
+  // and caching that is correct.
+  return (data as unknown as CardRow[]).map((row) => mapBase(row, thumbnailUrlFor(row, row.content_media)));
 }
 
 async function fetchRecord(identifier: string, includeMembersOnly: boolean): Promise<ContentRecord | null> {
   if (!canUseContentDatabase()) return null;
-  try {
-    const run = async () => {
-      let query = getSupabaseServerClient()
-        .from("content_items")
-        .select(FULL_SELECT())
-        .eq("status", "published");
-      if (!includeMembersOnly) query = query.eq("access_level", "public");
-      // Single-item lookups used to pull the whole catalogue and `.find()` in JS.
-      // `id` is a uuid column, so only compare it when the input actually is one.
-      query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
-      return query.limit(1);
-    };
-    let { data, error } = await run();
-    if (error && caseSectionsColumn && missingCaseSections(error.message)) {
-      console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
-      caseSectionsColumn = false;
-      ({ data, error } = await run());
-    }
-    if (error && posterCtaColumns && missingPosterCtaColumns(error.message)) {
-      console.warn("content_items poster CTA columns are missing — apply migration 0015. Reading posters without the optional link.");
-      posterCtaColumns = false;
-      ({ data, error } = await run());
-    }
-    if (error && caseSectionsColumn && missingCaseSections(error.message)) {
-      console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
-      caseSectionsColumn = false;
-      ({ data, error } = await run());
-    }
-    if (error) console.error("published content record query failed:", error.message);
-    const row = (data as unknown as FullRow[] | null)?.[0];
-    if (error || !row) return null;
-
-    const leadContributor = firstOf(row.contributors);
-    const selectedContributors = toArray(row.content_contributors)
-      .map((entry) => firstOf(entry.contributors))
-      .filter((contributor): contributor is ContributorRow & { display_name: string } => Boolean(contributor?.display_name));
-    // Content created before multi-contributor support still has only the
-    // legacy lead-author FK, so preserve it as a graceful fallback.
-    const namedLead = leadContributor?.display_name ? [{ ...leadContributor, display_name: leadContributor.display_name }] : [];
-    const contributorRows = selectedContributors.length ? selectedContributors : namedLead;
-    const contributors = contributorRows.map((contributor) => {
-      const name = contributor.display_name;
-      return {
-        name,
-        role: contributor.credentials ?? "Contributor",
-        initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST",
-        photoUrl: contributor.photo_url ?? undefined,
-      };
-    });
-    const chapters = [...(row.content_chapters ?? [])]
-      .sort((a, b) => a.position - b.position)
-      .map((chapter) => ({ time: formatDuration(chapter.starts_at_seconds), title: chapter.title, progress: row.duration_seconds ? Math.round((chapter.starts_at_seconds / row.duration_seconds) * 100) : 0 }));
-    const presenter = contributors[0] ?? { name: "Smart Surgical Team", role: "Contributor", initials: "ST" };
-
-    return {
-      ...mapBase(row, thumbnailUrlFor(row, row.content_media)),
-      presenter: { name: presenter.name, role: presenter.role, bio: leadContributor?.biography ?? "", initials: presenter.initials },
-      contributors,
-      posterUrl: row.poster_url ?? undefined,
-      posterCtaText: row.poster_cta_text ?? undefined,
-      posterCtaUrl: row.poster_cta_url ?? undefined,
-      chapters,
-      caseSummary: {
-        presentation: row.case_presentation ?? undefined,
-        imaging: row.case_imaging ?? undefined,
-        procedure: row.case_procedure ?? undefined,
-        histopathology: row.case_histopathology ?? undefined,
-        outcome: row.case_outcome ?? undefined,
-      },
-      caseSections: readCaseSections(row.case_sections),
-      media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, storagePath: item.storage_path, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
-    } satisfies ContentRecord;
-  } catch {
-    return null;
+  const run = async () => {
+    let query = getSupabaseServerClient()
+      .from("content_items")
+      .select(FULL_SELECT())
+      .eq("status", "published");
+    if (!includeMembersOnly) query = query.eq("access_level", "public");
+    // Single-item lookups used to pull the whole catalogue and `.find()` in JS.
+    // `id` is a uuid column, so only compare it when the input actually is one.
+    query = UUID_PATTERN.test(identifier) ? query.or(`id.eq.${identifier},slug.eq.${identifier}`) : query.eq("slug", identifier);
+    return query.limit(1);
+  };
+  let { data, error } = await run();
+  if (error && caseSectionsColumn && missingCaseSections(error.message)) {
+    console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
+    caseSectionsColumn = false;
+    ({ data, error } = await run());
   }
+  if (error && posterCtaColumns && missingPosterCtaColumns(error.message)) {
+    console.warn("content_items poster CTA columns are missing — apply migration 0015. Reading posters without the optional link.");
+    posterCtaColumns = false;
+    ({ data, error } = await run());
+  }
+  if (error && caseSectionsColumn && missingCaseSections(error.message)) {
+    console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
+    caseSectionsColumn = false;
+    ({ data, error } = await run());
+  }
+  // Thrown rather than returned as null for the reason given on `fetchCards`:
+  // a cached null is a 404 that outlives the failure that caused it.
+  if (error) throw new Error(`published content record query failed: ${error.message}`);
+  const row = (data as unknown as FullRow[] | null)?.[0];
+  // A genuine miss, on the other hand, is worth caching.
+  if (!row) return null;
+
+  const leadContributor = firstOf(row.contributors);
+  const selectedContributors = toArray(row.content_contributors)
+    .map((entry) => firstOf(entry.contributors))
+    .filter((contributor): contributor is ContributorRow & { display_name: string } => Boolean(contributor?.display_name));
+  // Content created before multi-contributor support still has only the
+  // legacy lead-author FK, so preserve it as a graceful fallback.
+  const namedLead = leadContributor?.display_name ? [{ ...leadContributor, display_name: leadContributor.display_name }] : [];
+  const contributorRows = selectedContributors.length ? selectedContributors : namedLead;
+  const contributors = contributorRows.map((contributor) => {
+    const name = contributor.display_name;
+    return {
+      name,
+      role: contributor.credentials ?? "Contributor",
+      initials: name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "ST",
+      photoUrl: contributor.photo_url ?? undefined,
+    };
+  });
+  const chapters = [...(row.content_chapters ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((chapter) => ({ time: formatDuration(chapter.starts_at_seconds), title: chapter.title, progress: row.duration_seconds ? Math.round((chapter.starts_at_seconds / row.duration_seconds) * 100) : 0 }));
+  const presenter = contributors[0] ?? { name: "Smart Surgical Team", role: "Contributor", initials: "ST" };
+
+  return {
+    ...mapBase(row, thumbnailUrlFor(row, row.content_media)),
+    presenter: { name: presenter.name, role: presenter.role, bio: leadContributor?.biography ?? "", initials: presenter.initials },
+    contributors,
+    posterUrl: row.poster_url ?? undefined,
+    posterCtaText: row.poster_cta_text ?? undefined,
+    posterCtaUrl: row.poster_cta_url ?? undefined,
+    chapters,
+    caseSummary: {
+      presentation: row.case_presentation ?? undefined,
+      imaging: row.case_imaging ?? undefined,
+      procedure: row.case_procedure ?? undefined,
+      histopathology: row.case_histopathology ?? undefined,
+      outcome: row.case_outcome ?? undefined,
+    },
+    caseSections: readCaseSections(row.case_sections),
+    media: [...(row.content_media ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((item) => ({ id: item.id, storagePath: item.storage_path, kind: item.kind, publicUrl: item.public_url, altText: item.alt_text ?? undefined, caption: item.caption ?? undefined })),
+  } satisfies ContentRecord;
 }
 
 const cachedCards = unstable_cache(fetchCards, ["published-content-cards"], { revalidate: REVALIDATE_SECONDS, tags: [CONTENT_CACHE_TAG] });
 const cachedRecord = unstable_cache(fetchRecord, ["published-content-record"], { revalidate: REVALIDATE_SECONDS, tags: [CONTENT_CACHE_TAG] });
 
+/**
+ * The degradation the callers actually want, applied *outside* the cache so a
+ * failure costs one empty response instead of a cached one. When the cache
+ * already holds a good result, `unstable_cache` keeps serving it and this never
+ * runs at all.
+ */
+async function safeCards(): Promise<ContentCard[]> {
+  try {
+    return await cachedCards();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return [];
+  }
+}
+
 /** Published items are the single public source of truth. */
 export async function getLibraryContent(): Promise<ContentCard[]> {
-  return cachedCards();
+  return safeCards();
 }
 
 /** Cards for one topic group, resolved without shipping the whole catalogue. */
 export async function getTopicContent(topicSlugs: string[]): Promise<ContentCard[]> {
   const wanted = new Set(topicSlugs);
-  return (await cachedCards()).filter((item) => item.topics.some(({ slug }) => wanted.has(slug)));
+  return (await safeCards()).filter((item) => item.topics.some(({ slug }) => wanted.has(slug)));
+}
+
+/** As `safeCards`, for a single record. */
+async function safeRecord(identifier: string, includeMembersOnly: boolean) {
+  try {
+    return await cachedRecord(identifier, includeMembersOnly);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 export async function getContent(identifier: string) {
-  return (await cachedRecord(identifier, false)) ?? undefined;
+  return (await safeRecord(identifier, false)) ?? undefined;
 }
 
 /** Used only after the API has verified that the caller has a member session. */
 export async function getContentForMember(identifier: string) {
-  return (await cachedRecord(identifier, true)) ?? undefined;
+  return (await safeRecord(identifier, true)) ?? undefined;
 }
