@@ -3,8 +3,8 @@
 Supabase project **`elcjynpdcqxpxfqcamuw`** (`smartsurgicalteam`).
 Cloudflare zone **`a96471c9b8ff2e4baeafa7d3f06b229f`** (`ssthyroid.com`).
 
-Everything below marked ✅ was applied on **2026-08-30** and verified. Two steps
-remain, both blocked on a credential that must be handled by hand.
+Everything below was applied on **2026-08-30** and verified end to end.
+**The flow is live.** Nothing is outstanding.
 
 ---
 
@@ -83,91 +83,84 @@ access to the whole Cloudflare account.
 
 ---
 
-## ⛔ 5. SMTP password — needs you
+## ✅ 5. SMTP — live
 
-The Supabase SMTP form at **Authentication → Emails → SMTP Settings** is staged
-with everything except the password:
+Supabase → Authentication → Emails → SMTP Settings:
 
-| Field | Value | State |
-| --- | --- | --- |
-| Enable custom SMTP | on | filled |
-| Sender email | `no-reply@ssthyroid.com` | filled |
-| Sender name | `Smart Surgical Team` | filled |
-| Host | `smtp.resend.com` | filled |
-| Port | `465` | filled |
-| Username | `resend` | filled |
-| **Password** | a Resend API key | **empty — yours to enter** |
+| Field | Value |
+| --- | --- |
+| Enable custom SMTP | on |
+| Sender email | `no-reply@ssthyroid.com` |
+| Sender name | `Smart Surgical Team` |
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | a Resend *Sending access* API key |
 
-I do not enter API keys, tokens or passwords into fields, so this last step is
-yours:
+The email rate limit was raised from the post-enable default of 30/h to **100/h**
+at Authentication → Rate Limits.
 
-1. Resend → **API keys** → *Create API key*, permission **Sending access**. The
-   `re_…` value is shown once. (An older key named "Onboarding" already exists,
-   but its value is no longer retrievable — make a new one unless you saved it.)
-2. Paste it into the Supabase **Password** field and **Save changes**.
+**Trap:** Chrome autofills that Username and Password field with an unrelated
+saved credential every time the form is opened. Check both before saving.
 
-Note: Chrome autofilled that Username and Password field with an unrelated saved
-credential when the form opened. Both were cleared and the username retyped — if
-you reload the page before saving, check them again.
+## ✅ 6. Email templates — installed
 
-Once saved, Supabase raises the auth email rate limit to 30/hour automatically.
-Raise it further at **Authentication → Rate Limits** if needed; 100 is ample.
-
-## ⛔ 6. Email templates — blocked until step 5
-
-Supabase **locks template editing behind custom SMTP** on the Free plan ("Set up
-custom SMTP to edit templates"). The alternatives it offers are upgrading to Pro
-or configuring a Send Email hook; custom SMTP is the cheapest path.
-
-So this is not optional polish — **until step 5 is saved, the confirm-signup
-email carries Supabase's default template, which contains only
-`{{ .ConfirmationURL }}` and no `{{ .Token }}`.** The wizard's step 4 would then
-have no code to type.
-
-After saving SMTP, go to **Authentication → Emails → Templates** and paste:
-
-| Template | File | Subject |
+| Template | Source file | Subject |
 | --- | --- | --- |
 | Confirm signup | `supabase/templates/confirm-signup.html` | `Your Smart Surgical Team verification code` |
 | Reset password | `supabase/templates/reset-password.html` | `Reset your Smart Surgical Team password` |
 | Change email address | `supabase/templates/change-email.html` | `Confirm your new email address` |
 
+Supabase locks template editing behind custom SMTP on the Free plan, so these
+could only be installed after step 5. The confirm-signup template **must** keep
+`{{ .Token }}` — Supabase's default carries only `{{ .ConfirmationURL }}`, which
+would leave the wizard's step 4 with nothing to type.
+
 Magic link and invite templates stay at their defaults — the site uses neither.
 
-## ⛔ 7. Turn on "Confirm email" — last, not first
+## ✅ 7. Confirm email — ON
 
-**Authentication → Sign In / Providers → User Signups → Confirm email.** It is
-currently **off**, deliberately: turning it on before steps 5 and 6 would send
-the default link-only email through Supabase's built-in sender, which is capped
-at a couple of messages an hour. Sign-up keeps working meanwhile — `signUp()`
-returns a session immediately and the wizard skips its verification step.
+Authentication → Sign In / Providers → User Signups → Confirm email.
+`/auth/v1/settings` now reports `mailer_autoconfirm: false`.
 
 ---
 
-## Testing, in this order
+## End-to-end test results (2026-08-30, against production)
 
-1. **Do this first after the SMTP save.** Sign in with Google on a *fresh*
-   address — expect `/complete-profile`, then the profile page; sign out and
-   back in, expect to go straight to the profile. If Google registration fails
-   outright, the GoTrue version is writing an `email` identity alongside
-   `google` and the new trigger is refusing it: drop the trigger (§1) and say
-   so — nothing else depends on it.
-2. Register with a fresh address. Confirm the email arrives from
-   `no-reply@ssthyroid.com`, shows six digits, and that entering them signs you
-   in.
-3. Register again with that same address — expect "An account with this email
-   already exists".
-4. Sign in with Google using that same address — expect "This email already has
-   an account", not a successful sign-in.
-5. Check both routes landed in the database:
-   ```sql
-   select u.email, p.organisation, p.job_title, p.country, p.legal_accepted_at
-   from public.profiles p join auth.users u on u.id = p.id
-   order by p.created_at desc limit 5;
-   ```
-6. Confirm the coworker's mail still flows — send a message to and from a
-   `@ssthyroid.com` mailbox. The apex records were not touched, but this is
-   cheap insurance.
+Run with a disposable `+ssttest` plus-address, deleted afterwards.
+
+| Check | Result |
+| --- | --- |
+| `signUp` with Confirm email on | no session, `confirmed_at: null` → wizard goes to step 4 |
+| Email delivery | **Delivered** in Resend, from `"Smart Surgical Team" <no-reply@ssthyroid.com>` |
+| Rendered email | branded template, six-digit code visible, one-click fallback present |
+| `verifyOtp` with the real code | session returned, `email_confirmed_at` set |
+| `verifyOtp` with a wrong code | `otp_expired` → the wizard shows "That code is not valid, or it has expired" |
+| Profile row after email signup | all six detail columns populated, `role = member` |
+| Google sign-in | lands on `/complete-profile`, name prefilled, saves and forwards to `/profile` |
+| Profile row after Google completion | all columns populated, `role` unchanged by the guard |
+| Duplicate email signup | `user_already_exists` → "An account with this email already exists" |
+| Identity guard (transactional probe) | second provider refused with `sst_identity_conflict` |
+| Role guard (transactional probe) | `member → owner` as `authenticated` blocked; `service_role` promotion still works |
+| Wizard validation | consent gate, required details, short password, mismatched passwords all refused |
+| Cleanup | test account deleted; 5 users / 5 profiles, 0 orphans, 0 dual-method accounts |
+
+## Account state
+
+`sarkrda.mohammed04@gmail.com` (Owner) was linked to both `email` and `google`
+from 2026-07-29, before the trigger existed. On 2026-08-30 the **password was
+removed and Google kept**: the `email` identity row deleted *and*
+`auth.users.encrypted_password` nulled. Both are required — deleting the identity
+alone leaves password sign-in working, because GoTrue looks the user up by
+`auth.users.email` and checks the hash directly.
+
+Database-wide: 0 users with two sign-in methods, google=4, email=1.
+
+## Known gap
+
+There is no way for a member to edit organisation, job title, city or country
+after registration. `/complete-profile` redirects away once the account is
+complete, and the profile page only edits the full name. Not addressed.
 
 ## Security fix included in `0023`
 
