@@ -105,6 +105,32 @@ None of them blocks the domain cutover.
   They were never in the gallery and have no section on the new site. They are
   in the archive if they are ever wanted.
 
+## Publications — reviewed 2026-08-30
+
+The old `/publication` page was a JavaScript embed holding a hardcoded list of
+**30 papers**. `researches` now holds **73**, so it is a large superset: 57 of
+them were never on the old page.
+
+Of the old 30, fifteen were already here. **Twelve of the remainder are by other
+research groups entirely** — Sadq Ghaleb Kadem's group in Basra (transoral
+endoscopic thyroidectomy, bipolar radiofrequency, harmonic scalpel, drains) and
+the Kuwait Cancer Control Center group (Al-Saleh, Memon, Shete). Verified through
+CrossRef and Europe PMC: no team member appears on any of their author lists,
+against 73/73 of ours that carry one and 70/73 that name Abdulwahid M. Salih.
+They are **not** imported. If the client wants them shown, they belong in a
+separate "selected literature" surface, not in `researches`.
+
+Three were genuinely the team's own. One was added — the ChatGPT thyroid and neck
+swellings study. The other two are **deliberately excluded, confirmed with the
+client 2026-08-30: `/research` is the team's head & neck output**, and these fall
+outside it. Do not add them back:
+
+- *Management of post lobectomy subcutaneous emphysema* — a **lung** lobectomy
+  case (73-year-old, pulmonary squamous cell carcinoma). Thoracic, not head and
+  neck, despite the name suggesting thyroid.
+- *Artificial Intelligence in Medicine: ChatGPT vs Google Bard in Clinical
+  Diagnostics* — 20 case scenarios across mixed specialties.
+
 ## Still open
 
 - **No redirects for the 94 legacy URLs.** `worker/index.ts` has no legacy
