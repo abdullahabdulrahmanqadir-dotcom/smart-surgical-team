@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_ORIGIN = "https://smart.ssteam.workers.dev";
+const SITE_ORIGIN = "https://ssthyroid.com";
 
 export default function robots(): MetadataRoute.Robots {
   return {
