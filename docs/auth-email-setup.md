@@ -156,11 +156,21 @@ alone leaves password sign-in working, because GoTrue looks the user up by
 
 Database-wide: 0 users with two sign-in methods, google=4, email=1.
 
-## Known gap
+## Profile editing
 
-There is no way for a member to edit organisation, job title, city or country
-after registration. `/complete-profile` redirects away once the account is
-complete, and the profile page only edits the full name. Not addressed.
+The profile page edits the same six fields registration collects — first name,
+last name, organisation, job title, city, country — so a member can correct what
+they typed at sign-up, or what Google guessed, without support. It writes through
+`accountMetadataPatch` exactly as the wizard does, so `full_name` stays derived
+from the two name fields and the metadata trigger mirrors everything into
+`public.profiles`.
+
+Consent is deliberately **not** re-stamped on an edit: changing a job title is
+not a fresh acceptance of the terms. Completeness is read back off the saved user
+rather than assumed, so an account that never recorded consent keeps showing the
+"finish your profile" prompt even with all six fields filled.
+
+The sign-in email stays read-only here.
 
 ## Security fix included in `0023`
 
