@@ -90,3 +90,23 @@ const limitations =
     console.log(`3. removed the authored "Worked examples" section from ${slug}`);
   }
 }
+
+// ---- 4. reclassify the 48-year-old record as teaching ---------------------
+// It was imported as a clinical case, but it carries no patient history, no
+// procedure and no outcome — only an ultrasound description, illustrated with
+// the same two images the TIRADS teaching post uses as its Picture 1 and 2.
+// Confirmed with the client 2026-08-30. Its single section stays on the legacy
+// `case_imaging` column so its "Imaging & workup" heading remains translatable.
+{
+  const slug = "48-year-old-female-with-neck-swelling";
+  const { data: item, error: readError } = await supabase.from("content_items").select("id,is_teaching").eq("slug", slug).single();
+  if (readError) throw readError;
+  if (item.is_teaching) console.log("4. 48-year-old record already marked teaching");
+  else {
+    const { error } = await supabase.from("content_items")
+      .update({ is_teaching: true, level: "Teaching & reference", updated_at: new Date().toISOString() })
+      .eq("id", item.id);
+    if (error) throw error;
+    console.log(`4. reclassified ${slug} as teaching & reference`);
+  }
+}

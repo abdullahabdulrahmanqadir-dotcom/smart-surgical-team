@@ -24,7 +24,7 @@ videos are on YouTube and were not copied.
 | Imported 2026-08-30 (`scripts/import-legacy-remainder.mjs`) | 18 |
 | Cases authored directly on the new site, no old counterpart | 8 |
 
-The 18 are eight clinical cases and ten teaching & reference items. Their prose
+The 18 are seven clinical cases and eleven teaching & reference items. Their prose
 is the legacy post's own text folded into the site's canonical case sections per
 the client's 2026-08-06 instruction; images went straight to R2 under
 `topics/<topic>/<slug>/`, with no local `cases/` folder.
@@ -61,8 +61,10 @@ not by the import:
 
 Because that first pair is shared, the 48-year-old record has no patient history,
 no procedure and no outcome — only a radiology description illustrated with two
-images the teaching post also uses. **It is filed as a clinical case but reads as
-a radiology teaching item;** worth re-checking with the client.
+images the teaching post also uses. It was imported as a clinical case and
+**reclassified as teaching & reference on 2026-08-30 at the client's direction.**
+Its one section stays on the legacy `case_imaging` column so the "Imaging &
+workup" heading remains translatable.
 
 **Two defects were found and fixed:**
 
