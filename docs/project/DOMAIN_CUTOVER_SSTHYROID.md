@@ -323,7 +323,41 @@ suffixes such as `/en/news</loc>`), and nothing else in `app/` hardcodes it. `me
 in `app/[locale]/layout.tsx:79` is derived from the request host, so canonicals,
 `hreflang`, and OG URLs follow the new domain with no change.
 
-### 6.4 Verify before calling it done
+### 6.4 Legacy URL redirects — ⬜ TO DO
+
+**Not built yet. Requested 2026-08-30 to be done after the transfer.**
+
+The old site has **94 public URLs** (81 posts + 13 pages) that Google has indexed
+and that people have shared, cited and bookmarked. The moment DNS moves, every one
+of them is answered by *our* Worker, which has no page at those paths — so they all
+404 until this lands. A `301` also hands the old page's search ranking to the new
+URL; without it Google drops the old pages and the new ones start from zero.
+
+This goes in `worker/index.ts` — nothing about it touches the coworker's Hostinger
+account, and it cannot be done on the old site, which stops seeing this traffic the
+moment the nameservers move.
+
+The map is mostly mechanical, because the import deliberately kept the old slugs:
+
+| Old path | New path |
+|---|---|
+| `/thyroid-anatomy` | `/en/library/thyroid-anatomy` |
+| `/gallery` | `/en/topics` |
+| `/team` | `/en/about` |
+| `/publication` | `/en/research` |
+| `/contact` | `/en/contact` |
+| `/spindle-cell-sarcoma-…-male-copy` | `/en/library/spindle-cell-sarcoma-…-male` (drop `-copy`) |
+
+Build it from `scratch/old/content/_index.json` in the legacy archive, which lists
+every old slug (see `LEGACY_GALLERY_MIGRATION.md`).
+
+> **Note on timing.** This was scheduled for after the flip, so expect a window where
+> old inbound links 404. It can equally be shipped *before* with no downside: a
+> redirect only affects requests that actually reach the Worker, and until DNS moves
+> those paths are already 404 on `smart.ssteam.workers.dev`. Landing it early simply
+> means the map is waiting when the domain arrives.
+
+### 6.5 Verify before calling it done
 
 ```sh
 nslookup -type=NS ssthyroid.com 8.8.8.8      # expect the two Cloudflare nameservers
@@ -339,8 +373,10 @@ Then by hand:
 - Load `/en` and `/ar`, an admin page, and a case with images (R2 media).
 - Google Search Console: add `https://ssthyroid.com` as a new property and submit
   the sitemap. The existing `smart.ssteam.workers.dev` verification does not carry over.
+- Once §6.4 has landed, spot-check three old URLs — one post, one renamed post and
+  one section page — and confirm each `301`s to its new home rather than 404ing.
 
-### 6.5 Rollback
+### 6.6 Rollback
 
 The coworker restores `ns1.dns-parking.com` / `ns2.dns-parking.com` at Hostinger and
 the old site and its DNS return as they were. Keep the Hostinger hosting plan and its
