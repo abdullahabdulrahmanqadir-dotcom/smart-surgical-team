@@ -112,13 +112,14 @@ export default async function Home({
       <ScrollMotion />
 
       <main id="main-content">
-        {/* ---------------- Pinned announcement ---------------- */}
-        {pinnedNews ? <NewsBanner locale={active} item={pinnedNews} t={dict.news} /> : null}
-
         {/* ---------------- Hero ---------------- */}
         <section className="hero">
           <div className="hero-inner">
             <div className="hero-copy">
+              {/* The pinned announcement leads the hero column, above the
+                  eyebrow: it is the one thing on the page that changes, so it
+                  reads first and then hands off to the standing headline. */}
+              {pinnedNews ? <NewsBanner locale={active} item={pinnedNews} t={dict.news} /> : null}
               <p className="eyebrow">
                 <IconSparkle size={15} />
                 {dict.brand.location}

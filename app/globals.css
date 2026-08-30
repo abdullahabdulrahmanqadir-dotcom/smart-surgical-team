@@ -3855,20 +3855,25 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    --------------------------------------------------------------------------- */
 
 /* Banner. Hidden by the pre-paint script (or the close button) setting
-   data-dismissed, so the shared cached HTML is identical for every reader. */
-.news-banner { display:flex; align-items:center; gap:.75rem; max-width:var(--content); margin:1rem auto 0; padding:.15rem .35rem .15rem 0; border:1px solid color-mix(in srgb,var(--primary) 26%,var(--line)); border-radius:var(--radius-md); background:var(--primary-soft); }
+   data-dismissed, so the shared cached HTML is identical for every reader.
+
+   It leads the hero copy column, so it hugs its own content instead of
+   spanning the page, and sits on `--surface` rather than the primary tint —
+   the hero already carries an aqua wash, and a tinted bar on a tinted
+   background reads as haze. */
+.news-banner { display:flex; width:100%; max-width:40rem; align-items:center; gap:.35rem; margin:0 0 1.5rem; padding:.15rem .3rem .15rem 0; border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line)); border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow-sm); }
 .news-banner[data-dismissed="1"] { display:none; }
-.news-banner-link { display:flex; flex:1; min-width:0; flex-wrap:wrap; align-items:center; gap:.5rem .85rem; padding:.85rem 1rem; color:var(--text); }
+.news-banner-link { display:flex; flex:1; min-width:0; flex-wrap:wrap; align-items:center; gap:.4rem .7rem; padding:.6rem .85rem; color:var(--text); }
 .news-banner-label { flex:none; padding:.28rem .5rem; border-radius:var(--radius-sm); background:var(--primary); color:var(--on-primary); font-size:.64rem; font-weight:750; letter-spacing:var(--tracking-label); text-transform:uppercase; }
-.news-banner-title { flex:1; min-width:12rem; font-size:.95rem; font-weight:700; line-height:1.45; }
+.news-banner-title { flex:1; min-width:0; font-size:.9rem; font-weight:700; line-height:1.4; }
 .news-banner-go { display:inline-flex; flex:none; align-items:center; gap:.35rem; color:var(--primary); font-size:.8rem; font-weight:750; }
 .news-banner-go svg { transition:transform .18s ease; }
 .news-banner-link:hover .news-banner-go svg { transform:translateX(3px); }
 .news-banner-link:focus-visible { outline:3px solid var(--primary-ring); outline-offset:2px; }
-.news-banner-dismiss { flex:none; display:grid; place-items:center; width:2.25rem; height:2.25rem; border:0; border-radius:50%; background:transparent; color:var(--text-muted); font-size:1.2rem; line-height:1; cursor:pointer; transition:background .18s ease,color .18s ease; }
+.news-banner-dismiss { flex:none; display:grid; place-items:center; width:2rem; height:2rem; border:0; border-radius:50%; background:transparent; color:var(--text-muted); font-size:1.2rem; line-height:1; cursor:pointer; transition:background .18s ease,color .18s ease; }
 .news-banner-dismiss:hover { background:color-mix(in srgb,var(--primary) 14%,transparent); color:var(--text); }
 .news-banner-dismiss:focus-visible { outline:3px solid var(--primary-ring); outline-offset:2px; }
-[dir="rtl"] .news-banner { padding:.15rem 0 .15rem .35rem; }
+[dir="rtl"] .news-banner { padding:.15rem 0 .15rem .3rem; }
 [dir="rtl"] .news-banner-link:hover .news-banner-go svg { transform:translateX(-3px); }
 
 /* Feed */
@@ -3996,9 +4001,11 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   .news-grid,.news-more-list { grid-template-columns:1fr; gap:1rem; }
   .news-detail-gallery .case-image-thumbnails { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; }
   .news-detail-heading h1 { font-size:clamp(1.75rem,9vw,2.5rem); }
-  .news-banner { margin-top:.75rem; }
-  .news-banner-link { padding:.7rem .85rem; }
-  .news-banner-title { min-width:0; font-size:.88rem; }
+  .news-banner { margin-bottom:1.15rem; }
+  .news-banner-link { padding:.55rem .75rem; }
+  /* Too narrow to sit the label and the title side by side: the label keeps
+     its own line and the title takes the full width beneath it. */
+  .news-banner-title { flex-basis:100%; font-size:.85rem; }
   .news-banner-go { display:none; }
   .news-share { align-items:flex-start; flex-direction:column; }
 }
