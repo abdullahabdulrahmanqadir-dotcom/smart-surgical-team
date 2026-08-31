@@ -39,13 +39,17 @@ four-step registration can easily outlive one.
    - Hostnames: `ssthyroid.com`, `smart.ssteam.workers.dev`, and `localhost`
      if you want the check active in local development
    - This gives a **site key** (public) and a **secret key** (private)
-2. **Give the build the site key.** It is a `NEXT_PUBLIC_` value, so it is
-   inlined at build time, not read at runtime:
-   - locally, `NEXT_PUBLIC_TURNSTILE_SITE_KEY=…` in `.env.local`
-   - in production, the same variable on the Cloudflare Worker **before** the
-     next `npm run build`
-3. **Deploy, then confirm sign-in still works** on the live site. Until this
-   deploy lands, the site key is not in the bundle and no token is sent.
+2. **Give the build the site key.** Put
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY=…` in `.env.local` **on the machine that
+   runs the build**. It is a `NEXT_PUBLIC_` value, so the bundler inlines it
+   into the JavaScript at build time — it is never read at runtime. A
+   Cloudflare Worker variable is a runtime binding and will *not* reach it, so
+   setting one there does nothing. Since the deploy is a local
+   `npm run build` followed by `wrangler deploy`, `.env.local` is the only
+   place the production key has to be.
+3. **Build and deploy, then confirm sign-in still works** on the live site.
+   Until this deploy lands the site key is not in the bundle and no token is
+   sent, whatever the dashboards say.
 4. **Only now, give Supabase the secret key.** Supabase dashboard →
    Authentication → Attack Protection → Enable CAPTCHA protection → provider
    **Turnstile**, paste the secret key, save.
@@ -54,8 +58,8 @@ four-step registration can easily outlive one.
 `signUp`, `signInWithPassword`, `resend` and `resetPasswordForEmail` that
 arrives without a valid token. Do it before step 3 has deployed and the live
 site cannot sign anyone in until the next deploy carries the key. Because
-`NEXT_PUBLIC_*` is inlined at build time, setting the Worker variable alone
-changes nothing — the rebuild is what puts the key in the bundle.
+`NEXT_PUBLIC_*` is inlined at build time, adding the key changes nothing on
+its own — the rebuild is what puts it in the bundle.
 
 Without a site key the hook reports itself as not required and every token is
 `undefined`, so a checkout with no keys still signs in normally. That is the
