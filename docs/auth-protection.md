@@ -91,6 +91,40 @@ Without a site key the hook reports itself as not required and every token is
 `undefined`, so a checkout with no keys still signs in normally. That is the
 safe default, and the reason a developer is not blocked by a missing key.
 
+### Pushing `main` rebuilds and redeploys — and that broke sign-in once
+
+The `smart` Worker has a **Cloudflare Workers Builds** git connection
+(Workers & Pages → smart → Settings → Builds): production branch `main`, build
+command `npm run build`, deploy command `npx wrangler deploy`. **Every push to
+`main` triggers a Cloudflare-side rebuild that deploys over whatever you
+deployed locally**, about a minute later. Older notes in this repo said pushing
+`main` does not deploy. That is wrong.
+
+That build runs from the git checkout, so it has **no `.env.local`** — which is
+gitignored, and which is where the Turnstile site key lived. On 2026-08-31 a
+push produced a keyless build, Cloudflare deployed it, and because Supabase's
+CAPTCHA toggle was already on, **the live site could not sign anyone in** until
+it was redeployed. The site key was in the bundle I deployed by hand and absent
+from the one that replaced it.
+
+Fixed by adding `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to the Worker's **build**
+variables, alongside `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` which were already there. A build variable is
+not a runtime binding — it is an environment variable for the build container,
+which is exactly what an inlined `NEXT_PUBLIC_*` needs.
+
+Two rules follow:
+
+- **Any new `NEXT_PUBLIC_*` value must be added in both places**: `.env.local`
+  for local builds, and the Worker's build variables for the push-triggered
+  build. One without the other ships a half-configured site.
+- **A local `wrangler deploy` is not the last word.** If you deploy by hand and
+  then push, the push wins. Verify the live bundle *after* the Workers Build
+  lands, not after your own deploy.
+
+`useTurnstile()` now logs a `console.error` when the key is missing, so the next
+occurrence is visible in the console instead of silent.
+
 ### Verified live, 2026-08-31
 
 The whole chain was confirmed against production without completing a challenge

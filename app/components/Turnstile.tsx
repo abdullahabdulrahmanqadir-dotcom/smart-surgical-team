@@ -11,12 +11,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * component does is obtain that token.
  *
  * When `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is unset the hook reports itself as not
- * required and hands back `undefined` tokens, so a developer without keys — and
- * the site itself before the keys are added — keeps a working sign-in rather
- * than a form that can never be submitted. Turn the Supabase toggle on only
- * once a key is present in the production build.
+ * required and hands back `undefined` tokens.
  *
- * See docs/auth-protection.md for the setup steps.
+ * **That fallback is no longer safe on its own, and it is why it shouts.** It
+ * was written when Supabase's CAPTCHA toggle was off, so a keyless build simply
+ * skipped the check and still signed people in. With the toggle on, Supabase
+ * rejects every tokenless `signUp`, `signInWithPassword`, `resend` and
+ * `resetPasswordForEmail`, so a keyless build cannot sign anyone in at all — it
+ * just fails with an error the member cannot act on. The fallback is kept
+ * because a local checkout without keys should still render, but a build that
+ * reaches a browser without a key is broken, and the console says so.
+ *
+ * This has bitten production once: a Cloudflare Workers Build deployed from a
+ * push, without the `.env.local` that holds the key, and sign-in died silently.
+ * The key now lives in the Worker's build variables too. See
+ * docs/auth-protection.md.
  */
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -60,6 +69,19 @@ export function turnstileSiteKey(): string {
   return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 }
 
+/** Warned once per page, not once per form, so three forms do not shout thrice. */
+let warnedAboutMissingKey = false;
+
+function warnIfUnconfigured(siteKey: string): void {
+  if (siteKey || warnedAboutMissingKey || typeof console === "undefined") return;
+  warnedAboutMissingKey = true;
+  console.error(
+    "[turnstile] NEXT_PUBLIC_TURNSTILE_SITE_KEY is missing from this build, so no captcha token can be obtained. " +
+      "If Supabase has CAPTCHA protection enabled, sign-in, sign-up, code resend and password reset will all fail. " +
+      "The value is inlined at build time: set it in .env.local locally, and in the Worker's build variables for a Workers Build.",
+  );
+}
+
 export type TurnstileHandle = {
   /** Whether a key is configured at all; false means every token is `undefined`. */
   required: boolean;
@@ -91,6 +113,9 @@ export function useTurnstile(locale: string): TurnstileHandle {
       waiting.current.splice(0).forEach((resolve) => resolve(value));
     }
   }, []);
+
+  // Before the early return below, so a keyless build still says so.
+  useEffect(() => warnIfUnconfigured(siteKey), [siteKey]);
 
   useEffect(() => {
     if (!required) return;
