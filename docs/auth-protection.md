@@ -53,13 +53,12 @@ single-step, so there it is safely inside the form.
      if you want the check active in local development
    - This gives a **site key** (public) and a **secret key** (private)
 2. **Give the build the site key.** Put
-   `NEXT_PUBLIC_TURNSTILE_SITE_KEY=…` in `.env.local` **on the machine that
-   runs the build**. It is a `NEXT_PUBLIC_` value, so the bundler inlines it
-   into the JavaScript at build time — it is never read at runtime. A
-   Cloudflare Worker variable is a runtime binding and will *not* reach it, so
-   setting one there does nothing. Since the deploy is a local
-   `npm run build` followed by `wrangler deploy`, `.env.local` is the only
-   place the production key has to be.
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY=…` in the committed **`.env`** (use
+   `.env.local` only to override it on one machine). It is a `NEXT_PUBLIC_`
+   value, so the bundler inlines it at build time — it is never read at runtime,
+   and a Worker *runtime* variable will not reach it. It has to be in a file the
+   build can read, and `.env` is the one that survives a fresh checkout, which
+   matters because a push to `main` rebuilds from one.
 3. **Build and deploy, then confirm sign-in still works** on the live site.
    Until this deploy lands the site key is not in the bundle and no token is
    sent, whatever the dashboards say.
@@ -107,20 +106,33 @@ CAPTCHA toggle was already on, **the live site could not sign anyone in** until
 it was redeployed. The site key was in the bundle I deployed by hand and absent
 from the one that replaced it.
 
-Fixed by adding `NEXT_PUBLIC_TURNSTILE_SITE_KEY` to the Worker's **build**
-variables, alongside `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` which were already there. A build variable is
-not a runtime binding — it is an environment variable for the build container,
-which is exactly what an inlined `NEXT_PUBLIC_*` needs.
+**The fix is the committed `.env`.** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` lives in
+`.env`, which is tracked — `.gitignore` carries a `!.env` negation while
+`.env*`, and so `.env.local`, stays ignored. The value is public by design: it
+is inlined into the client bundle and visible to every visitor, so committing it
+discloses nothing. What it buys is that *every* build has it — this machine, the
+Workers Build, a colleague's fresh clone — with no dashboard step to forget.
+
+Adding it to the Worker's **build variables** was tried first and is *not* what
+fixed it: the dashboard accepted the row, cleared its "unsaved changes" bar, and
+silently did not persist it. The next build's log still listed only
+`NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the site broke a
+second time. **If you ever do need a build variable, confirm it in the build
+log's "Build variables" line rather than trusting the settings page.**
+
+Those two Supabase values are still supplied that way and work, so build
+variables are not broken in general — only unreliable to add through that UI.
 
 Two rules follow:
 
-- **Any new `NEXT_PUBLIC_*` value must be added in both places**: `.env.local`
-  for local builds, and the Worker's build variables for the push-triggered
-  build. One without the other ships a half-configured site.
+- **A new `NEXT_PUBLIC_*` value belongs in `.env` if it is public**, so a
+  checkout is enough to build a working site. Keep genuinely private values in
+  `.env.local` and give them a runtime binding instead of a build variable
+  wherever possible.
 - **A local `wrangler deploy` is not the last word.** If you deploy by hand and
-  then push, the push wins. Verify the live bundle *after* the Workers Build
-  lands, not after your own deploy.
+  then push, the push wins about a minute later. Verify the live bundle *after*
+  the Workers Build lands — compare the `auth-throttle-*.js` hash the live HTML
+  references against your `dist/`, and grep the served chunk for the site key.
 
 `useTurnstile()` now logs a `console.error` when the key is missing, so the next
 occurrence is visible in the console instead of silent.
