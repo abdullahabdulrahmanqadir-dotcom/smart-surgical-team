@@ -12,7 +12,7 @@ limits behind it).
 | --- | --- | --- |
 | Cloudflare Turnstile | `app/components/Turnstile.tsx`, verified by Supabase | sign-in, registration, code resend, password reset |
 | Password rules and strength meter | `app/lib/password-strength.ts`, `app/components/PasswordStrength.tsx` | registration, password reset |
-| Leaked-password rejection | Supabase (HaveIBeenPwned), message translated locally | registration, password reset |
+| Leaked-password rejection | Supabase (HaveIBeenPwned), message translated locally | registration, password reset — **needs a Pro plan, see §3** |
 | Failed-attempt back-off | `app/lib/auth-throttle.ts` | sign-in, registration, code entry, password reset |
 | Non-committal sign-in error | `app/components/AuthForm.tsx` | sign-in |
 
@@ -54,6 +54,19 @@ four-step registration can easily outlive one.
    Authentication → Attack Protection → Enable CAPTCHA protection → provider
    **Turnstile**, paste the secret key, save.
 
+**The widget now exists** (created 2026-08-31, Cloudflare account
+`Abdullahabdulrahmanqadir`, which also holds `ssthyroid.com` and the `smart`
+Worker): named *SST auth (sign-in, sign-up, reset)*, **Managed**, no
+pre-clearance, three hostnames — `ssthyroid.com`, `smart.ssteam.workers.dev`
+and `localhost`. Its site key is in `.env.local` and verified inlined into
+`dist/`. The secret key stays in the dashboard under Widget Keys → Show; it has
+not been given to Supabase yet, because step 4 must wait for a deploy.
+
+To add a hostname the dashboard does not already know as one of your zones,
+type it and pick the **Add "…" as a custom hostname** entry that appears under
+"No results" — it sits below the fold of that dropdown and is easy to miss.
+Pressing Enter instead just clears the field.
+
 **Order matters, and this is the trap.** Step 4 makes Supabase reject every
 `signUp`, `signInWithPassword`, `resend` and `resetPasswordForEmail` that
 arrives without a valid token. Do it before step 3 has deployed and the live
@@ -81,11 +94,27 @@ and gating the sign-in field would lock them out of their own accounts.
 Supabase enforces its own minimum server side and holds the leaked-password
 check. Both are at Authentication → Providers → Email:
 
-- **Minimum password length** → set to `10` to match the site
-- **Prevent use of leaked passwords** → on
+- **Minimum password length** → `10`, to match the site. **Done**
+  (2026-08-31).
+- **Prevent use of leaked passwords** → **blocked.** Supabase answers
+  `Configuring leaked password protection via HaveIBeenPwned.org is available
+  on Pro Plans and up`, and the project is on the Free plan. The dashboard lets
+  you flip the toggle and only refuses on save.
 
-The site already translates the rejection Supabase returns for a breached
-password, so turning it on needs no code change.
+**The save is all-or-nothing.** Turning on the leaked-password toggle rejects
+the whole request, so a password-length change made in the same visit is lost
+silently along with it. Change one thing at a time here and re-open the panel
+to confirm it stuck.
+
+The code needs nothing either way: the site already translates the rejection
+Supabase returns for a breached password, so the check starts working the day
+the project moves to Pro, with no deploy. Until then the site's own rules — ten
+characters and two of letter/number/symbol — are the whole of what a chosen
+password must clear.
+
+**Password requirements** on the same panel is deliberately left unset. Its
+options are fixed character-class sets, and any of them would reject passwords
+the site's own meter accepts.
 
 ## 4. Failed-attempt back-off
 
