@@ -98,3 +98,42 @@ test("a rendered document is shared through KV, promoted to edge cache, and refr
   await Promise.all(staleContext.pending);
   assert.equal(renders, 2);
 });
+
+test("a signed-in reader's public page stays restorable from their own history", async () => {
+  // The shared cache is skipped for a credentialed request, and Next marks the
+  // render `no-store`. Chrome refuses to keep a `no-store` page in the
+  // back/forward cache, so leaving a case and pressing Back tore the topic grid
+  // down and rebuilt it, re-requesting and re-decoding every card image.
+  // `no-cache` still forbids reuse without revalidation; it only lets the
+  // reader's own history entry come back.
+  const signedIn = new Request("https://example.com/en/topics/thyroid-parathyroid", {
+    headers: { accept: "text/html", cookie: "sb-access-token=secret" },
+  });
+  const render = async () => new Response("<html>signed in</html>", {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store, must-revalidate" },
+  });
+
+  const response = await servePublicDocument(signedIn, { VINEXT_CACHE: new MemoryKv() }, context(), render);
+  assert.equal(response.headers.get("cache-control"), "private, no-cache, must-revalidate");
+  assert.equal(response.headers.get("x-sst-page-cache"), null);
+  assert.equal(await response.text(), "<html>signed in</html>");
+});
+
+test("only public content pages are made restorable", async () => {
+  const kv = { VINEXT_CACHE: new MemoryKv() };
+  const render = async () => new Response("<html>account</html>", {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store, must-revalidate" },
+  });
+
+  for (const path of ["/en/profile", "/en/admin", "/en/sign-in", "/api/profile"]) {
+    const request = new Request(`https://example.com${path}`, { headers: { accept: "text/html", cookie: "sb-access-token=secret" } });
+    const response = await servePublicDocument(request, kv, context(), render);
+    assert.equal(response.headers.get("cache-control"), "no-store, must-revalidate", `${path} must not be storable`);
+  }
+
+  // Nor is a JSON or RSC response ever touched, whatever its path.
+  const rsc = new Request("https://example.com/en/topics", { headers: { accept: "text/x-component", rsc: "1" } });
+  const rscResponse = await servePublicDocument(rsc, kv, context(), async () =>
+    new Response("payload", { headers: { "content-type": "text/x-component", "cache-control": "no-store" } }));
+  assert.equal(rscResponse.headers.get("cache-control"), "no-store");
+});

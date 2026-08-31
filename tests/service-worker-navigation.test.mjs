@@ -61,6 +61,25 @@ function navigate(listeners, url = PAGE) {
 const html = (body, headers = {}) =>
   new Response(body, { status: 200, headers: { "content-type": "text/html", "cache-control": "public, max-age=60", ...headers } });
 
+/** Dispatches a subresource request the way the browser would for an <img>. */
+function loadImage(listeners, url) {
+  const request = new Request(url);
+  Object.defineProperty(request, "destination", { value: "image" });
+  const pending = [];
+  let responded;
+  listeners.fetch({
+    request,
+    respondWith: (promise) => { responded = promise; },
+    waitUntil: (promise) => pending.push(promise),
+  });
+  return { responded, settled: () => Promise.allSettled(pending) };
+}
+
+const MEDIA = `${ORIGIN}/api/media/topics/thyroid/case/1785940190869-093a1107.jpg`;
+const COVER = `${ORIGIN}/api/research-cover/some-paper.svg`;
+const image = (body, cacheControl) =>
+  new Response(body, { status: 200, headers: { "content-type": "image/jpeg", "cache-control": cacheControl } });
+
 test("a full storage quota does not cost the reader the page", async () => {
   // `await cache.put(...)` on the response path meant a rejected write — a full
   // quota, storage denied in a private window — threw into the offline branch,
@@ -140,4 +159,45 @@ test("a successful no-store page is served, never answered from the cache", asyn
   });
   const response = await navigate(listeners).responded;
   assert.equal(await response.text(), "<html>private</html>");
+});
+
+test("an immutable picture is served from the device without touching the network", async () => {
+  // Uploaded media is never overwritten at its URL, so a revalidation can only
+  // ever answer "unchanged". Asking anyway meant every visit to a case grid put
+  // a request on the network for every picture in it, and a reader coming back
+  // from a case paid for the whole grid a second time.
+  let networkCalls = 0;
+  const { listeners } = loadWorker({
+    fetchImpl: async () => { networkCalls += 1; return image("fresh", "public, max-age=31536000, immutable"); },
+    cacheEntries: new Map([[MEDIA, image("stored", "public, max-age=31536000, immutable")]]),
+  });
+  const request = loadImage(listeners, MEDIA);
+  const response = await request.responded;
+  await request.settled();
+  assert.equal(await response.text(), "stored");
+  assert.equal(networkCalls, 0, "an immutable stored copy should not be revalidated");
+});
+
+test("a picture that can change is still refreshed in the background", async () => {
+  // Generated research covers carry a plain `max-age`: the stored copy is
+  // served at once, and the network keeps running to refresh it for next time.
+  let networkCalls = 0;
+  const { listeners, cacheEntries } = loadWorker({
+    fetchImpl: async () => { networkCalls += 1; return image("fresh", "public, max-age=3600"); },
+    cacheEntries: new Map([[COVER, image("stored", "public, max-age=3600")]]),
+  });
+  const request = loadImage(listeners, COVER);
+  assert.equal(await (await request.responded).text(), "stored");
+  await request.settled();
+  assert.equal(networkCalls, 1);
+  assert.equal(await cacheEntries.get(COVER).clone().text(), "fresh");
+});
+
+test("a picture that is not stored yet is fetched", async () => {
+  const { listeners } = loadWorker({
+    fetchImpl: async () => image("fresh", "public, max-age=31536000, immutable"),
+  });
+  const request = loadImage(listeners, MEDIA);
+  assert.equal(await (await request.responded).text(), "fresh");
+  await request.settled();
 });

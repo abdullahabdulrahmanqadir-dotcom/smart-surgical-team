@@ -13,6 +13,11 @@
 // be awaited on the response path, so a write cut short by a closing tab could
 // leave a partial document behind; nothing under the old rules is reused.
 const VERSION = "v4";
+// Deliberately still v4 after the immutable rule in `revisableAsset` below.
+// A bump withdraws every cache this worker no longer names, which here would
+// throw away the stored pictures the change exists to stop re-fetching. No
+// entry changes meaning: the bytes at a media URL were already immutable, the
+// worker had simply been asking anyway.
 
 // A stalled connection used to mean an indefinitely blank window: the fetch
 // never settled, so neither the network's page nor the saved one was shown, and
@@ -166,9 +171,22 @@ async function immutableAsset(request) {
   return response;
 }
 
+/** True for a response whose bytes can never change at this URL. */
+function isImmutable(response) {
+  return /(?:^|,)\s*immutable\b/i.test(response.headers.get("cache-control") || "");
+}
+
 async function revisableAsset(event) {
   const cache = await caches.open(ASSET_CACHE);
   const cached = await cache.match(event.request);
+  // Uploaded media is written under a new timestamped key rather than
+  // overwritten, and `/api/media` says exactly that with `immutable`.
+  // Revalidating one is pure waste, and it was not free: every visit to a case
+  // grid put a request on the network for every picture in it, dozens that
+  // could only ever come back "unchanged", and a reader returning from a case
+  // paid for the whole grid a second time. A stored copy that declares itself
+  // immutable is simply served.
+  if (cached && isImmutable(cached)) return cached;
   const network = fetch(event.request).then(async (response) => {
     if (mayStore(response)) await cache.put(event.request, response.clone());
     return response;

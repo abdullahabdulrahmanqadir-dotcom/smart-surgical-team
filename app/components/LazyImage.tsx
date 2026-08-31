@@ -3,6 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
+ * Every source that has finished decoding in this document.
+ *
+ * Card grids are torn down and rebuilt constantly — a filter change, a search
+ * term, returning from a case — and each rebuild is a fresh mount with fresh
+ * state, which put the shimmering placeholder back over pictures the browser
+ * already had in memory. The grid read as though it were loading all over
+ * again. A source only has to be proven once per document; after that the
+ * picture is rendered outright, with no placeholder and no fade.
+ */
+const decodedSources = new Set<string>();
+
+/**
  * An image that never holds up the text around it.
  *
  * The page paints immediately with a shimmering placeholder in the image's
@@ -28,7 +40,9 @@ export default function LazyImage({
 }) {
   // Recording which source settled, rather than a bare flag, means a changed
   // `src` returns to the placeholder without an effect having to reset it.
-  const [settled, setSettled] = useState<{ src: string; ok: boolean } | null>(null);
+  const [settled, setSettled] = useState<{ src: string; ok: boolean } | null>(
+    () => (decodedSources.has(src) ? { src, ok: true } : null),
+  );
   const state = settled?.src !== src ? "loading" : settled.ok ? "loaded" : "failed";
 
   // An image that is already in the browser cache can finish decoding before
@@ -41,6 +55,9 @@ export default function LazyImage({
     if (!image?.complete) return;
     const loaded = image.getAttribute("src") ?? "";
     const ok = image.naturalWidth > 0;
+    // Only a success is remembered: a failure has to be free to resolve on the
+    // next attempt rather than being held against the source for the session.
+    if (ok) decodedSources.add(loaded);
     // Returning the previous value leaves the state untouched, so re-checking
     // after every commit cannot drive a render loop.
     setSettled((previous) => (previous?.src === loaded && previous.ok === ok ? previous : { src: loaded, ok }));
@@ -70,7 +87,10 @@ export default function LazyImage({
         decoding="async"
         draggable={draggable}
         onClick={onClick}
-        onLoad={() => setSettled({ src, ok: true })}
+        onLoad={() => {
+          decodedSources.add(src);
+          setSettled({ src, ok: true });
+        }}
         onError={() => setSettled({ src, ok: false })}
       />
     </span>

@@ -14,6 +14,9 @@ const PAGE_CACHE_PREFIX = `page:${PAGE_CACHE_VERSION}:`;
 const FRESH_SECONDS = 60;
 const STALE_FALLBACK_SECONDS = 24 * 60 * 60;
 const PUBLIC_CACHE_CONTROL = `public, max-age=${FRESH_SECONDS}, s-maxage=${FRESH_SECONDS}, stale-while-revalidate=${STALE_FALLBACK_SECONDS}`;
+// Personal, revalidate before reuse — but storable, which is what keeps a page
+// eligible for the browser's back/forward cache. See `restorableDocument`.
+const PRIVATE_DOCUMENT_CACHE_CONTROL = "private, no-cache, must-revalidate";
 
 type PageCacheMetadata = {
   storedAt: number;
@@ -41,16 +44,56 @@ function defaultCache(): Cache {
 // strings (which would create an unbounded attacker-controlled key space).
 const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
 
-export function isPublicDocumentRequest(request: Request): boolean {
+/** A request for one of the public content URLs above, as a document, before
+    the caller's own credentials are taken into account. Everything the shared
+    page cache needs to be true is checked here; whether this particular reader
+    may be served someone else's copy is decided by the caller below. */
+function isPublicDocumentPath(request: Request): boolean {
   if (request.method !== "GET") return false;
 
   const url = new URL(request.url);
   if (url.search || !PUBLIC_DOCUMENT.test(url.pathname)) return false;
-  if (request.headers.has("authorization") || request.headers.has("cookie")) return false;
   if (request.headers.get("rsc") === "1") return false;
   if (request.headers.has("next-router-state-tree") || request.headers.has("next-router-prefetch")) return false;
 
   return (request.headers.get("accept") ?? "").includes("text/html");
+}
+
+export function isPublicDocumentRequest(request: Request): boolean {
+  if (!isPublicDocumentPath(request)) return false;
+  // A credentialed reader gets their own render: the stored copy is shared
+  // between everyone, so it must never carry a signed-in header or a
+  // members-only body.
+  return !request.headers.has("authorization") && !request.headers.has("cookie");
+}
+
+/**
+ * Lets the browser put a signed-in reader's page back the way they left it.
+ *
+ * A credentialed request skips the shared cache above and is rendered by
+ * Next, which marks a dynamic document `no-store`. That header does more than
+ * forbid storage: Chrome refuses to keep a `no-store` page in the back/forward
+ * cache, so leaving a case and pressing Back tore the whole page down and
+ * rebuilt it — every card image requested and decoded again, placeholders
+ * shimmering over pictures the browser already held. Anonymous readers never
+ * saw it, because their copy comes from the page cache with a `max-age`.
+ *
+ * `no-cache` keeps the part that matters — a stored copy may not be reused
+ * until the server has confirmed it, so no personalized page is ever shown to
+ * anyone else or served after a sign-out — while allowing the one reuse that
+ * has always been the reader's own: their own history entry, going back to the
+ * page they were just looking at.
+ */
+function restorableDocument(response: Response): Response {
+  const cacheControl = response.headers.get("cache-control") ?? "";
+  if (!/(?:^|,)\s*no-store\b/i.test(cacheControl)) return response;
+  if (!(response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html")) return response;
+
+  // Rebuilt rather than mutated: a Response handed back by another runtime can
+  // carry an immutable headers guard, which would throw on `set`.
+  const restorable = new Response(response.body, response);
+  restorable.headers.set("cache-control", PRIVATE_DOCUMENT_CACHE_CONTROL);
+  return restorable;
 }
 
 function pageCacheKey(request: Request): string {
@@ -151,7 +194,13 @@ export async function servePublicDocument(
   ctx: WorkerContext,
   render: RenderPage,
 ): Promise<Response> {
-  if (!env.VINEXT_CACHE || !isPublicDocumentRequest(request)) return render();
+  if (!env.VINEXT_CACHE || !isPublicDocumentRequest(request)) {
+    // A public content page rendered for a signed-in reader still has to be
+    // restorable from their own history; anything else — an account screen, an
+    // API route, an RSC payload — keeps whatever Next decided.
+    const response = await render();
+    return isPublicDocumentPath(request) ? restorableDocument(response) : response;
+  }
 
   const edgeHit = await defaultCache().match(edgeCacheRequest(request));
   if (edgeHit) {
