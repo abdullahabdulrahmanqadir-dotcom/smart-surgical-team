@@ -4,18 +4,21 @@ import { KVCacheHandler } from "vinext/cloudflare";
 import { setCacheHandler } from "vinext/shims/cache";
 import handler from "vinext/server/app-router-entry";
 import { servePublicDocument } from "./page-cache";
+import { R2CacheStore } from "./r2-cache-store";
 import { legacyRedirect } from "./legacy-redirects";
 
 interface Env {
   ASSETS: Fetcher;
   MEDIA_BUCKET: R2Bucket;
-  /** Backs the cached Supabase reads in app/lib/content.ts, events.ts and
-      research.ts. In production this is bound to the `sst-cache` KV namespace
-      in the `smart` Worker's dashboard Bindings tab, which makes the cache
-      shared and durable. Still optional: without the binding vinext falls back
-      to a per-isolate memory cache, which works but goes cold whenever
-      Cloudflare starts a fresh isolate. That is what local dev runs on. */
-  VINEXT_CACHE?: KVNamespace;
+  /** The `smart-cache` R2 bucket, holding both caches this Worker keeps:
+      rendered public documents under `page:` (see ./page-cache.ts) and the
+      cached Supabase reads in app/lib/content.ts, events.ts and research.ts
+      under `data:`. R2 rather than Workers KV because KV's free plan allows
+      only 1,000 writes a day, which this site burns through — see
+      ./r2-cache-store.ts. Still optional: without the binding vinext falls
+      back to a per-isolate memory cache and the page cache turns itself off,
+      which works but goes cold whenever Cloudflare starts a fresh isolate. */
+  CACHE_BUCKET?: R2Bucket;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -53,8 +56,11 @@ const worker = {
     // no-op once an isolate is warm. Skipped entirely when the binding is
     // absent, which keeps local dev and any unbound deployment working on
     // vinext's default in-memory handler instead of throwing.
-    if (env.VINEXT_CACHE && !cacheHandlerInstalled) {
-      setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
+    if (env.CACHE_BUCKET && !cacheHandlerInstalled) {
+      // `appPrefix` keeps vinext's entries and tag markers under `data:`, so
+      // the rendered documents `page-cache.ts` writes under `page:` share the
+      // bucket without either one listing or expiring the other's keys.
+      setCacheHandler(new KVCacheHandler(new R2CacheStore(env.CACHE_BUCKET), { appPrefix: "data" }));
       cacheHandlerInstalled = true;
     }
 

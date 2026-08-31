@@ -110,15 +110,15 @@ function cacheTagsFor(resource: Resource): PublicCacheTag[] {
   return [];
 }
 
-/** Public reads are stored by vinext in VINEXT_CACHE (Cloudflare KV). Expire
+/** Public reads are stored by vinext in the `smart-cache` R2 bucket. Expire
     the affected tag after a successful Supabase write so a newly published or
     edited poster is visible immediately instead of waiting for the 60s TTL. */
 async function invalidatePublicCache(resource: Resource) {
   try {
     await Promise.all(cacheTagsFor(resource).map((tag) => revalidateTag(tag, { expire: 0 })));
   } catch (error) {
-    // The database remains the source of truth. If KV is temporarily
-    // unavailable, the normal short TTL still heals the public read.
+    // The database remains the source of truth. If the cache bucket is
+    // temporarily unavailable, the normal short TTL still heals the public read.
     console.error("Public cache invalidation failed:", error);
   }
 }

@@ -138,9 +138,10 @@ card.
   banner again, because the stored id no longer matches.
 - **Freshness: the cache lag is accepted.** The banner renders server-side with
   the homepage, which means a fresh pin may not reach every reader immediately
-  — `worker/page-cache.ts` serves public HTML fresh for 60s and can serve a KV
+  — `worker/page-cache.ts` serves public HTML fresh for 60s and can serve a
   stale copy for up to 24h, and it is not tag-aware. No client fetch, no cache
-  purging. **This is a deliberate client decision; do not "fix" it later
+  purging. (The stale copy lived in KV when this was written; it has been in
+  the `smart-cache` R2 bucket since 2026-08-31. The timings are unchanged.) **This is a deliberate client decision; do not "fix" it later
   without asking.**
 
 ## 10. Data model
@@ -496,10 +497,11 @@ Added after the Phase 2 review. News was rendering correctly but was **not
 cached**, because both cache layers gate on a path whitelist that news was
 missing from:
 
-- `worker/page-cache.ts` — the edge/KV page cache. `/:locale/news` and
+- `worker/page-cache.ts` — the edge page cache. `/:locale/news` and
   `/:locale/news/:slug` are now in `PUBLIC_DOCUMENT`, so they are served fresh
-  for 60 s, promoted into the regional Cache API, and keep a 24-hour KV stale
-  copy that can answer during an SSR failure or CPU outage.
+  for 60 s, promoted into the regional Cache API, and keep a 24-hour stale copy
+  that can answer during an SSR failure or CPU outage. (That copy was in KV
+  when this was written and is in R2 since 2026-08-31.)
 - `public/sw.js` — the device/offline cache. The same rule, so a news page a
   reader has opened is available offline like every other public page. Its
   `VERSION` is bumped to `v2`: an installed worker keeps applying the old rule
@@ -955,7 +957,8 @@ in the dev log while the browser still shows old content.
 
 Neither is a bug; both are the documented behaviour, and both are **local only**.
 The stale entries lived in `.wrangler/state/v3/cache` and
-`.wrangler/state/v3/kv`, not in production KV. Production was never affected:
+`.wrangler/state/v3/kv`, not in the production store. (Since 2026-08-31 the
+local directory to delete is `.wrangler/state/v3/r2`, not `.../kv`.) Production was never affected:
 `/en/news` is a **404** there, because the news section has never been
 deployed.
 
@@ -1000,9 +1003,16 @@ pins the eviction mechanism. `npm test` — **48 / 48**.
 ### Left alone deliberately
 
 The edge-cache branch of `worker/page-cache.ts` returns `HIT` with **no age
-check**, unlike the KV branch below it which computes `ageSeconds`, downgrades
-to `STALE` and schedules a background refresh. On Cloudflare this is correct:
-the Cache API enforces the stored `max-age=60` itself, so an expired entry never
-comes back from `match()`. The local dev runtime does not, which is why the
-stale page was pinned indefinitely there. **Not changed** — altering page-cache
-behaviour is a client decision (§9, §13), and the production path is sound.
+check**, unlike the durable-store branch below it which computes `ageSeconds`,
+downgrades to `STALE` and schedules a background refresh. On Cloudflare this is
+correct: the Cache API enforces the stored `max-age=60` itself, so an expired
+entry never comes back from `match()`. The local dev runtime does not, which is
+why the stale page was pinned indefinitely there. **Not changed** — altering
+page-cache behaviour is a client decision (§9, §13), and the production path is
+sound.
+
+Superseded in one detail on 2026-08-31: the durable branch now seeds the edge
+cache from a *stale* entry too, not only a fresh one, because R2 is a single
+regional bucket and each stale read otherwise cost a round trip plus a
+scheduled re-render per reader. Freshness is unchanged — the seeded copy still
+carries `max-age=60`.

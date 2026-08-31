@@ -244,7 +244,9 @@ touching R2 (unchanged existing route).
 - This is a DB-backed feature: the migration `0009_research.sql` must be run
   against Supabase (via the client's migration process) for research to appear.
 - No new environment bindings — reuses `MEDIA_BUCKET`, Supabase service role,
-  and the KV media/content cache already in place.
+  and the read-through content cache already in place. (That cache was Workers
+  KV when this was written; it is the `smart-cache` R2 bucket since
+  2026-08-31.)
 - Work stays local until the client explicitly asks to publish (per handoff
   working agreement).
 

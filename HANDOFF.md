@@ -19,8 +19,9 @@ workflows follow later.
 - Next.js 16 App Router, React 19 and TypeScript
 - Cloudflare Workers-compatible output through `vinext`
 - Tailwind v4 plus the project stylesheet in `app/globals.css`
-- Supabase for content, members and auth; Cloudflare R2 (`smart-media`) for
-  editorial media, served through `/api/media/…`
+- Supabase for content, members and auth; Cloudflare R2 for editorial media
+  (`smart-media`, served through `/api/media/…`) and for both server caches
+  (`smart-cache`)
 
 ### Key reference documents
 
@@ -75,13 +76,14 @@ not cache the final rendered HTML.
 The fix adds two complementary cache layers:
 
 - `worker/page-cache.ts` caches safe public HTML in the regional Cloudflare
-  Cache API and global `VINEXT_CACHE` KV. It only caches cookie-free,
-  authorization-free `GET` requests with no query string and bypasses RSC,
-  prefetch, admin, auth, profile and API traffic.
-- Public HTML is fresh for 60 seconds. KV keeps a 24-hour stale copy that can be
-  returned immediately during an SSR failure or CPU outage while a refresh is
-  scheduled with `waitUntil`. Inspect `x-sst-page-cache` (`MISS`, `HIT`, or
-  `STALE`) when diagnosing production.
+  Cache API and in a global store — Workers KV at the time, the `smart-cache`
+  R2 bucket since 2026-08-31; see §"Both caches moved from KV to R2" below. It
+  only caches cookie-free, authorization-free `GET` requests with no query
+  string and bypasses RSC, prefetch, admin, auth, profile and API traffic.
+- Public HTML is fresh for 60 seconds. The global store keeps a 24-hour stale
+  copy that can be returned immediately during an SSR failure or CPU outage
+  while a refresh is scheduled with `waitUntil`. Inspect `x-sst-page-cache`
+  (`MISS`, `HIT`, or `STALE`) when diagnosing production.
 - Cached pages now send `Cache-Control: public, max-age=60, s-maxage=60,
   stale-while-revalidate=86400`, allowing browsers to reuse recent HTML too.
 - `lib/supabase/server.ts` memoizes the server client, and the allowed image
@@ -108,6 +110,64 @@ This section describes the release requested for `main` on 2026-08-19. Pushing
 `main` triggers the Cloudflare Git deployment. After deployment, verify and
 prime `/en`, `/ar`, `/en/topics`, and `/ar/topics`, then confirm repeat requests
 return `x-sst-page-cache: HIT`.
+
+### Both caches moved from KV to R2 (2026-08-31)
+
+The `sst-cache` KV namespace was deleted after the account hit KV's free-plan
+limits, which are per **day** and shared by the whole namespace: 1,000 writes,
+1,000 deletes, 1,000 lists and 100,000 reads. This site spends them quickly —
+every cold render of a public page writes an entry, and every publish from the
+Admin expires a tag — and the only way past them is a paid plan.
+
+R2's free plan measures the same work per **month**: 1,000,000 Class A
+operations (write, delete, list) and 10,000,000 Class B operations (read),
+against 10 GB of storage. Roughly thirty times the daily write headroom, at no
+cost, for exactly the same job.
+
+Deleting the namespace also switched both caches off, which is worth
+understanding before reading old numbers: `worker/index.ts` only installs a
+cache handler when the binding exists, and `servePublicDocument` renders
+straight through when it does not. Between the deletion and this change, every
+public page view executed SSR and queried Supabase unless the isolate happened
+to be warm.
+
+**What now stores what.** One bucket, `smart-cache`, holds both caches under
+separate key prefixes so neither can list or expire the other's keys:
+
+| Prefix | Written by | Holds | Lifecycle rule |
+|---|---|---|---|
+| `page:v1:` | `worker/page-cache.ts` | rendered public HTML documents | expire after 2 days |
+| `data:` | vinext's `KVCacheHandler` | `unstable_cache` entries and tag markers | expire after 31 days |
+
+`worker/r2-cache-store.ts` is a Workers-KV-shaped façade over the bucket.
+`KVCacheHandler` is upstream vinext code written against `get`/`put`/`delete`/
+`list`, so handing it the façade keeps its tag semantics, entry validation and
+stale-while-revalidate rules untouched rather than reimplementing them.
+
+**Three behavioural differences from KV, all handled in code:**
+
+- **R2 has no `expirationTtl`.** Both caches stamp an `expiresAt` into custom
+  metadata and treat a passed-expiry object as absent; the page cache also
+  refuses anything older than its 24-hour stale window. The bucket lifecycle
+  rules above are the backstop that reclaims storage for keys nothing reads
+  again — they are set on the bucket, not in this repository, with
+  `npx wrangler r2 bucket lifecycle list smart-cache` to check them.
+- **R2 is one regional bucket, not KV's edge-replicated store**, so a read
+  costs more. `page-cache.ts` now seeds the regional Cache API from *stale*
+  entries as well as fresh ones, which caps R2 reads and background re-renders
+  at one per colo per minute instead of one per reader.
+- **R2 is read-after-write consistent.** KV took up to 60 seconds to propagate
+  globally, so a tag expired by the Admin could keep losing to a cached entry
+  for a minute after a publish. That window is gone. The page cache's own
+  60-second freshness window is unchanged and is still what governs how quickly
+  a publish appears.
+
+`PAGE_CACHE_VERSION` was deliberately left at `v1`; the reason is at the top of
+`worker/page-cache.ts`.
+
+Guarded by `tests/r2-cache-store.test.mjs` (the façade, including the expiry and
+list-metadata behaviour KV gave for free) and the two page-cache suites, which
+now run against `tests/memory-r2.mjs`.
 
 ## 4. What is implemented now
 
@@ -312,12 +372,13 @@ Public pages no longer query Supabase on every request.
   case page. Both go through `unstable_cache` with a 60-second revalidate and
   the `published-content` tag. `app/lib/events.ts` does the same under
   `published-events`.
-- **Cache durability depends on a KV binding.** `worker/index.ts` installs
-  vinext's `KVCacheHandler` when a KV namespace is bound as `VINEXT_CACHE`, and
-  otherwise falls back to a per-isolate memory cache that goes cold with the
-  isolate. Bind it in the Worker's dashboard Bindings tab — there is no
-  `wrangler.jsonc`, and adding one would take precedence over the
-  dashboard-managed bindings.
+- **Cache durability depends on the `CACHE_BUCKET` binding.** `worker/index.ts`
+  installs vinext's `KVCacheHandler` over `worker/r2-cache-store.ts` when the
+  `smart-cache` R2 bucket is bound as `CACHE_BUCKET`, and otherwise falls back
+  to a per-isolate memory cache that goes cold with the isolate. The binding is
+  declared in `localBindingConfig` in `vite.config.ts`, which is what the build
+  writes into `dist/server/wrangler.json` — that generated file, not the
+  dashboard Bindings tab, is what a deploy applies.
 - Topics load one at a time. `/topics` reads nothing; `/topics/:slug` renders
   only that group; the explorer fetches any other group from
   `/api/topics/:slug/cases` and keeps it for the session.
@@ -468,8 +529,9 @@ entirely, so it measures raw SSR and says nothing about what a reader sees. A
 **Stale content in dev is usually a zombie dev server.** If the dev log says
 "Port 3000 is in use, trying another one", the port being looked at is served by
 an older run. Stop every `workerd` process (they hold miniflare's sqlite open),
-delete `.wrangler/state/v3/cache` and `.wrangler/state/v3/kv`, then restart.
-Those are local caches only — production KV is untouched.
+delete `.wrangler/state/v3/cache` and `.wrangler/state/v3/r2`, then restart.
+Those are local caches only — the production `smart-cache` bucket is untouched,
+and dev never writes to it (the binding is deliberately not `remote`).
 
 **Service-worker navigation fix (2026-08-29, `VERSION` v3).**
 `publicNavigation()` answered from the device cache for *any* unstorable
@@ -480,7 +542,8 @@ since `activate` deletes every `sst-` cache it no longer names. Two tests guard
 both halves.
 
 **Caching now matches the rest of the site.** News was initially uncached: both
-`worker/page-cache.ts` (edge + KV) and `public/sw.js` (device/offline) gate on a
+`worker/page-cache.ts` (edge + global store) and `public/sw.js`
+(device/offline) gate on a
 `PUBLIC_DOCUMENT` path whitelist that news was missing from. Both now include
 it, `sw.js` `VERSION` is bumped to `v2`, and a test asserts the two copies of
 that rule stay identical — a section added to one and not the other would be

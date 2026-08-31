@@ -49,7 +49,7 @@ Visitor selects a topic
 | `app/api/topics/[slug]/cases/route.ts` | Validates the public topic, obtains its parent/child slugs, returns the matching cards and cache headers. |
 | `app/[locale]/topics/[slug]/page.tsx` | Server-renders a deep-linked selected topic with its matching cards. |
 | `app/lib/content.ts` | Defines `fetchCards`, `cachedCards`, and `getTopicContent`; this is the location of the full-catalogue query. |
-| `worker/index.ts` | Uses `VINEXT_CACHE` KV when the production Worker binding exists, providing durable backing for `unstable_cache`. |
+| `worker/index.ts` | Uses the `CACHE_BUCKET` R2 binding when it exists, providing durable backing for `unstable_cache`. (Was `VINEXT_CACHE` KV until 2026-08-31.) |
 
 The current implementation is intentionally safe for content visibility:
 `fetchCards()` filters `status = published` and `access_level = public` before
@@ -197,16 +197,19 @@ full-catalogue reader blindly.
    `content_topics_topic_content_idx` is used for topic-first lookup.
 3. Test `/en/topics`, one direct topic URL, selection between two topics,
    browser back/forward, and a reload on a direct topic URL.
-4. Confirm `VINEXT_CACHE` is bound in Cloudflare Workers. Without it,
-   `unstable_cache` falls back to per-isolate memory and cache warmth will be
-   less consistent across requests.
+4. Confirm `CACHE_BUCKET` is bound in Cloudflare Workers — the `smart-cache`
+   R2 bucket, declared in `vite.config.ts`. Without it, `unstable_cache` falls
+   back to per-isolate memory and cache warmth will be less consistent across
+   requests.
 5. Compare cold and warm Worker timings and database response sizes before and
    after. Record both rather than relying only on localhost timings.
 
 ## Non-goals and guardrails
 
-- Do not add Workers KV merely for this change; the Worker already supports
-  `VINEXT_CACHE`. Verify that the production binding exists instead.
+- Do not add a new cache store merely for this change; the Worker already
+  backs `unstable_cache` with the `smart-cache` R2 bucket. Verify that the
+  `CACHE_BUCKET` binding exists instead. Workers KV in particular is off the
+  table — its free-plan daily write limit is why this moved to R2.
 - Do not cache authentication, member access, saves, progress, or admin data
   in this topic cache.
 - Do not change R2 media delivery or lazy image behaviour; those mechanisms

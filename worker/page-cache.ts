@@ -1,14 +1,13 @@
 import { degradationMarker } from "../lib/render-health";
 
-// Deliberately still v1 after adding /:locale/news to PUBLIC_DOCUMENT below.
-// The convention is to bump this whenever the cached-route rules change, so
-// entries stored under the old semantics are never reused — but here the change
-// only widens which paths qualify. Keys are the prefix plus the pathname, so no
-// existing entry changes meaning, and no /news entry can exist under v1 because
-// isPublicDocumentRequest rejected those requests until now. Bumping would
-// discard every cached page and re-render the whole site at once, which is the
-// exact CPU spike the Free plan's 10 ms ceiling cannot absorb. Bump it for a
-// change that alters what a stored entry *means*.
+// Deliberately still v1 after moving the store from KV to R2. The convention
+// is to bump this whenever the cached-route rules change, so entries stored
+// under the old semantics are never reused — but a stored document still means
+// exactly what it meant before, and the KV namespace that held the v1 entries
+// has been deleted, so there is nothing left to collide with. Bumping would
+// only guarantee the whole site re-renders at once, which is the exact CPU
+// spike the Free plan's 10 ms ceiling cannot absorb. Bump it for a change that
+// alters what a stored entry *means*.
 const PAGE_CACHE_VERSION = "v1";
 const PAGE_CACHE_PREFIX = `page:${PAGE_CACHE_VERSION}:`;
 const FRESH_SECONDS = 60;
@@ -18,17 +17,14 @@ const PUBLIC_CACHE_CONTROL = `public, max-age=${FRESH_SECONDS}, s-maxage=${FRESH
 // eligible for the browser's back/forward cache. See `restorableDocument`.
 const PRIVATE_DOCUMENT_CACHE_CONTROL = "private, no-cache, must-revalidate";
 
-type PageCacheMetadata = {
-  storedAt: number;
-  contentType: string;
-};
-
 type WorkerContext = {
   waitUntil(promise: Promise<unknown>): void;
 };
 
 type PageCacheEnv = {
-  VINEXT_CACHE?: KVNamespace;
+  /** The `smart-cache` R2 bucket. Rendered documents live under `page:`; the
+      vinext data cache shares the bucket under `data:`. */
+  CACHE_BUCKET?: R2Bucket;
 };
 
 type RenderPage = () => Promise<Response>;
@@ -128,31 +124,40 @@ async function writeCaches(
   response: Response,
   marker: number,
 ): Promise<void> {
-  if (!env.VINEXT_CACHE || !response.body || !cacheableRenderedResponse(response)) return;
+  if (!env.CACHE_BUCKET || !response.body || !cacheableRenderedResponse(response)) return;
 
   const contentType = response.headers.get("content-type") ?? "text/html; charset=utf-8";
-  const metadata: PageCacheMetadata = { storedAt: Date.now(), contentType };
   const key = pageCacheKey(request);
+  const storedAt = Date.now();
 
-  // Write one stream on the expensive render path. The first KV hit promotes
-  // it into the regional Cache API; avoiding a second tee here reduces CPU and
-  // backpressure on the request that had to render the page.
-  await env.VINEXT_CACHE.put(key, response.body, {
-    expirationTtl: STALE_FALLBACK_SECONDS,
-    metadata,
+  // Buffered rather than streamed into R2. A vinext document streams with no
+  // declared length, and buffering it here is also what makes the degradation
+  // check below meaningful: by the time `arrayBuffer()` resolves the render has
+  // finished, so `degradationMarker()` has seen every read it is going to.
+  // A rendered page is on the order of a hundred kilobytes.
+  const body = await response.arrayBuffer();
+
+  await env.CACHE_BUCKET.put(key, body, {
+    httpMetadata: { contentType },
+    customMetadata: {
+      storedAt: String(storedAt),
+      // R2 has no TTL of its own. Readers below treat anything past this as
+      // absent; the bucket's lifecycle rule reclaims the bytes. See HANDOFF.md.
+      expiresAt: String(storedAt + STALE_FALLBACK_SECONDS * 1000),
+    },
   });
 
   // Only now is the page known to be whole. The document streams, so a
   // Supabase read can still fail long after `render()` resolved — the check
-  // has to wait until the body has ended, which is what the `put` above
-  // awaits. A section that was dropped from this one response must not be
+  // has to wait until the body has ended, which is what the buffering above
+  // guarantees. A section that was dropped from this one response must not be
   // dropped from every response for the next day, so the entry goes back out.
   //
   // Deleting after writing, rather than deciding before, is what makes this
   // safe against a partial write too: whatever happens, no degraded document
   // is left addressable.
   if (degradationMarker() !== marker) {
-    await env.VINEXT_CACHE.delete(key);
+    await env.CACHE_BUCKET.delete(key);
   }
 }
 
@@ -166,7 +171,7 @@ async function renderAndStore(
   // still being assembled is counted along with the ones that degrade later.
   const marker = degradationMarker();
   const response = await render();
-  if (!cacheableRenderedResponse(response) || !env.VINEXT_CACHE) return response;
+  if (!cacheableRenderedResponse(response) || !env.CACHE_BUCKET) return response;
 
   const browserResponse = new Response(response.body, response);
   browserResponse.headers.set(
@@ -194,7 +199,7 @@ export async function servePublicDocument(
   ctx: WorkerContext,
   render: RenderPage,
 ): Promise<Response> {
-  if (!env.VINEXT_CACHE || !isPublicDocumentRequest(request)) {
+  if (!env.CACHE_BUCKET || !isPublicDocumentRequest(request)) {
     // A public content page rendered for a signed-in reader still has to be
     // restorable from their own history; anything else — an account screen, an
     // API route, an RSC payload — keeps whatever Next decided.
@@ -209,15 +214,25 @@ export async function servePublicDocument(
     return response;
   }
 
-  const kvHit = await env.VINEXT_CACHE.getWithMetadata<PageCacheMetadata>(pageCacheKey(request), { type: "stream" });
-  if (kvHit.value && kvHit.metadata) {
-    const ageSeconds = (Date.now() - kvHit.metadata.storedAt) / 1000;
-    const state = ageSeconds <= FRESH_SECONDS ? "HIT" : "STALE";
-    const response = cachedResponse(kvHit.value, kvHit.metadata.contentType, state);
+  const stored = await env.CACHE_BUCKET.get(pageCacheKey(request));
+  const storedAt = Number(stored?.customMetadata?.storedAt);
+  const ageSeconds = (Date.now() - storedAt) / 1000;
 
-    if (state === "HIT") {
-      ctx.waitUntil(defaultCache().put(edgeCacheRequest(request), response.clone()));
-    } else {
+  // Past the stale window the entry is no longer an answer, only bytes the
+  // lifecycle rule has not swept yet. KV expired these for us; R2 does not.
+  if (stored && Number.isFinite(ageSeconds) && ageSeconds <= STALE_FALLBACK_SECONDS) {
+    const state = ageSeconds <= FRESH_SECONDS ? "HIT" : "STALE";
+    const contentType = stored.httpMetadata?.contentType ?? "text/html; charset=utf-8";
+    const response = cachedResponse(stored.body, contentType, state);
+
+    // The stale copy is seeded into the edge cache too, not just the fresh one.
+    // R2 is a bucket in one region rather than KV's edge-replicated store, so
+    // every request that reaches it costs a round trip and — in the stale
+    // branch — schedules another render. Holding the answer at the edge for the
+    // 60 s `max-age` caps both at one per colo per minute while a refresh lands.
+    ctx.waitUntil(defaultCache().put(edgeCacheRequest(request), response.clone()));
+
+    if (state === "STALE") {
       // Serve the last known-good document immediately. If SSR ever crosses
       // the CPU ceiling again, the refresh can fail without taking the site
       // down or destroying the usable stale copy.
@@ -226,5 +241,6 @@ export async function servePublicDocument(
     return response;
   }
 
+  if (stored) await stored.body.cancel();
   return renderAndStore(request, env, ctx, render);
 }

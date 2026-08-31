@@ -1,5 +1,6 @@
 /** Shared names for public read-through caches. In production vinext stores
-    these entries in the VINEXT_CACHE KV namespace configured by the Worker. */
+    these entries under the `data:` prefix of the `smart-cache` R2 bucket the
+    Worker binds as CACHE_BUCKET. See worker/r2-cache-store.ts. */
 export const CACHE_TAGS = {
   content: "published-content",
   events: "published-events",
