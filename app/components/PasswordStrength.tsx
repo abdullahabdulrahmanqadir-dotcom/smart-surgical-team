@@ -4,9 +4,13 @@ import { PASSWORD_RULES, assessPassword, passwordStrengthBand, type PasswordRule
 import type { Dictionary } from "../lib/dictionaries";
 
 /**
- * The strength meter and rule checklist shown under any field where a password
- * is being chosen. It appears only once there is something to judge, so an
- * untouched form is not already telling the member they have done it wrong.
+ * The strength meter shown under any field where a password is being chosen. It
+ * appears only once there is something to judge, so an untouched form is not
+ * already telling the member they have done it wrong.
+ *
+ * Only the length row is a requirement. The other three are marked
+ * `is-optional` and phrased as what would make the password stronger — a plain
+ * eight-character password is accepted, and the meter must not imply otherwise.
  */
 export default function PasswordStrength({ value, t }: { value: string; t: Dictionary["password"] }) {
   if (!value) return null;
@@ -24,7 +28,10 @@ export default function PasswordStrength({ value, t }: { value: string; t: Dicti
       <p role="status">{t.strengthLabel} <b>{bandLabel[band]}</b></p>
       <ul>
         {PASSWORD_RULES.map((rule) => (
-          <li key={rule.id} className={assessment.passed.includes(rule.id) ? "is-met" : ""}>
+          <li
+            key={rule.id}
+            className={[assessment.passed.includes(rule.id) ? "is-met" : "", rule.id === "length" ? "" : "is-optional"].filter(Boolean).join(" ")}
+          >
             <span aria-hidden="true">{assessment.passed.includes(rule.id) ? "✓" : "•"}</span>
             {ruleLabel[rule.id]}
           </li>

@@ -4154,6 +4154,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 /* Turnstile runs in interaction-only mode, so this collapses to nothing unless
    Cloudflare decides a challenge is warranted and injects its iframe. */
+.password-strength li.is-optional { opacity: .72; }
 .turnstile-slot { display: grid; }
 /* Turnstile is asked for `interaction-only`, so on a visit Cloudflare is happy
    about it renders nothing. Collapsing the slot keeps that from leaving a gap

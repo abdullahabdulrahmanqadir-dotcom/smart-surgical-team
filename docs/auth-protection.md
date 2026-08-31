@@ -116,22 +116,41 @@ ordinary visitor sees.
 
 ## 3. Password rules
 
-Chosen passwords must be at least **10 characters** and satisfy at least two of:
-a letter, a number, a symbol. The meter under the field shows this as it is
-typed. `\p{L}` is used rather than `[a-z]`, so an Arabic password counts.
+**Length is the only requirement: at least 8 characters.** Nothing about what a
+password is made of blocks a submit — there is no letter, number or symbol
+requirement (relaxed on the client's instruction, 2026-08-31; it was briefly ten
+characters plus two of three classes).
 
-These rules apply only where a password is **chosen** — registration step 3 and
-the reset form. Sign-in deliberately does not enforce them: members who
-registered under the old eight-character minimum still have valid passwords,
-and gating the sign-in field would lock them out of their own accounts.
+The meter under the field still checks for a letter, a number and a symbol, but
+only to colour itself and to suggest what would make a password stronger. Those
+three rows are marked `is-optional` and labelled *optional*. If you ever add a
+check that can refuse a password, it has to go through `length`, or
+`assessPassword().acceptable` and the meter will disagree with each other.
+`\p{L}` is used rather than `[a-z]`, so an Arabic password counts as having a
+letter.
+
+**Keep `PASSWORD_MIN_LENGTH` and Supabase's minimum equal.** Supabase enforces
+its own number server side; a site minimum below it would let the meter accept a
+password that the round trip then rejects, with an English error the member
+cannot act on.
+
+The rule applies only where a password is **chosen** — registration step 3 and
+the reset form. Sign-in deliberately does not enforce it, because it should
+never re-judge a password a member already has.
+
+**What this gives up.** Eight characters with no complexity rule means `password`
+and `12345678` are both accepted. Supabase's leaked-password check is exactly
+what covers that, and it is unavailable on the Free plan (see below), so for now
+nothing rejects a breached password. Moving to Pro closes the gap with no code
+change.
 
 ### The dashboard half
 
 Supabase enforces its own minimum server side and holds the leaked-password
 check. Both are at Authentication → Providers → Email:
 
-- **Minimum password length** → `10`, to match the site. **Done**
-  (2026-08-31).
+- **Minimum password length** → `8`, to match `PASSWORD_MIN_LENGTH`. **Done**
+  (2026-08-31; set to 10 earlier the same day, then lowered with the rules).
 - **Prevent use of leaked passwords** → **blocked.** Supabase answers
   `Configuring leaked password protection via HaveIBeenPwned.org is available
   on Pro Plans and up`, and the project is on the Free plan. The dashboard lets
@@ -145,8 +164,7 @@ to confirm it stuck.
 The code needs nothing either way: the site already translates the rejection
 Supabase returns for a breached password, so the check starts working the day
 the project moves to Pro, with no deploy. Until then the site's own rules — ten
-characters and two of letter/number/symbol — are the whole of what a chosen
-password must clear.
+eight-character minimum — is the whole of what a chosen password must clear.
 
 **Password requirements** on the same panel is deliberately left unset. Its
 options are fixed character-class sets, and any of them would reject passwords

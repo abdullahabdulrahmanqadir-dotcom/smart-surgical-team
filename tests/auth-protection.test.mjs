@@ -35,33 +35,50 @@ test.beforeEach(() => storage.clear());
 
 /* ---------- password rules ---------- */
 
-test("a password shorter than the minimum is refused however varied it is", () => {
-  const short = "aB3!aB3!";
-  assert.ok(short.length < PASSWORD_MIN_LENGTH);
+test("a password one character short is refused, however varied it is", () => {
+  const short = "aB3!aB3";
+  assert.equal(short.length, PASSWORD_MIN_LENGTH - 1);
   assert.equal(assessPassword(short).acceptable, false);
   assert.equal(passwordStrengthBand(assessPassword(short)), "weak");
 });
 
-test("long enough plus two more rules is accepted", () => {
-  const assessment = assessPassword("sulaymaniah7");
-  assert.deepEqual(assessment.passed, ["length", "letter", "number"]);
-  assert.equal(assessment.acceptable, true);
-  assert.equal(passwordStrengthBand(assessment), "good");
+test("the minimum is eight characters", () => {
+  assert.equal(PASSWORD_MIN_LENGTH, 8);
 });
 
-test("length alone is not enough", () => {
-  // Long, but only one of the three character rules holds.
-  const assessment = assessPassword("aaaaaaaaaaaa");
-  assert.equal(assessment.acceptable, false);
+test("length is the only requirement: eight of anything is accepted", () => {
+  // The rule the client asked for. No letter, number or symbol requirement may
+  // creep back in, so every shape of eight characters is checked here — one
+  // class each, which is the least variety a password can actually have.
+  for (const password of ["aaaaaaaa", "12345678", "!!!!!!!!", "كلمةالمر"]) {
+    const assessment = assessPassword(password);
+    assert.equal(assessment.acceptable, true, `${password} should be accepted`);
+    // Exactly one character class holds besides length, and that is enough.
+    assert.equal(assessment.passed.length, 2, `${password} should pass length plus one class`);
+  }
 });
 
-test("all four rules read as strong", () => {
+test("digits alone are enough, and so are symbols alone", () => {
+  assert.equal(assessPassword("12345678").acceptable, true);
+  assert.equal(assessPassword("!!!!!!!!").acceptable, true);
+});
+
+test("an accepted but plain password reads as fair, never weak", () => {
+  // "weak" is reserved for refused. A member who chose something acceptable
+  // must not be told it is weak.
+  assert.equal(passwordStrengthBand(assessPassword("aaaaaaaa")), "fair");
+});
+
+test("variety still raises the band without ever being required", () => {
+  const good = assessPassword("sulaymaniah7");
+  assert.deepEqual(good.passed, ["length", "letter", "number"]);
+  assert.equal(passwordStrengthBand(good), "good");
   assert.equal(passwordStrengthBand(assessPassword("Thyroid-2026!")), "strong");
 });
 
 test("Arabic letters count as letters", () => {
   // The site is trilingual; a member may well choose a password in Arabic.
-  const assessment = assessPassword("كلمةالمرور7!");
+  const assessment = assessPassword("كلمةالمرور");
   assert.ok(assessment.passed.includes("letter"));
   assert.equal(assessment.acceptable, true);
 });
