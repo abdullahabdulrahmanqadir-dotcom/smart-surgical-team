@@ -4116,3 +4116,47 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 @media (prefers-reduced-motion:reduce) {
   .news-lead,.news-card,.news-card-image,.news-card-action svg,.news-banner-go svg,.news-banner-dismiss,.news-related-card,.news-more-card,.news-original-link,.news-chips button,.news-share-actions button { transition:none; }
 }
+
+/* ============================================================
+   Account protection — country select, password meter, Turnstile
+   ============================================================ */
+
+/* The country dropdown sits in the same shell as the text inputs, so it has to
+   match their height and typography exactly; the native arrow is replaced with
+   a chevron drawn on the shell so it flips with the writing direction. */
+.field-control.is-select { position: relative; }
+.field-control.is-select select { width: 100%; min-width: 0; height: 46px; padding: 0 2.1rem 0 .85rem; border: 0; outline: 0; appearance: none; background: transparent; color: var(--text); font-family: inherit; font-size: 16px; cursor: pointer; }
+/* Physical borders, not logical ones: the chevron always points down, while
+   `inset-inline-end` still moves it to the left in Arabic. Logical borders flip
+   with the writing direction and turn the arrow sideways. */
+.field-control.is-select::after { content: ""; position: absolute; inset-inline-end: .85rem; top: 50%; width: .45rem; height: .45rem; border-right: 2px solid var(--text-soft); border-bottom: 2px solid var(--text-soft); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.field-control.is-select:focus-within::after { border-color: var(--primary); }
+/* Native option lists inherit the OS surface, not the page, so they are pinned
+   to readable colours in both themes rather than left dark-on-dark. */
+.field-control.is-select option { background: var(--surface); color: var(--text); }
+
+.password-strength { display: grid; gap: .5rem; margin-top: .55rem; }
+.password-strength-meter { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .25rem; }
+.password-strength-meter i { height: 4px; border-radius: 999px; background: var(--line-strong); transition: background .25s ease; }
+.password-strength.is-weak .password-strength-meter i.is-on { background: var(--brand-rose); }
+.password-strength.is-fair .password-strength-meter i.is-on { background: var(--accent); }
+.password-strength.is-good .password-strength-meter i.is-on { background: var(--primary); }
+.password-strength.is-strong .password-strength-meter i.is-on { background: var(--confirm); }
+.password-strength > p { margin: 0; color: var(--text-muted); font-size: .74rem; }
+.password-strength > p b { color: var(--text); }
+.password-strength.is-weak > p b { color: var(--brand-rose); }
+.password-strength.is-strong > p b { color: var(--confirm); }
+.password-strength ul { display: flex; flex-wrap: wrap; gap: .25rem .85rem; margin: 0; padding: 0; list-style: none; color: var(--text-soft); font-size: .72rem; }
+.password-strength li { display: flex; gap: .3rem; align-items: baseline; }
+.password-strength li span { width: .7rem; text-align: center; }
+.password-strength li.is-met { color: var(--confirm); }
+.password-strength small { color: var(--text-soft); font-size: .7rem; line-height: 1.5; }
+
+/* Turnstile runs in interaction-only mode, so this collapses to nothing unless
+   Cloudflare decides a challenge is warranted and injects its iframe. */
+.turnstile-slot { display: flex; justify-content: center; margin-top: 1rem; }
+.turnstile-slot:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .password-strength-meter i { transition: none; }
+}

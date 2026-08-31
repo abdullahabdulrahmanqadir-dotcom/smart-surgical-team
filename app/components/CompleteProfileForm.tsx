@@ -3,21 +3,14 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { IconArrowRight, IconCheck, IconUser } from "./icons";
+import AccountDetailFields from "./AccountDetailFields";
+import { IconArrowRight, IconCheck } from "./icons";
 import { ACCOUNT_DETAIL_FIELDS, EMPTY_ACCOUNT_DETAILS, accountMetadataPatch, isAccountComplete, readAccountDetails, type AccountDetailField, type AccountDetails } from "../lib/account";
+import { DEFAULT_COUNTRY } from "../lib/countries";
 import { clearAuthRedirectParams, isSignInMethodConflict, readAuthRedirectError } from "../lib/auth-redirect";
 import type { Dictionary } from "../lib/dictionaries";
 
 type Phase = "loading" | "form" | "signed-out" | "conflict" | "failed";
-
-const FIELD_LAYOUT: { field: AccountDetailField; span: boolean; autoComplete: string }[] = [
-  { field: "first_name", span: false, autoComplete: "given-name" },
-  { field: "last_name", span: false, autoComplete: "family-name" },
-  { field: "organisation", span: true, autoComplete: "organization" },
-  { field: "job_title", span: true, autoComplete: "organization-title" },
-  { field: "city", span: false, autoComplete: "address-level2" },
-  { field: "country", span: false, autoComplete: "country-name" },
-];
 
 export default function CompleteProfileForm({ locale, t, signUpT }: { locale: string; t: Dictionary["completeProfile"]; signUpT: Dictionary["signUp"] }) {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -27,12 +20,6 @@ export default function CompleteProfileForm({ locale, t, signUpT }: { locale: st
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [failure, setFailure] = useState("");
-
-  const label: Record<AccountDetailField, string> = {
-    first_name: signUpT.firstName, last_name: signUpT.lastName, organisation: signUpT.organisation,
-    job_title: signUpT.jobTitle, city: signUpT.city, country: signUpT.country,
-  };
-  const placeholder: Partial<Record<AccountDetailField, string>> = { organisation: signUpT.organisationPlaceholder, job_title: signUpT.jobPlaceholder };
 
   useEffect(() => {
     let active = true;
@@ -57,7 +44,10 @@ export default function CompleteProfileForm({ locale, t, signUpT }: { locale: st
         const metadata = data.user.user_metadata as Record<string, unknown> | null;
         if (isAccountComplete(metadata)) return window.location.replace(`/${locale}/profile`);
 
-        setDetails(readAccountDetails(metadata));
+        // Google supplies no address at all, so a member arriving here starts
+        // on Iraq like the email wizard does rather than on a blank choice.
+        const stored = readAccountDetails(metadata);
+        setDetails({ ...stored, country: stored.country || DEFAULT_COUNTRY });
         const alreadyAccepted = typeof metadata?.legal_accepted_at === "string" && metadata.legal_accepted_at.length > 0;
         setNeedsLegal(!alreadyAccepted);
         setAcceptedLegal(alreadyAccepted);
@@ -105,15 +95,7 @@ export default function CompleteProfileForm({ locale, t, signUpT }: { locale: st
       {error && <p className="form-message is-error" role="alert">{error}</p>}
       <form className="auth-form" noValidate onSubmit={save}>
         <div className="wizard-field-grid">
-          {FIELD_LAYOUT.map(({ field, span, autoComplete }) => (
-            <div className={span ? "form-field field-span-2" : "form-field"} key={field}>
-              <label htmlFor={`complete-${field}`}>{label[field]} <span aria-hidden="true">*</span></label>
-              <div className="field-control">
-                {field === "first_name" && <IconUser size={18} />}
-                <input id={`complete-${field}`} autoComplete={autoComplete} placeholder={placeholder[field]} value={details[field]} onChange={(event) => { setDetails((current) => ({ ...current, [field]: event.target.value })); setError(""); }} required />
-              </div>
-            </div>
-          ))}
+          <AccountDetailFields idPrefix="complete" locale={locale} details={details} t={signUpT} onChange={(field: AccountDetailField, value: string) => { setDetails((current) => ({ ...current, [field]: value })); setError(""); }} />
         </div>
         {needsLegal && <label className="legal-consent"><input type="checkbox" checked={acceptedLegal} onChange={(event) => setAcceptedLegal(event.target.checked)}/><span>{locale === "ar" ? <>أوافق على <Link href={`/${locale}/terms`}>شروط الاستخدام</Link> و<Link href={`/${locale}/privacy`}>سياسة الخصوصية</Link>.</> : <>I agree to the <Link href={`/${locale}/terms`}>Terms of Use</Link> and <Link href={`/${locale}/privacy`}>Privacy Policy</Link>.</>}</span></label>}
         <button className="btn btn-primary auth-submit" type="submit" disabled={saving}>{saving ? t.saving : t.save}{saving ? null : <IconCheck size={18} />}</button>

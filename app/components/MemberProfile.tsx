@@ -7,6 +7,7 @@ import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import { contentThumbnailUrl } from "../lib/content-thumbnail";
 import { ACCOUNT_DETAIL_FIELDS, EMPTY_ACCOUNT_DETAILS, accountMetadataPatch, isAccountComplete, readAccountDetails, type AccountDetailField, type AccountDetails } from "../lib/account";
 import { IconArrowRight, IconBookmark, IconCheck, IconFile, IconLock, IconLogOut, IconMail, IconPlay, IconSparkle, IconTrash, IconUser } from "./icons";
+import AccountDetailFields from "./AccountDetailFields";
 import TopicGlyph from "./TopicGlyph";
 import { fill, type Dictionary } from "../lib/dictionaries";
 
@@ -22,15 +23,6 @@ function SavedCaseArtwork({ savedCase }: { savedCase: SavedCase }) {
 }
 
 /** The practice details, in the order the form lays them out. */
-const DETAIL_LAYOUT: { field: AccountDetailField; span: boolean; autoComplete: string }[] = [
-  { field: "first_name", span: false, autoComplete: "given-name" },
-  { field: "last_name", span: false, autoComplete: "family-name" },
-  { field: "organisation", span: true, autoComplete: "organization" },
-  { field: "job_title", span: true, autoComplete: "organization-title" },
-  { field: "city", span: false, autoComplete: "address-level2" },
-  { field: "country", span: false, autoComplete: "country-name" },
-];
-
 export default function MemberProfile({ locale, initialMember, t, signUpT }: { locale: string; initialMember: Member; t: Dictionary["profile"]; signUpT: Dictionary["signUp"] }) {
   const [member, setMember] = useState<Member>(initialMember);
   const [activeSection, setActiveSection] = useState<ProfileSection>("overview");
@@ -213,14 +205,7 @@ export default function MemberProfile({ locale, initialMember, t, signUpT }: { l
         <section className="profile-panel profile-details" aria-labelledby="profile-details-title">
           <div className="profile-panel-heading"><div><span className="auth-kicker">{t.accountDetails}</span><h2 id="profile-details-title">{t.profileChanges}</h2><p>{t.profileChangesBody}</p></div></div>
           <form className="profile-details-form" onSubmit={saveProfile} noValidate>
-            {DETAIL_LAYOUT.map(({ field, span, autoComplete }) => {
-              const label: Record<AccountDetailField, string> = { first_name: signUpT.firstName, last_name: signUpT.lastName, organisation: signUpT.organisation, job_title: signUpT.jobTitle, city: signUpT.city, country: signUpT.country };
-              const placeholder: Partial<Record<AccountDetailField, string>> = { organisation: signUpT.organisationPlaceholder, job_title: signUpT.jobPlaceholder };
-              return <div className={span ? "form-field field-span-2" : "form-field"} key={field}>
-                <label htmlFor={`profile-${field}`}>{label[field]}</label>
-                <div className="field-control">{field === "first_name" && <IconUser size={18} />}<input id={`profile-${field}`} autoComplete={autoComplete} placeholder={placeholder[field]} value={details[field]} onChange={(event) => { setDetails((current) => ({ ...current, [field]: event.target.value })); setProfileStatus(null); }} required /></div>
-              </div>;
-            })}
+            <AccountDetailFields idPrefix="profile" locale={locale} details={details} t={signUpT} showRequiredMark={false} onChange={(field: AccountDetailField, value: string) => { setDetails((current) => ({ ...current, [field]: value })); setProfileStatus(null); }} />
             <div className="form-field field-span-2"><label htmlFor="profile-email">{t.emailAddress}</label><div className="field-control is-readonly"><IconMail size={18} /><input id="profile-email" type="email" value={member.email} readOnly aria-describedby="profile-email-help" /></div><small id="profile-email-help">{t.emailReadOnly}</small></div>
             <div className="profile-details-actions"><button className="btn btn-primary" type="submit" disabled={profileSaving}>{profileSaving ? t.savingProfile : t.saveProfile}</button>{profileStatus && <p className={`form-message is-${profileStatus.tone}`} role="status">{profileStatus.tone === "success" && <IconCheck size={17} />}{profileStatus.message}</p>}</div>
           </form>
