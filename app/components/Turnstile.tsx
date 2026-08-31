@@ -103,6 +103,9 @@ export function useTurnstile(locale: string): TurnstileHandle {
           sitekey: siteKey,
           // Stays out of the way unless Cloudflare actually wants an interaction.
           appearance: "interaction-only",
+          // When it does appear it should look like part of the form rather than
+          // a 300px island: flexible fills the slot's width.
+          size: "flexible",
           language: locale === "ar" ? "ar" : "en",
           theme: "auto",
           callback: (value: string) => settle(value),

@@ -128,13 +128,13 @@ function SignInForm({ locale, t, protectionT }: { locale: string; t: Dictionary[
 
         {message && <p className={`form-message is-${message.type}`} role="alert">{message.text}</p>}
 
+        {turnstile.widget}
+
         <button className="btn btn-primary auth-submit" type="submit" disabled={loading}>
           {loading ? t.pleaseWait : t.signIn}
           {!loading && <IconArrowRight size={18} />}
         </button>
       </form>
-
-      {turnstile.widget}
 
       <p className="auth-switch">
         {t.newToTeam} <Link href={`/${locale}/sign-up`}>{t.createAnAccount}</Link>

@@ -32,6 +32,19 @@ are single-use and expire after about five minutes, so every form resets the
 widget after a submit, and an expired token is replaced immediately — a
 four-step registration can easily outlive one.
 
+It also renders at `size: "flexible"`, and the slot sits **inside** the form
+just above the submit button, so on the visits where Cloudflare does draw a
+challenge it spans the form's width and reads as a field rather than a 300px
+island bolted on under the button. `.turnstile-slot` collapses to zero height
+when nothing is drawn, which is the normal case — so the quiet path costs no
+layout.
+
+**Do not move the wizard's widget inside a step's form.** `SignUpWizard`
+renders it outside all four steps on purpose: the render effect does not depend
+on the step, so unmounting the container between steps would leave the hook
+holding a widget id that no longer exists. Sign-in and the reset form are
+single-step, so there it is safely inside the form.
+
 ### Setup — do these in order
 
 1. **Create the widget.** Cloudflare dashboard → Turnstile → Add widget.
@@ -77,6 +90,29 @@ its own — the rebuild is what puts it in the bundle.
 Without a site key the hook reports itself as not required and every token is
 `undefined`, so a checkout with no keys still signs in normally. That is the
 safe default, and the reason a developer is not blocked by a missing key.
+
+### Verified live, 2026-08-31
+
+The whole chain was confirmed against production without completing a challenge
+or using anyone's real password:
+
+- With no token, `token?grant_type=password`, `signup`, `recover` and `otp` all
+  answer `400 captcha_failed — no captcha_token found`. Enforcement is on.
+- With a **forged** token the answer is `captcha_failed (invalid-input-response)`,
+  not `invalid-input-secret`. Supabase really does call Cloudflare, and the
+  secret it holds is the right one.
+- With a **real** token lifted from the live sign-in page, and a deliberately
+  wrong password, the answer is `invalid_credentials`. The captcha layer passed
+  and only the password failed — which is the entire chain working.
+- `verify` (code entry), `PUT /user` (new password, profile edits) and
+  `authorize?provider=google` are **not** captcha-gated, which matters because
+  the site sends no token on those three. Google sign-in still answers `302` to
+  accounts.google.com.
+
+The token in that third check was obtained with **no interaction at all**, which
+is `interaction-only` working as intended. A CDP-automated browser does get
+drawn a visible checkbox — useful for checking the styling, and not what an
+ordinary visitor sees.
 
 ## 3. Password rules
 

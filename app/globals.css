@@ -4154,7 +4154,12 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 /* Turnstile runs in interaction-only mode, so this collapses to nothing unless
    Cloudflare decides a challenge is warranted and injects its iframe. */
-.turnstile-slot { display: flex; justify-content: center; margin-top: 1rem; }
+.turnstile-slot { display: grid; }
+/* Turnstile is asked for `interaction-only`, so on a visit Cloudflare is happy
+   about it renders nothing. Collapsing the slot keeps that from leaving a gap
+   above the submit button, and `line-height: 0` stops the empty container from
+   contributing a text line of its own. */
+.turnstile-slot { line-height: 0; }
 .turnstile-slot:empty { display: none; }
 
 @media (prefers-reduced-motion: reduce) {

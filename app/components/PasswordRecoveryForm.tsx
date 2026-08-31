@@ -187,8 +187,8 @@ export default function PasswordRecoveryForm({ locale, t, passwordT, protectionT
             <div className="field-control"><IconMail size={18} /><input id="email" name="email" type="email" autoComplete="email" placeholder={t.emailPlaceholder} required /></div>
           </div>
           {message && <p className="form-message is-error" role="alert">{message.text}</p>}
-          <button className="btn btn-primary auth-submit" type="submit" disabled={loading}>{loading ? t.sending : t.sendLink}{!loading && <IconArrowRight size={18} />}</button>
           {turnstile.widget}
+          <button className="btn btn-primary auth-submit" type="submit" disabled={loading}>{loading ? t.sending : t.sendLink}{!loading && <IconArrowRight size={18} />}</button>
         </form>
       )}
 
