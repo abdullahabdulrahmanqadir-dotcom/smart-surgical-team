@@ -1,4 +1,5 @@
 import { degradationMarker } from "../lib/render-health";
+import { putThroughContention, sameObjectContention } from "./r2-put";
 
 // Deliberately still v1 after moving the store from KV to R2. The convention
 // is to bump this whenever the cached-route rules change, so entries stored
@@ -137,15 +138,28 @@ async function writeCaches(
   // A rendered page is on the order of a hundred kilobytes.
   const body = await response.arrayBuffer();
 
-  await env.CACHE_BUCKET.put(key, body, {
-    httpMetadata: { contentType },
-    customMetadata: {
-      storedAt: String(storedAt),
-      // R2 has no TTL of its own. Readers below treat anything past this as
-      // absent; the bucket's lifecycle rule reclaims the bytes. See HANDOFF.md.
-      expiresAt: String(storedAt + STALE_FALLBACK_SECONDS * 1000),
-    },
-  });
+  // Two readers can finish a background refresh of the same path at the same
+  // moment, and R2 rejects the second write to one object instead of queueing
+  // it. See ./r2-put.ts.
+  try {
+    await putThroughContention(env.CACHE_BUCKET, key, body, {
+      httpMetadata: { contentType },
+      customMetadata: {
+        storedAt: String(storedAt),
+        // R2 has no TTL of its own. Readers below treat anything past this as
+        // absent; the bucket's lifecycle rule reclaims the bytes. See HANDOFF.md.
+        expiresAt: String(storedAt + STALE_FALLBACK_SECONDS * 1000),
+      },
+    });
+  } catch (error) {
+    if (!sameObjectContention(error)) throw error;
+    // Nothing was stored, so there is nothing to undo below and no degraded
+    // document to withdraw: whatever the last successful write left addressable
+    // was checked when it was written. The reader already has its page; the
+    // next one re-renders.
+    console.warn(`[page-cache] ${key} not stored: R2 same-object contention outlasted the retries`);
+    return;
+  }
 
   // Only now is the page known to be whole. The document streams, so a
   // Supabase read can still fail long after `render()` resolved — the check

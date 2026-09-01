@@ -9,7 +9,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { R2CacheStore } from "../worker/r2-cache-store.ts";
+import { putThroughContention } from "../worker/r2-put.ts";
 import { MemoryR2 } from "./memory-r2.mjs";
+
+/** An R2 bucket that rejects the first `failures` writes the way the real one
+    rejects a write overlapping another write to the same object. */
+class ContendedR2 extends MemoryR2 {
+  constructor(failures) {
+    super();
+    this.remaining = failures;
+    this.attempts = 0;
+  }
+
+  async put(key, value, options) {
+    this.attempts += 1;
+    if (this.remaining > 0) {
+      this.remaining -= 1;
+      throw new Error("put: Reduce your concurrent request rate for the same object. (10058)");
+    }
+    return super.put(key, value, options);
+  }
+}
 
 test("a value round-trips as text and as an ArrayBuffer", async () => {
   const bucket = new MemoryR2();
@@ -110,4 +130,75 @@ test("delete removes the key", async () => {
   await store.put("data:cache:gone", "value");
   await store.delete("data:cache:gone");
   assert.equal(await store.get("data:cache:gone"), null);
+});
+
+test("concurrent writers to one key all land instead of colliding", async () => {
+  // The failure this prevents: R2 admits one write at a time per object, so
+  // two writers racing on the same hot entry got the second one rejected with
+  // 10058 — and `MemoryR2` now rejects it the same way. Each writer retries
+  // its own write, inside its own request, rather than waiting on a write
+  // another request owns.
+  const bucket = new MemoryR2();
+  const store = new R2CacheStore(bucket);
+
+  await Promise.all([
+    store.put("data:cache:public-events", "first"),
+    store.put("data:cache:public-events", "second"),
+    store.put("data:cache:public-events", "third"),
+  ]);
+
+  // Which one wins is a race — that they all complete, and that the key holds
+  // one whole value rather than an error, is the point.
+  assert.ok(["first", "second", "third"].includes(await store.get("data:cache:public-events")));
+});
+
+test("a write rejected by another isolate is retried", async () => {
+  const bucket = new ContendedR2(2);
+  const store = new R2CacheStore(bucket);
+
+  await store.put("data:cache:public-events", "value");
+
+  assert.equal(bucket.attempts, 3, "two rejections, then the write that landed");
+  assert.equal(await store.get("data:cache:public-events"), "value");
+});
+
+test("an entry that will not store is a cache miss, not a request error", async () => {
+  // Contention that outlasts the retries used to reject into the request,
+  // where it was logged as a Worker error even though the page was fine.
+  const bucket = new ContendedR2(Number.POSITIVE_INFINITY);
+  const store = new R2CacheStore(bucket);
+  const warnings = [];
+  const warn = console.warn;
+  console.warn = (message) => warnings.push(message);
+
+  try {
+    await store.put("data:cache:public-events", "value");
+  } finally {
+    console.warn = warn;
+  }
+
+  assert.equal(await store.get("data:cache:public-events"), null, "nothing stored, so the next reader recomputes");
+  assert.equal(warnings.length, 1);
+});
+
+test("a tag marker that will not store is still reported", async () => {
+  // Swallowing this one would leave a published edit invisible until the
+  // entry's own TTL ran out, with nothing in the logs to say why.
+  const bucket = new ContendedR2(Number.POSITIVE_INFINITY);
+  const store = new R2CacheStore(bucket);
+
+  await assert.rejects(
+    store.put("data:__tag:published-events", String(Date.now())),
+    /10058/,
+  );
+});
+
+test("retries do not replay a stream, which cannot be read twice", async () => {
+  const bucket = new ContendedR2(1);
+
+  await assert.rejects(
+    putThroughContention(bucket, "page:v1:/en", new Response("document").body),
+    /10058/,
+  );
+  assert.equal(bucket.attempts, 1);
 });

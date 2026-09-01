@@ -26,12 +26,21 @@
  * - **R2 is read-after-write consistent.** KV takes up to 60 seconds to
  *   propagate a write globally, so a tag expired by the Admin could keep
  *   losing to a cached entry for a minute. That window is gone.
+ * - **R2 rejects overlapping writes to one object** rather than queueing
+ *   them, which KV never did. `put` goes through `./r2-put.ts` for that.
  */
+
+import { putThroughContention, sameObjectContention } from "./r2-put";
 
 /** R2 caps user-defined metadata; stay well under it and drop anything larger
     rather than failing the write. `KVCacheHandler` only stores a tag list
     here, and already tolerates an entry that has none. */
 const MAX_METADATA_BYTES = 1536;
+
+/** `KVCacheHandler` writes two kinds of key: cache entries under `cache:`, and
+    tag-invalidation timestamps under `__tag:`. The difference matters when a
+    write cannot be completed — see `put`. */
+const TAG_MARKER = /(?:^|:)__tag:/;
 
 type StoredMetadata = Record<string, unknown>;
 
@@ -107,7 +116,24 @@ export class R2CacheStore {
       if (serialized.length <= MAX_METADATA_BYTES) customMetadata.metadata = serialized;
     }
 
-    await this.bucket.put(key, value, { customMetadata });
+    // Same-key contention is real here: every isolate refreshes the same few
+    // hot entries, and R2 rejects overlapping writes to one object rather than
+    // queueing them. See ./r2-put.ts.
+    try {
+      await putThroughContention(this.bucket, key, value, { customMetadata });
+    } catch (error) {
+      // A tag marker that could not be written is a correctness problem: the
+      // entries it was meant to invalidate keep being served until their own
+      // TTL runs out, so the Admin's publish handler needs to hear about it.
+      if (TAG_MARKER.test(key) || !sameObjectContention(error)) throw error;
+
+      // An entry is different. Its value has already been returned to the
+      // reader that computed it; failing to store it costs one recomputation
+      // and nothing else. Left to reject it would instead be reported as a
+      // request error — which is all the rejection ever was, since the page
+      // itself was fine.
+      console.warn(`[cache] entry ${key} not stored: R2 same-object contention outlasted the retries`);
+    }
   }
 
   async delete(key: string): Promise<void> {

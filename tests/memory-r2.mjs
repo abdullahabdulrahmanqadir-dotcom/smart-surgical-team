@@ -8,6 +8,10 @@
  */
 export class MemoryR2 {
   objects = new Map();
+  /** Keys with a `put` in flight. R2 allows one write at a time per object and
+      rejects an overlapping second one, so this stand-in does too — otherwise
+      a test would pass on behaviour production rejects with a 10058. */
+  writing = new Set();
 
   async get(key) {
     const stored = this.objects.get(key);
@@ -23,11 +27,19 @@ export class MemoryR2 {
   }
 
   async put(key, value, options = {}) {
-    this.objects.set(key, {
-      body: await new Response(value).arrayBuffer(),
-      httpMetadata: options.httpMetadata,
-      customMetadata: options.customMetadata,
-    });
+    if (this.writing.has(key)) {
+      throw new Error("put: Reduce your concurrent request rate for the same object. (10058)");
+    }
+    this.writing.add(key);
+    try {
+      this.objects.set(key, {
+        body: await new Response(value).arrayBuffer(),
+        httpMetadata: options.httpMetadata,
+        customMetadata: options.customMetadata,
+      });
+    } finally {
+      this.writing.delete(key);
+    }
   }
 
   async delete(key) {
