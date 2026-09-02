@@ -79,9 +79,19 @@ export default function ScrollMotion() {
 
     let fallbackTimer = 0;
     try {
-      elements.forEach((element, index) => {
+      // Stagger by position among revealing siblings, not by position in this
+      // flat list. `index % 4` gave a lone section an arbitrary delay
+      // depending on what happened to precede it, and broke a row of four
+      // cards into an order that had nothing to do with how it reads. Grouped
+      // by parent, a row cascades across and a standalone section starts at
+      // once.
+      const seenPerParent = new Map<Element | null, number>();
+      elements.forEach((element) => {
+        const parent = element.parentElement;
+        const position = seenPerParent.get(parent) ?? 0;
+        seenPerParent.set(parent, position + 1);
         element.dataset.scrollReveal = "";
-        element.style.setProperty("--reveal-delay", `${Math.min((index % 4) * 70, 210)}ms`);
+        element.style.setProperty("--reveal-delay", `${Math.min(position * 65, 260)}ms`);
       });
       document.documentElement.dataset.motionReady = "true";
       // IntersectionObserver callbacks are not guaranteed to arrive promptly on

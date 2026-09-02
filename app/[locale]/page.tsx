@@ -22,18 +22,36 @@ import { fill, getDictionary, type Dictionary } from "../lib/dictionaries";
 import { FEATURED_TOPICS } from "../lib/topics";
 import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/events";
 import { getLocalizedTeamGroups } from "../lib/team";
-import { getPinnedNewsItem } from "../lib/news";
+import { getNewsItems, getPinnedNewsItem, localizedText } from "../lib/news";
 import { getResearches } from "../lib/research";
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
-    and nothing shifts when the events arrive. */
-function UpcomingEventsPanel({ locale, t, badge, children }: { locale: Locale; t: Dictionary["home"]; badge?: string; children?: React.ReactNode }) {
+    and nothing shifts when the rows arrive. Headings are passed in because the
+    same shell carries either the events or the newsroom. */
+function SidePanel({
+  href,
+  title,
+  intro,
+  linkLabel,
+  badge,
+  children,
+}: {
+  href?: string;
+  title?: string;
+  intro?: string;
+  linkLabel?: string;
+  badge?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <article className="panel" id="events">
       <div className="panel-heading">
+        {/* The placeholder cannot name itself: which panel this becomes is
+            decided by the events read it is waiting on. Announcing "Upcoming
+            Events" and then resolving to the newsroom is worse than a blank. */}
         <div>
-          <h2>{t.eventsTitle}</h2>
-          <p className="panel-sub">{t.eventsIntro}</p>
+          {title ? <h2>{title}</h2> : <span className="skeleton-line skeleton-line-lg" />}
+          {intro ? <p className="panel-sub">{intro}</p> : <span className="skeleton-line skeleton-line-sm" />}
         </div>
         {badge ? <span className="badge">{badge}</span> : <span className="badge is-skeleton"><span className="skeleton-line skeleton-line-xs" /></span>}
       </div>
@@ -48,20 +66,73 @@ function UpcomingEventsPanel({ locale, t, badge, children }: { locale: Locale; t
           </div>
         ))}
       </div>
-      <Link className="panel-link" href={localePath(locale, "events")}>
-        {t.viewAllEvents}
-        <IconArrowRight size={16} />
-      </Link>
+      {href && linkLabel ? (
+        <Link className="panel-link" href={href}>
+          {linkLabel}
+          <IconArrowRight size={16} />
+        </Link>
+      ) : (
+        <span className="panel-link is-skeleton"><span className="skeleton-line skeleton-line-sm" /></span>
+      )}
     </article>
   );
 }
 
-async function UpcomingEvents({ locale, t, eventT }: { locale: Locale; t: Dictionary["home"]; eventT: Dictionary["eventFallback"] }) {
+function SidePanelSkeleton() {
+  return <SidePanel />;
+}
+
+/**
+ * Between summits this panel used to render an empty list under a "0 upcoming"
+ * badge. It now falls through to the newsroom, which always has something in
+ * it, and switches back to events on its own as soon as one is scheduled.
+ */
+async function EventsOrNews({ locale, t, eventT }: { locale: Locale; t: Dictionary["home"]; eventT: Dictionary["eventFallback"] }) {
   const events = (await getPublicEvents()).map((event) => localizeFallbackEvent(event, eventT));
   const upcoming = events.filter((event) => event.status === "upcoming").slice(0, 3);
 
+  if (!upcoming.length) {
+    const news = (await getNewsItems()).slice(0, 3);
+    if (!news.length) return null;
+    return (
+      <SidePanel href={localePath(locale, "news")} title={t.newsTitle} intro={t.newsIntro} linkLabel={t.viewAllNews} badge="">
+        {news.map((item) => {
+          const title = localizedText(locale, item.title, item.titleAr).value;
+          const published = item.date ? new Date(`${item.date}T12:00:00`) : null;
+          return (
+            <Link href={localePath(locale, `news/${item.slug}`)} className="webinar-row" key={item.slug}>
+              <span className="date-chip">
+                {published ? (
+                  <>
+                    <b>{new Intl.DateTimeFormat(locale, { month: "short" }).format(published)}</b>
+                    <strong>{published.getDate()}</strong>
+                  </>
+                ) : (
+                  <b>{item.category?.name ?? ""}</b>
+                )}
+              </span>
+              <span className="webinar-body">
+                <h3 {...authoredTitleProps(title)}>{title}</h3>
+                <p>{localizedText(locale, item.summary, item.summaryAr).value}</p>
+              </span>
+              <span className="row-action" aria-hidden="true">
+                <IconPlus size={16} />
+              </span>
+            </Link>
+          );
+        })}
+      </SidePanel>
+    );
+  }
+
   return (
-    <UpcomingEventsPanel locale={locale} t={t} badge={fill(t.upcomingCount, { count: upcoming.length })}>
+    <SidePanel
+      href={localePath(locale, "events")}
+      title={t.eventsTitle}
+      intro={t.eventsIntro}
+      linkLabel={t.viewAllEvents}
+      badge={fill(t.upcomingCount, { count: upcoming.length })}
+    >
       {upcoming.map((event) => (
         <Link href={localePath(locale, `events/${event.slug}`)} className="webinar-row" key={event.slug}>
           <span className="date-chip">
@@ -80,7 +151,7 @@ async function UpcomingEvents({ locale, t, eventT }: { locale: Locale; t: Dictio
           </span>
         </Link>
       ))}
-    </UpcomingEventsPanel>
+    </SidePanel>
   );
 }
 
@@ -194,7 +265,6 @@ export default async function Home({
         <section className="section section-topics" id="topics" aria-labelledby="topics-heading">
           <div className="section-head">
             <div>
-              <span className="section-kicker">{dict.home.curriculum}</span>
               <h2 id="topics-heading">{dict.topics.title}</h2>
               <p className="section-sub">
                 {dict.home.topicsIntro}
@@ -232,7 +302,7 @@ export default async function Home({
         </section>
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
-          <div className="research-preview-head"><div><span className="section-kicker">{dict.home.researchKicker}</span><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
+          <div className="research-preview-head"><div><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media"><ResearchCover title={latestResearch.title} label={latestResearch.topic?.name ?? dict.research.unfiled} palette={latestResearch.palette} paletteKey={latestResearch.journal}/></div>
             <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
@@ -243,7 +313,6 @@ export default async function Home({
         <section className="section section-muted section-introduction" id="introduction" aria-labelledby="introduction-heading">
           <div className="section-head">
             <div>
-              <span className="section-kicker">{dict.home.introductionKicker}</span>
               <h2 id="introduction-heading">{dict.home.introductionTitle}</h2>
               <p className="section-sub">
                 {dict.home.introductionIntro}
@@ -292,8 +361,8 @@ export default async function Home({
           {/* The rest of the homepage is static and no longer waits behind
               this database read: the panel arrives with placeholder rows and
               fills in when the events resolve. */}
-          <Suspense fallback={<UpcomingEventsPanel locale={active} t={dict.home} />}>
-            <UpcomingEvents locale={active} t={dict.home} eventT={dict.eventFallback} />
+          <Suspense fallback={<SidePanelSkeleton />}>
+            <EventsOrNews locale={active} t={dict.home} eventT={dict.eventFallback} />
           </Suspense>
           </div>
         </section>

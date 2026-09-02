@@ -56,10 +56,17 @@ test("server-renders the English home page", async () => {
   assert.match(html, /Head &amp; Neck/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
-  assert.match(html, /Introducing the clinic/);
+  // Was /Introducing the clinic/ — that was the section's uppercase kicker,
+  // removed along with the other 28 decorative ones. The section it guarded is
+  // still here, so the assertion moves to its actual heading.
+  assert.match(html, /Meet Smart Surgical Team/);
   assert.doesNotMatch(html, /Discover the people, expertise and care behind our clinic\./);
-  assert.match(html, /youtube-nocookie\.com\/embed\/gUKXoL-zXdM\?playsinline=1&amp;rel=0&amp;enablejsapi=1/);
-  assert.doesNotMatch(html, /gUKXoL-zXdM\?[^"']*start=/);
+  // The introduction player is a click-to-play facade now: the first response
+  // carries the poster and the button, and nothing from YouTube. The embed
+  // only appears once a visitor asks for it.
+  assert.match(html, /class="introduction-video-cover"/);
+  assert.match(html, /\/introduction-poster\.webp/);
+  assert.doesNotMatch(html, /youtube-nocookie\.com/);
   assert.match(html, /href="\/en\/sign-up"/);
   assert.doesNotMatch(html, /class="cta-form"|homepage-join/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);
@@ -225,7 +232,10 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
   assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
   assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
   assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
-  assert.match(html, /M4 8\.1h16M4 10\.8h16/);
+  // Fragments of the two drawn glyphs: the skin section's full-bleed
+  // epidermal plane and the middle node's chain rotation.
+  assert.match(html, /M1\.6 10\.4H5\.4/);
+  assert.match(html, /rotate\(-32 12\.2 12\)/);
 });
 
 test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {
@@ -251,7 +261,11 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     // its filters stay closed and the reader is prompted to choose a region.
     assert.doesNotMatch(html, /class="content-map[^"]*is-focused/, `${locale} starts on the overview`);
     assert.match(html, /class="content-prompt"/, `${locale} prompts for a region`);
-    assert.doesNotMatch(html, /Case library/);
+    // Against the visible markup, not the whole document: React serialises the
+    // entire dictionary into the RSC payload, so every UI string in the site
+    // appears inside a <script> on every page whether it is rendered or not.
+    const visible = html.replace(/<script[\s\S]*?<\/script>/g, "");
+    assert.doesNotMatch(visible, /Case library/);
     assert.doesNotMatch(html, /class="content-search"/);
     assert.doesNotMatch(html, /class="content-case-grid"/);
     assert.doesNotMatch(html, /class="content-topic-option is-active/, `${locale} preselects no topic`);
@@ -446,4 +460,96 @@ test("the sitemap advertises the news feed but no unpublished item", async () =>
   assert.match(sitemap, /\/ar\/news<\/loc>/);
   // Item URLs come from the database. With nothing published, none may appear.
   assert.doesNotMatch(sitemap, /\/news\/[a-z0-9-]+<\/loc>/);
+});
+
+test("an unmatched path renders a real 404 rather than a bare body", async () => {
+  // The runtime answers a path that matches no route with nine bytes of plain
+  // text and no layout, because the request never reaches the app tree. A
+  // catch-all under [locale] puts it back inside the tree so the not-found
+  // boundary can render, and must not cost the page its 404 status.
+  for (const [path, marker] of [
+    ["/en/no-such-page", "This page does not exist"],
+    ["/ar/no-such-page", "هذه الصفحة غير موجودة"],
+  ]) {
+    const response = await fetchPath(path);
+    assert.equal(response.status, 404, `${path} must still be a 404`);
+    const html = await response.text();
+    assert.match(html, /class="not-found-inner"/, `${path} renders the not-found page`);
+    assert.ok(html.includes(marker), `${path} renders it in its own language`);
+    assert.match(html, /class="site-footer/, `${path} keeps the site chrome`);
+    assert.match(html, /name="robots" content="noindex/, `${path} stays out of the index`);
+  }
+});
+
+test("the catch-all does not shadow a real route", async () => {
+  // A concrete segment must beat the catch-all, or every page becomes a 404.
+  for (const path of [
+    "/en", "/en/about", "/en/contact", "/en/topics", "/en/topics/thyroid-parathyroid",
+    "/en/research", "/en/posters", "/en/news", "/en/events", "/en/library",
+    "/en/privacy", "/en/terms", "/en/sign-in", "/en/sign-up", "/ar", "/ar/topics",
+  ]) {
+    assert.equal((await fetchPath(path)).status, 200, `${path} should still resolve`);
+  }
+});
+
+test("the library index lists the catalogue instead of 404ing", async () => {
+  // /library/<slug> pages are in the sitemap; the parent path used to be a
+  // dead end, so a trimmed URL led nowhere.
+  for (const [locale, heading] of [["en", "Case library"], ["ar", "مكتبة الحالات"]]) {
+    const response = await fetchPath(`/${locale}/library`);
+    assert.equal(response.status, 200);
+    const visible = (await response.text()).replace(/<script[\s\S]*?<\/script>/g, "");
+    assert.ok(visible.includes(heading), `${locale} library index renders its heading`);
+  }
+});
+
+test("a two-day event prints one month name, in the right place per locale", async () => {
+  // The range was stitched from two formatted dates, so the month landed on
+  // the end date only: "27–August 28, 2026".
+  const english = await (await fetchPath("/en/events")).text();
+  assert.doesNotMatch(english, /\d+–[A-Z][a-z]+ \d+, \d{4}/, "no day–Month day, year ranges");
+  assert.match(english, /August 27\s*–\s*28, 2026/);
+
+  const arabic = await (await fetchPath("/ar/events")).text();
+  assert.match(arabic, /27–28 أغسطس 2026/);
+});
+
+test("events stand down to an archive when nothing is upcoming", async () => {
+  // Both seeded summits are in the past, so the page must not promise a
+  // calendar, must not badge a past event as featured, and must not print the
+  // same summit twice.
+  const visible = (await (await fetchPath("/en/events")).text()).replace(/<script[\s\S]*?<\/script>/g, "");
+  assert.doesNotMatch(visible, /class="featured-event"/, "no featured slot without an upcoming event");
+  assert.ok(visible.includes("Conferences and workshops"), "the hero reads as an archive");
+  assert.doesNotMatch(visible, /New events,/, "the forward-looking hero is gone");
+  assert.equal(
+    (visible.match(/Second Middle East Thyroid Summit/g) ?? []).length,
+    1,
+    "the summit appears once, not as featured and again in the list",
+  );
+});
+
+test("event type and format are translated everywhere they appear", async () => {
+  // `typeLabel` lived inside the explorer, so the featured card and the detail
+  // page printed the stored English key straight onto the Arabic site.
+  const visible = (await (await fetchPath("/ar/events")).text()).replace(/<script[\s\S]*?<\/script>/g, "");
+  assert.doesNotMatch(visible, />Summit</, "no untranslated event type");
+  assert.doesNotMatch(visible, />in person</, "no untranslated event format");
+
+  const detail = (await (await fetchPath("/ar/events/second-middle-east-thyroid-summit")).text())
+    .replace(/<script[\s\S]*?<\/script>/g, "");
+  assert.doesNotMatch(detail, />Summit</, "the detail page translates its type too");
+});
+
+test("no national flag stands in for a language", async () => {
+  const html = await (await fetchPath("/en")).text();
+  assert.doesNotMatch(html, /language-flag|flag-us|flag-iraq/);
+  assert.match(html, /language-trigger-text/);
+});
+
+test("the Arabic site spells Smart Health Tower one way", async () => {
+  // Three spellings were in use, including a half-translated "برج الصحة Smart".
+  const html = await (await fetchPath("/ar")).text();
+  assert.doesNotMatch(html, /برج الصحة|برج سمارت/);
+  assert.match(html, /Smart Health Tower/);
 });

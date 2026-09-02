@@ -85,7 +85,6 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
   return <section className="news-feed" aria-labelledby="news-feed-heading">
     <div className="news-feed-head">
       <div>
-        <span className="section-kicker">{t.heroEyebrow}</span>
         <h1 id="news-feed-heading">{t.heroTitle} <em>{t.heroAccent}</em></h1>
         <p className="section-sub">{t.heroIntro}</p>
       </div>

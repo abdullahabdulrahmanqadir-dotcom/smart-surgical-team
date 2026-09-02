@@ -30,14 +30,17 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <main id="main-content" className="about-page">
       <h1 className="visually-hidden">{dict.about.pageTitle}</h1>
 
+      {/* The mission led the page's closing section, which meant the page
+          opened on a staff directory and only said what the department is
+          about after eighteen portraits. It now introduces the team. */}
       <section className="about-statement" aria-labelledby="about-statement-title">
-        <div><span className="section-kicker">{dict.about.approachKicker}</span><h2 id="about-statement-title">{dict.about.approachTitle}</h2></div>
-        <p>{dict.about.approachBody}</p>
+        <div><h2 id="about-statement-title">{dict.about.missionTitle}</h2></div>
+        <p>{dict.about.missionBody} {dict.about.locationBody}</p>
       </section>
 
       <section className="team-directory" aria-label={dict.about.teamDirectory}>
         {teamGroups.map((group, index) => <section className={`team-group team-group-${index + 1}`} key={group.title} aria-labelledby={`group-${index}`}>
-          <div className="team-group-head"><span className="team-group-number">0{index + 1}</span><div><h3 id={`group-${index}`} {...authoredTitleProps(group.title)}>{group.title}</h3>{group.intro && <p>{group.intro}</p>}</div></div>
+          <div className="team-group-head"><div><h3 id={`group-${index}`} {...authoredTitleProps(group.title)}>{group.title}</h3>{group.intro && <p>{group.intro}</p>}</div></div>
           <div className="team-profile-grid">
             {group.members.map((member) => <article className="team-profile" key={member.name}>
               <div className="team-portrait"><img src={member.portrait} alt={fill(dict.about.portraitOf, { name: member.name })} /></div>
@@ -47,7 +50,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         </section>)}
       </section>
 
-      <section className="about-closing"><div><span className="section-kicker">{dict.about.missionKicker}</span><h2>{dict.about.missionTitle}</h2></div><div><p>{dict.about.missionBody} {dict.about.locationBody}</p><nav className="about-closing-links" aria-label={dict.about.exploreTopics}><Link className="text-link" href={localePath(active, "topics")}>{dict.about.exploreTopics}</Link><Link className="text-link" href={localePath(active, "research")}>{dict.about.exploreResearch}</Link></nav></div></section>
+      {/* How the team works together reads better once you have met them. */}
+      <section className="about-closing"><div><h2>{dict.about.approachTitle}</h2></div><div><p>{dict.about.approachBody}</p><nav className="about-closing-links" aria-label={dict.about.exploreTopics}><Link className="text-link" href={localePath(active, "topics")}>{dict.about.exploreTopics}</Link><Link className="text-link" href={localePath(active, "research")}>{dict.about.exploreResearch}</Link></nav></div></section>
     </main>
     <SiteFooter locale={active} dict={dict} />
   </>;

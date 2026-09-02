@@ -62,7 +62,7 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
       </article>}
 
       {archive.length > 0 && <section className="poster-archive" aria-labelledby="poster-archive-title">
-        <div className="poster-archive-heading"><span className="section-kicker">{t.archiveLabel}</span><h2 id="poster-archive-title">{t.archiveTitle}</h2></div>
+        <div className="poster-archive-heading"><h2 id="poster-archive-title">{t.archiveTitle}</h2></div>
         <div className="poster-card-grid">{archive.map((poster) => <PosterCard key={poster.id} poster={poster} locale={active} label={t.viewDetails}/>)}</div>
       </section>}
     </main>

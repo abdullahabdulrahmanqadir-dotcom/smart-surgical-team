@@ -107,9 +107,27 @@ export function newsItemShape(item: Pick<NewsItem, "sections" | "sectionsAr" | "
  * `TranslatableContent` offers the reader an in-place translation. `translated`
  * is what tells a caller which of the two it received.
  */
+/**
+ * Every Arabic column is optional, so an untranslated record renders in
+ * English on /ar with nothing to show for it. That is deliberate — a blank
+ * headline would be worse — but it is invisible to whoever is publishing.
+ * Development logs each gap once so the missing translations are findable.
+ */
+const reportedFallbacks = new Set<string>();
+
+function noteFallback(english: string) {
+  if (process.env.NODE_ENV === "production") return;
+  const key = english.slice(0, 120);
+  if (reportedFallbacks.has(key)) return;
+  reportedFallbacks.add(key);
+  console.warn(`[i18n] No Arabic translation stored; /ar is showing English: "${key}"`);
+}
+
 export function localizedText(locale: Locale, english: string, arabic: string): { value: string; translated: boolean } {
-  const value = locale === "ar" && arabic.trim() ? arabic.trim() : english;
-  return { value, translated: locale === "ar" && Boolean(arabic.trim()) };
+  const hasArabic = Boolean(arabic.trim());
+  if (locale === "ar" && !hasArabic && english.trim()) noteFallback(english);
+  const value = locale === "ar" && hasArabic ? arabic.trim() : english;
+  return { value, translated: locale === "ar" && hasArabic };
 }
 
 export function localizedSections(locale: Locale, item: Pick<NewsItem, "sections" | "sectionsAr">): { sections: NewsSection[]; translated: boolean } {

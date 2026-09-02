@@ -127,9 +127,9 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} t={dict.media} />
           {heroImages.length ? <ImageGallery images={heroImages} t={dict.media} presentation="hero" pair={Boolean(heroPair)} /> : null}
-          {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.resources}</span><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
+          {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">
-            <div className="section-mini-head"><div><span className="section-kicker">{dict.library.overview}</span><h2 id="case-summary-title">{dict.library.caseDetails}</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
+            <div className="section-mini-head"><div><h2 id="case-summary-title">{dict.library.caseDetails}</h2></div>{summarySections.length ? <span className="badge">{typeLabel}</span> : null}</div>
             {summarySections.length ? (
               // The <dt> headings are translated UI; only the <dd> bodies are
               // English database prose, so the wrapper marks those alone.
@@ -160,7 +160,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
         </aside>
       </div>
 
-      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><span className="section-kicker">{dict.library.keepLearning}</span><h2 id="related-title">{dict.library.relatedContent}</h2></div><Link className="text-link" href={`${home}#library`}>{dict.library.viewLibrary} <IconArrowRight size={16} /></Link></div>
+      <section className="related-section" aria-labelledby="related-title"><div className="section-mini-head"><div><h2 id="related-title">{dict.library.relatedContent}</h2></div><Link className="text-link" href={`${home}#library`}>{dict.library.viewLibrary} <IconArrowRight size={16} /></Link></div>
         {/* Suggestions are worth showing but not worth delaying the case for.
             The reader gets the article as soon as it is ready; the rail fills
             in behind placeholder cards a moment later. */}

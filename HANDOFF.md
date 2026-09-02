@@ -10,7 +10,7 @@ Analytics setup. Read `docs/project/SEO_LAUNCH_HANDOFF.md` before resuming it.
 ## 1. Project at a glance
 
 Smart Surgical Team is a trilingual head-and-neck surgery education platform for
-Smart Health Tower, Sulaymaniah. The public-facing site is being built first;
+Smart Health Tower, Sulaymaniyah. The public-facing site is being built first;
 the authenticated learning platform, real content management and member
 workflows follow later.
 

@@ -42,7 +42,6 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="contact-backdrop" aria-hidden="true"/>
         <div className="contact-shell">
           <header className="contact-intro">
-            <span className="eyebrow">{dict.contact.eyebrow}</span>
             <h1>{dict.contact.title}</h1>
             <p>{dict.contact.intro}</p>
           </header>

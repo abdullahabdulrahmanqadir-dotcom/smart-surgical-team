@@ -60,3 +60,12 @@ export function pageMetadata({
 export const PRIVATE_PAGE_METADATA: Metadata = {
   robots: { index: false, follow: false, noarchive: true },
 };
+
+/**
+ * Account pages stay out of the index, but they still need a title of their
+ * own: without one they inherited the homepage's, so every browser tab and
+ * bookmark for the sign-up flow read "Head & Neck Surgery in Sulaymaniyah".
+ */
+export function privatePageMetadata(title: string): Metadata {
+  return { ...PRIVATE_PAGE_METADATA, title };
+}

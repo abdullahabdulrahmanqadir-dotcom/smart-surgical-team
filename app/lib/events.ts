@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { getSupabaseServerClient } from "../../lib/supabase/server";
 import { noteDegradedRead } from "../../lib/render-health";
 import { CACHE_TAGS } from "./cache-tags";
-import { EVENTS, type TeamEvent } from "./event-data";
+import { EVENTS, withCurrentStatus, type TeamEvent } from "./event-data";
 
 /**
  * Server-side event reads.
@@ -29,13 +29,13 @@ export const EVENTS_CACHE_TAG = CACHE_TAGS.events;
  * had ever been asked for. A throw is not cached, so the next request retries.
  */
 async function fetchPublicEvents(): Promise<TeamEvent[]> {
-  if (!canUseEventsDatabase()) return EVENTS;
+  if (!canUseEventsDatabase()) return withCurrentStatus(EVENTS);
   try {
     const { data, error } = await getSupabaseServerClient().from("events").select("*").eq("status", "published").order("starts_at", { ascending: false });
     if (error) throw new Error(`published events query failed: ${error.message}`);
     // No published rows is not a failure: it is a site that has not filed its
     // events yet, and the seeded list is the intended stand-in.
-    if (!data?.length) return EVENTS;
+    if (!data?.length) return withCurrentStatus(EVENTS);
     const today = new Date().toISOString().slice(0, 10);
     return data.map((event) => {
       const startDate = event.starts_at ? String(event.starts_at).slice(0, 10) : today;
@@ -60,7 +60,7 @@ export async function getPublicEvents(): Promise<TeamEvent[]> {
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     noteDegradedRead();
-    return EVENTS;
+    return withCurrentStatus(EVENTS);
   }
 }
 
