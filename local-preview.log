@@ -1,0 +1,34 @@
+
+> sst@0.1.0 dev
+> node scripts/vinext.mjs dev
+
+
+  vinext dev  (Vite 8.0.13)
+
+⎔ Establishing remote connection...
+Using secrets defined in .env
+Using secrets defined in .env.local
+  ➜  Local:   http://localhost:3000/
+  ➜  Debug:   http://localhost:3000/__debug
+ GET /en 200 in 2.2s (compile: 1788368134.7s, render: 2.1s)
+ GET /en 200 in 160ms (compile: 1788368134.6s, render: 124ms)
+ GET /ar 200 in 164ms (compile: 1788368134.6s, render: 128ms)
+ GET /en 200 in 91ms (compile: 1788368134.6s, render: 71ms)
+ GET /en 200 in 190ms (compile: 1788368134.7s, render: 78ms)
+ GET /en/topics?_rsc=jOkYH9b0HqhSzpov 200 in 73ms (compile: 1788368134.6s, render: 0ms)
+8:08:57 PM [vite] (rsc) hmr update /app/globals.css
+8:08:57 PM [vite] (client) hmr update /app/globals.css?direct
+ GET /en/topics?_rsc 200 in 517ms (compile: 1788368135.0s, render: 0ms)
+ GET /en/topics 200 in 465ms (compile: 1788368134.6s, render: 378ms)
+ GET /en?_rsc=oIkofOfBZQ5Dfa-n 200 in 65ms (compile: 1788368134.6s, render: 0ms)
+ GET /en/topics 200 in 120ms (compile: 1788368134.6s, render: 84ms)
+ GET /ar/topics 200 in 187ms (compile: 1788368134.7s, render: 67ms)
+ GET / 307 in 18ms
+ GET /en 200 in 111ms (compile: 1788368134.6s, render: 86ms)
+8:13:54 PM [vite] (rsc) hmr update /app/globals.css
+8:13:54 PM [vite] (client) hmr update /app/globals.css?direct
+ GET /en?_rsc 200 in 402ms (compile: 1788368134.9s, render: 0ms)
+ GET /en?_rsc 200 in 72ms (compile: 1788368134.6s, render: 0ms)
+ GET /en 200 in 99ms (compile: 1788368134.6s, render: 72ms)
+ GET /en/topics?_rsc=jOkYH9b0HqhSzpov 200 in 40ms (compile: 1788368134.6s, render: 0ms)
+ GET /en/library/wide-local-excision-of-a-1-8-cm-micronodular-conchal-basal-cell-carcinoma 200 in 150ms (compile: 1788368134.6s, render: 114ms)
