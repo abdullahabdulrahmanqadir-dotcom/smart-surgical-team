@@ -219,6 +219,7 @@ export const en = {
     summary: "A single-centre Iraqi cohort examining the clinical presentation, surgical management and short-term outcomes of this ultra-rare salivary gland tumour.",
     authors: "Abdulwahid M. Salih, Hiwa O. Baba, Ari M. Abdullah, Rebaz O. Mohammed, et al.",
     openPoster: "Open full-resolution poster",
+    posterAlt: "Clinical poster: {title}",
     imageAlt: "Clinical poster summarising a five-patient cohort study of epithelial-myoepithelial carcinoma of the salivary glands",
     studySnapshot: "Study snapshot",
     cohort: "Cohort",
