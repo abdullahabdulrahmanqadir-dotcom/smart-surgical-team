@@ -35,7 +35,7 @@ export default async function PosterDetailPage({ params }: { params: Promise<Par
     <SiteHeader locale={active} dict={dict}/>
     <main id="main-content" className="poster-detail-page">
       <nav className="poster-breadcrumb" aria-label={dict.posters.breadcrumb}><Link href={localePath(active, "posters")}>{dict.nav.posters}</Link><span>/</span><b {...authoredTitleProps(poster.title)}>{poster.title}</b></nav>
-      <header className="poster-detail-heading"><span className="section-kicker">{poster.label}</span><h1 {...authoredTitleProps(poster.title)}>{poster.title}</h1><p>{poster.summary}</p><small>{poster.authors}</small></header>
+      <header className="poster-detail-heading"><h1 {...authoredTitleProps(poster.title)}>{poster.title}</h1><p>{poster.summary}</p><small>{poster.authors}</small></header>
       <div className="poster-detail-layout">
         <div className="poster-display"><ImageGallery presentation="poster" images={[{ id: poster.id, publicUrl: poster.imageUrl, altText: poster.imageAlt, caption: poster.title }]} label={dict.posters.openPoster} t={dict.media}/>{poster.cta ? <a className="poster-resource-link" href={poster.cta.url} target="_blank" rel="noopener noreferrer"><span>{poster.cta.text}</span><IconArrowRight size={17}/></a> : null}</div>
         <article className="poster-written-details">

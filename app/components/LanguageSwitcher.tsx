@@ -5,10 +5,9 @@ import { usePathname } from "next/navigation";
 import { IconChevronDown } from "./icons";
 import { LOCALES, LOCALE_META, swapLocaleInPath, type Locale } from "../lib/i18n";
 
-const flagClass: Record<Locale, string> = {
-  en: "flag-us",
-  ar: "flag-iraq",
-};
+// No flags. A flag names a country, not a language: a US flag for English is
+// wrong for this audience, and no single flag stands for Arabic. Each language
+// is named in its own script instead.
 
 /**
  * A small navigation menu, modelled on the team's original language panel.
@@ -55,7 +54,6 @@ export default function LanguageSwitcher({
         aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className={`language-flag ${flagClass[locale]}`} aria-hidden="true" />
         <span className="language-trigger-text" lang={activeMeta.htmlLang}>{activeMeta.label}</span>
         <IconChevronDown className="language-trigger-chevron" size={15} />
       </button>
@@ -74,7 +72,6 @@ export default function LanguageSwitcher({
               role="menuitem"
               onClick={() => setOpen(false)}
             >
-              <span className={`language-flag ${flagClass[code]}`} aria-hidden="true" />
               <span>{meta.label}</span>
             </a>
           );

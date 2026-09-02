@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Newsreader, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Literata, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import { seoAlternates } from "../lib/seo";
 import GoogleAnalytics from "../components/GoogleAnalytics";
 import "../globals.css";
 
-// Type revised 2026-08-09 — see assets/design-system/smart-surgical-team/MASTER.md.
-// The Arabic pair is chosen to echo the Latin pair's register rather than being
-// an unrelated default: Noto Naskh Arabic (calligraphic, serif-adjacent) stands
-// in for Newsreader's editorial warmth, IBM Plex Sans Arabic (clean humanist
-// sans) for Inter's body register. Both apply to RTL pages and to Arabic
-// strings inside LTR pages (the language menu). All four are self-hosted at
-// build time by next/font.
-const newsreader = Newsreader({
+// Type revised 2026-09-02. The display face was Newsreader, which is one of
+// the most-used serifs on the web right now and read as a default rather than
+// a choice. Literata is a reading serif drawn for long text, sturdier and more
+// institutional, and rare on marketing sites. Same three weights, so no
+// component's font-weight had to move.
+//
+// The Arabic pair echoes the Latin pair's register rather than being an
+// unrelated default: Noto Naskh Arabic (calligraphic, serif-adjacent) for the
+// display role, IBM Plex Sans Arabic (humanist sans) for Inter's body role.
+// The Arabic faces are attached on Arabic pages only — see `fontVariables`.
+// All four are self-hosted at build time by next/font.
+const literata = Literata({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
@@ -43,12 +47,17 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-const FONT_VARIABLES = [
-  newsreader.variable,
-  inter.variable,
-  notoNaskh.variable,
-  plexArabic.variable,
-].join(" ");
+// The Arabic faces are attached only on Arabic pages. Attached everywhere,
+// the language menu's one Arabic word ("العربية") was enough to pull every
+// Naskh and Plex Arabic subset onto every English page — a few hundred
+// kilobytes of webfont for a single dropdown label, which now falls back to
+// the reader's own Arabic font.
+const LATIN_FONTS = [literata.variable, inter.variable].join(" ");
+const ARABIC_FONTS = [notoNaskh.variable, plexArabic.variable].join(" ");
+
+function fontVariables(locale: Locale) {
+  return locale === "ar" ? `${LATIN_FONTS} ${ARABIC_FONTS}` : LATIN_FONTS;
+}
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -120,7 +129,7 @@ export default async function LocaleLayout({
       lang={htmlLang}
       dir={dir}
       data-theme="light"
-      className={FONT_VARIABLES}
+      className={fontVariables(locale)}
       suppressHydrationWarning
     >
       <head>

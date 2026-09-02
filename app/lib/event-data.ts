@@ -87,8 +87,39 @@ export const EVENTS: TeamEvent[] = [
   },
 ];
 
+/**
+ * An event is past once its last day has gone by.
+ *
+ * The seeded records carry a hand-written `status`, and it goes stale the
+ * moment a date passes: the 2026 summit was still labelled "upcoming" days
+ * after it ended, which also kept the homepage's events panel from standing
+ * down. The database path already derives this from `ends_at`; deriving it
+ * here too means no one has to remember to flip a flag.
+ */
+export function withCurrentStatus(events: TeamEvent[]): TeamEvent[] {
+  const today = new Date().toISOString().slice(0, 10);
+  return events.map((event) => {
+    const status: TeamEvent["status"] = event.endDate < today ? "past" : "upcoming";
+    return status === event.status ? event : { ...event, status };
+  });
+}
+
+/**
+ * Event type and format are stored as English keys ("Summit", "hybrid"), so
+ * anything that prints them raw leaks English onto /ar. This lived inside
+ * `EventsExplorer`, which is why the explorer's rows were translated and the
+ * featured card and the detail page were not.
+ */
+export function eventTypeLabel(value: string, t: Dictionary["events"]): string {
+  return ({ Summit: t.summit, Webinar: t.webinar, Workshop: t.workshop, Conference: t.conference } as Record<string, string>)[value] ?? value;
+}
+
+export function eventFormatLabel(value: string, t: Dictionary["events"]): string {
+  return ({ "in-person": t.inPerson, hybrid: t.hybrid, online: t.online } as Record<string, string>)[value] ?? value;
+}
+
 export function getEvent(slug: string) {
-  return EVENTS.find((event) => event.slug === slug);
+  return withCurrentStatus(EVENTS).find((event) => event.slug === slug);
 }
 
 export function localizeFallbackEvent(event: TeamEvent, t: Dictionary["eventFallback"]): TeamEvent {
@@ -131,14 +162,19 @@ export function eventDateStamp(event: TeamEvent, locale: string) {
   };
 }
 
+/**
+ * Hand the whole range to Intl rather than stitching two formatted dates
+ * together. The stitched version printed the month only on the end date, so a
+ * two-day August event read "27–August 28, 2026". formatRange also gets the
+ * word order right per locale — English leads with the month, Arabic trails it
+ * — and collapses a single-day event to one date on its own.
+ */
 export function eventDateRange(event: TeamEvent, locale: string) {
   const start = new Date(`${event.startDate}T12:00:00`);
   const end = new Date(`${event.endDate}T12:00:00`);
-  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-  const format = (date: Date, options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat(locale, options).format(date);
-
-  return sameMonth
-    ? `${format(start, { day: "numeric" })}–${format(end, { day: "numeric", month: "long", year: "numeric" })}`
-    : `${format(start, { day: "numeric", month: "short" })} – ${format(end, { day: "numeric", month: "short", year: "numeric" })}`;
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).formatRange(start, end);
 }

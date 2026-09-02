@@ -12,53 +12,13 @@ import HeadNeckMap from "./HeadNeckMap";
 import { fill } from "../lib/dictionaries";
 import { contentCardArt } from "../lib/content-thumbnail";
 import CardArt from "./CardArt";
+import CaseCard, { CaseCardSkeleton, type LibraryItem } from "./CaseCard";
 import FilterSelect from "./FilterSelect";
 import { IconFile, IconSearch } from "./icons";
 
-type LibraryItem = ContentCard & { subTopic: string; subTopicNames: string[]; imageIcon?: string; date: string; hasVideo: boolean };
 
 function isPlainClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
-}
-
-/** Placeholder cards shown while a topic's cases are being fetched, so the
-    grid keeps its shape instead of collapsing to nothing. */
-function CaseCardSkeleton() {
-  return (
-    <div className="content-case-card is-skeleton" aria-hidden="true">
-      <div className="content-case-art"><span className="skeleton-block" /></div>
-      <div className="content-case-copy">
-        <span className="skeleton-line skeleton-line-xs" />
-        <span className="skeleton-line skeleton-line-lg" />
-        <span className="skeleton-line" />
-        <span className="skeleton-line skeleton-line-sm" />
-      </div>
-    </div>
-  );
-}
-
-function CaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
-  const cardImage = contentCardArt(item);
-  return (
-    <a className="content-case-card" href={localePath(locale, `library/${item.slug}`)}>
-      <div className="content-case-art">
-        {cardImage ? <CardArt item={item} className="content-case-thumbnail" labels={{ before: t.beforeLabel, after: t.afterLabel }} /> : <span className="content-case-art-glyph" aria-hidden="true">
-          <TopicGlyph icon={icon} imageIcon={item.imageIcon} size={96} />
-        </span>}
-      </div>
-      <div className="content-case-copy">
-        <p className="content-case-topic">
-          {item.subTopic}
-          {item.isTeaching ? <span className="content-case-tag">{t.teachingBadge}</span> : null}
-        </p>
-        <h3 {...authoredTitleProps(item.title)}>{item.title}</h3>
-        <p className="content-case-summary">{item.summary}</p>
-        <div className="content-case-meta">
-          <span>{item.date}</span>
-        </div>
-      </div>
-    </a>
-  );
 }
 
 function LatestCaseCard({ item, icon, t, locale }: { item: LibraryItem; icon: TopicIconName; t: Dictionary["topics"]; locale: Locale }) {
@@ -243,7 +203,6 @@ export default function TopicsExplorer({
     <section className="content-browser" aria-labelledby="content-browser-heading">
       <div className="content-browser-hero">
         <div className="content-browser-hero-copy">
-          <p className="section-kicker">{t.kicker}</p>
           <h2 id="content-browser-heading">{t.learnThroughAnatomy}</h2>
           <p>{activeGroup ? fill(t.guideIntroActive, { name: activeGroup.name }) : t.guideIntro}</p>
         </div>
@@ -260,7 +219,7 @@ export default function TopicsExplorer({
       </div>
 
       <nav className="content-topic-switcher" aria-label={t.surgicalTopics}>
-        {groups.map((group, index) => {
+        {groups.map((group) => {
           const isActive = group.slug === activeGroup?.slug;
           return (
             <a
@@ -270,7 +229,6 @@ export default function TopicsExplorer({
               onClick={(event) => selectTopic(event, group.slug)}
               key={group.slug}
             >
-              <span className="content-topic-index">0{index + 1}</span>
               <span className="content-topic-glyph" aria-hidden="true"><TopicGlyph icon={group.icon} imageIcon={group.imageIcon} size={38} /></span>
               <span><strong>{group.name}</strong><small>{group.blurb}</small></span>
             </a>
@@ -281,7 +239,6 @@ export default function TopicsExplorer({
       {!activeGroup ? (
         <>
         <div className="content-prompt">
-          <p className="section-kicker">{t.guideKicker}</p>
           <h2>{t.guideTitle}</h2>
           <p>{t.chooseRegion}</p>
         </div>

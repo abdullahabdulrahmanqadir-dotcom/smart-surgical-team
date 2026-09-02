@@ -79,7 +79,7 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
           the title inside artwork only pushed the abstract further down. */}
       <header className="research-detail-hero"><div className="research-detail-heading" {...authoredTitleProps(paper.title)}><span className="section-kicker">{[paper.topic?.name, paper.subtopic?.name].filter(Boolean).join(" · ") || dict.research.unfiled} · {paper.year}</span><h1>{paper.title}</h1></div></header>
       <div className="research-detail-grid">
-        <article className="research-detail-main"><ResearchContributors contributors={contributors} t={dict.research}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">{dict.research.summaryKicker}</span><h2 id="abstract-title">{dict.research.abstract}</h2><TranslatableContent
+        <article className="research-detail-main"><ResearchContributors contributors={contributors} t={dict.research}/><section className="research-abstract-section" aria-labelledby="abstract-title"><h2 id="abstract-title">{dict.research.abstract}</h2><TranslatableContent
           locale={active}
           autoTranslate={active === "ar"}
           className="research-detail-abstract"

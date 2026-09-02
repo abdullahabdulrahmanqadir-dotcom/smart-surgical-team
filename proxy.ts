@@ -22,7 +22,6 @@ export function proxy(request: NextRequest) {
   const skip =
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/specimen") ||
     PUBLIC_FILE.test(pathname);
 
   if (skip) return NextResponse.next();
@@ -37,7 +36,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  if (isLocale(first)) return NextResponse.next();
+  // `not-found.tsx` is rendered without route params, so a locale-aware 404
+  // has nothing to read the language from. Forwarding it as a request header
+  // is the only handle the not-found boundary gets.
+  if (isLocale(first)) {
+    const headers = new Headers(request.headers);
+    headers.set("x-sst-locale", first);
+    return NextResponse.next({ request: { headers } });
+  }
 
   const locale = detectLocale(request.headers.get("accept-language"));
   const url = request.nextUrl.clone();
