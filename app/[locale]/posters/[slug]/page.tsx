@@ -6,6 +6,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight } from "../../../components/icons";
+import { proseClass } from "../../../lib/content-types";
 import { getDictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPoster } from "../../../lib/posters";
@@ -52,7 +53,7 @@ export default async function PosterDetailPage({ params }: { params: Promise<Par
               failed: dict.library.translateFailed,
             }}
           >
-            {poster.sections.length ? poster.sections.map((section) => <section key={section.key}><h2>{section.label}</h2><div className="rich-text" dangerouslySetInnerHTML={{ __html: section.body }}/></section>) : <p>{poster.summary}</p>}
+            {poster.sections.length ? poster.sections.map((section) => <section key={section.key}><h2>{section.label}</h2><div className={proseClass("rich-text", poster.justifyBody)} dangerouslySetInnerHTML={{ __html: section.body }}/></section>) : <p>{poster.summary}</p>}
           </TranslatableContent>
         </article>
       </div>

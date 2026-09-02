@@ -8,7 +8,7 @@ import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight } from "../../../components/icons";
-import { getContent } from "../../../lib/content";
+import { getContent, proseClass } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { getPublicEvent } from "../../../lib/events";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
@@ -89,7 +89,7 @@ export default async function NewsItemPage({ params }: { params: Promise<Params>
   const body = sections.length
     ? sections.map((section) => <section key={section.key}>
         <h2>{section.label}</h2>
-        <div className="rich-text" dangerouslySetInnerHTML={{ __html: section.body }}/>
+        <div className={proseClass("rich-text", item.justifyBody)} dangerouslySetInnerHTML={{ __html: section.body }}/>
       </section>)
     : <p>{summary}</p>;
 

@@ -37,6 +37,8 @@ export type Publication = {
   subtopic: ResearchTopic | null;
   /** The topic's palette name, driving the generated cover art. */
   palette: string;
+  /** Justify the abstract on the paper's page (migration 0024). */
+  justifyBody: boolean;
   contributors?: { name: string; portraitUrl?: string }[];
   media?: { publicUrl: string; altText?: string; caption?: string }[];
 };
@@ -88,14 +90,24 @@ type TopicRow = { id: string; name: string; slug: string; palette?: string | nul
 type ResearchRow = {
   id: number; title: string; authors: string | null; abstract: string | null;
   journal: string | null; link: string | null; published_date: string | null;
+  justify_body?: boolean | null;
   topic: TopicRow; subtopic: TopicRow;
   research_media: { public_url: string; alt_text: string | null; caption: string | null; sort_order: number }[] | null;
 };
 
 // Both topic joins point at the same table, so PostgREST needs the foreign key
 // named explicitly — without it the embed is ambiguous and the query fails.
-const RESEARCH_SELECT =
+// Migration 0024 adds `justify_body`. Selecting a column the database does not
+// have fails the whole query, which would take the research section down in
+// the window between a deploy and its migration; the first such failure drops
+// the column for the life of the process and the read is retried without it.
+// Every paper then reads as justified, which is the site-wide default anyway.
+let justifyBodyColumn = true;
+function missingJustifyBody(message: string) { return /justify_body/.test(message) && /does not exist/i.test(message); }
+
+const RESEARCH_SELECT = () =>
   "id,title,authors,abstract,journal,link,published_date," +
+  (justifyBodyColumn ? "justify_body," : "") +
   "topic:research_topics!researches_topic_id_fkey(id,name,slug,palette)," +
   "subtopic:research_topics!researches_subtopic_id_fkey(id,name,slug)," +
   "research_media(public_url,alt_text,caption,sort_order)";
@@ -119,6 +131,9 @@ function mapRow(row: ResearchRow): Publication {
     date,
     year: date.slice(0, 4) || "Research",
     journal: row.journal ?? "Journal website",
+    // Justified unless the editor turned it off; a database without the column
+    // reads as the default rather than as "off".
+    justifyBody: row.justify_body ?? true,
     topic: topicOf(row.topic),
     subtopic: topicOf(row.subtopic),
     // Subtopics inherit their parent's palette at seed time, but the admin can
@@ -137,11 +152,17 @@ function mapRow(row: ResearchRow): Publication {
  */
 async function fetchResearches(): Promise<Publication[]> {
   if (!canUseDatabase()) return [];
-  const { data, error } = await getSupabaseServerClient()
+  const run = () => getSupabaseServerClient()
     .from("researches")
-    .select(RESEARCH_SELECT)
+    .select(RESEARCH_SELECT())
     .eq("status", "published")
     .order("published_date", { ascending: false });
+  let { data, error } = await run();
+  if (error && justifyBodyColumn && missingJustifyBody(error.message)) {
+    console.warn("researches.justify_body is missing — apply migration 0024. Reading every paper as justified, the default.");
+    justifyBodyColumn = false;
+    ({ data, error } = await run());
+  }
   if (error) throw new Error(`published researches query failed: ${error.message}`);
   return ((data ?? []) as unknown as ResearchRow[]).map(mapRow);
 }

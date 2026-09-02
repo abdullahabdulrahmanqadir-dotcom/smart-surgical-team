@@ -12,6 +12,8 @@ export type PosterEntry = {
   label: string;
   publishedAt: string;
   sections: CaseSection[];
+  /** Justify the written details on the poster's page (migration 0024). */
+  justifyBody: boolean;
   cta?: { text: string; url: string };
 };
 
@@ -29,6 +31,7 @@ const FALLBACK_POSTER: PosterEntry = {
     { key: "overview", label: "Study overview", body: "<p>This single-centre cohort describes five patients treated for epithelial-myoepithelial carcinoma of the salivary glands between 2020 and 2025.</p>" },
     { key: "findings", label: "Key findings", body: "<p>The cohort showed no recurrence during a mean follow-up of 24 months, with 100% patient survival and no nodal or distant metastases identified.</p>" },
   ],
+  justifyBody: true,
 };
 
 const EXAMPLE_POSTER: PosterEntry = {
@@ -45,6 +48,7 @@ const EXAMPLE_POSTER: PosterEntry = {
     { key: "overview", label: "About this example", body: "<p>This placeholder exists only to demonstrate how additional posters appear in the collection grid.</p>" },
     { key: "note", label: "Admin note", body: "<p>Replace its image and written details, or delete it, from the Posters section in admin when a real poster is ready.</p>" },
   ],
+  justifyBody: true,
 };
 
 const FALLBACK_POSTERS = [FALLBACK_POSTER, EXAMPLE_POSTER];
@@ -70,6 +74,7 @@ function mapPoster(record: ContentRecord): PosterEntry | null {
     label: record.level || "Clinical poster",
     publishedAt: record.publishedAt || "",
     sections: resolveCaseSections(record),
+    justifyBody: record.justifyBody !== false,
     cta: record.posterCtaText && record.posterCtaUrl ? { text: record.posterCtaText, url: record.posterCtaUrl } : undefined,
   };
 }

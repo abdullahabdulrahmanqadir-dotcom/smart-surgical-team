@@ -47,6 +47,8 @@ export type NewsItem = {
    */
   coverUrl: string;
   pinned: boolean;
+  /** Justify this item's story sections on its page (migration 0024). */
+  justifyBody: boolean;
   related: NewsRelation | null;
   media: NewsMedia[];
 };

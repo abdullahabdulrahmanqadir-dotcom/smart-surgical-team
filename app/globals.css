@@ -228,6 +228,33 @@
   font-family: var(--font-display-arabic-stack);
 }
 
+/* Justified editor prose — the per-record `justify_body` choice (0024).
+   `proseClass()` adds `.is-justified` to the container holding one record's
+   written body. The containers are named explicitly rather than styling
+   `.is-justified` on its own, so the class can never justify something it was
+   not meant to.
+   Hyphenation is not optional here: a reading column this narrow opens visible
+   rivers of white space when justified without it. `overflow-wrap` covers the
+   one case hyphenation cannot — a pasted URL longer than the line.
+   Headings and captions keep their ragged edge; a two-line heading stretched
+   to both margins reads as a mistake rather than as a choice. */
+.rich-text.is-justified,
+.case-summary-list.is-justified dd,
+.research-detail-abstract.is-justified {
+  overflow-wrap: break-word;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.rich-text.is-justified :is(h2, h3, h4, figcaption),
+.case-summary-list.is-justified dd :is(h2, h3, h4, figcaption),
+.research-detail-abstract.is-justified :is(h2, h3, h4, figcaption) {
+  text-align: start;
+  hyphens: manual;
+}
+
 /* ============================================================
    Base
    ============================================================ */
