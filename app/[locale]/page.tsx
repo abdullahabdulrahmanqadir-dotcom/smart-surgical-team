@@ -5,13 +5,11 @@ import ResearchCover from "../components/ResearchCover";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import IntroductionVideo from "../components/IntroductionVideo";
-import JoinCtaLink from "../components/JoinCtaLink";
 import NewsBanner from "../components/NewsBanner";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
   IconArrowRight,
-  IconCheck,
   IconClock,
   IconGlobe,
   IconPlus,
@@ -172,7 +170,6 @@ export default async function Home({
   const dict = getDictionary(active);
   const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
   const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
-  const benefits = [dict.home.benefitAccess, dict.home.benefitSave];
   const research = await getResearches();
   const latestResearch = research[0];
   // At most one item is ever pinned; the banner is the homepage's only news.
@@ -273,9 +270,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <h2 id="topics-heading">{dict.topics.title}</h2>
-              <p className="section-sub">
-                {dict.home.topicsIntro}
-              </p>
+              <p className="section-sub">{dict.home.topicsIntro}</p>
             </div>
             <Link className="text-link" href={localePath(active, "topics")}>
               {dict.home.viewAllTopics}
@@ -309,7 +304,7 @@ export default async function Home({
         </section>
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
-          <div className="research-preview-head"><div><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
+          <div className="research-preview-head"><div><h2 id="research-preview-heading">{dict.home.researchTitle}</h2></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media"><ResearchCover title={latestResearch.title} label={latestResearch.topic?.name ?? dict.research.unfiled} palette={latestResearch.palette} paletteKey={latestResearch.journal}/></div>
             <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
@@ -321,9 +316,6 @@ export default async function Home({
           <div className="section-head">
             <div>
               <h2 id="introduction-heading">{dict.home.introductionTitle}</h2>
-              <p className="section-sub">
-                {dict.home.introductionIntro}
-              </p>
             </div>
             <span className="badge badge-accent">{dict.home.clinicOverview}</span>
           </div>
@@ -389,23 +381,6 @@ export default async function Home({
           </div>
         </section>
 
-        {/* ---------------- Join CTA ---------------- */}
-        <section className="cta-band" id="join">
-          <div className="cta-inner">
-            <div>
-              <h2>{dict.home.joinTitle}</h2>
-              <p>{dict.home.joinBody}</p>
-              <ul className="cta-benefits">
-                {benefits.map((benefit) => (
-                  <li key={benefit}>
-                    <IconCheck size={15} /> {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <JoinCtaLink locale={active} t={dict.joinCta} />
-          </div>
-        </section>
       </main>
 
       <SiteFooter locale={active} dict={dict} />

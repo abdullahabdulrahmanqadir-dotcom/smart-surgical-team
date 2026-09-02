@@ -240,7 +240,6 @@ export default function TopicsExplorer({
         <>
         <div className="content-prompt">
           <h2>{t.guideTitle}</h2>
-          <p>{t.chooseRegion}</p>
         </div>
         {latestCase && latestGroup ? <section className="latest-case-section" aria-labelledby="latest-case-heading"><div className="latest-case-heading"><h2 id="latest-case-heading">{t.latestCase}</h2></div><LatestCaseCard item={latestCase} icon={latestGroup.icon} t={t} locale={locale}/></section> : null}
         </>

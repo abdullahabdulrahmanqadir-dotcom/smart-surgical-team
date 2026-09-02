@@ -152,7 +152,9 @@ test("renders the bilingual clinical poster archive", async () => {
     const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? html;
     assert.match(main, new RegExp(heading));
     assert.match(main, /emc-salivary-glands-cohort\.webp/);
-    assert.match(main, /2020[–-]2025/);
+    assert.doesNotMatch(main, /class="poster-featured-label"/);
+    assert.doesNotMatch(main, /class="poster-study-type"/);
+    assert.doesNotMatch(main, /<small>[^<]*POSTER[^<]*<\/small>/i);
     assert.match(html, new RegExp(`href="/${locale}/posters"`));
     assert.doesNotMatch(main, /class="posters-hero"/);
     assert.match(main, new RegExp(`href="/${locale}/posters/epithelial-myoepithelial-carcinoma-salivary-glands"`));

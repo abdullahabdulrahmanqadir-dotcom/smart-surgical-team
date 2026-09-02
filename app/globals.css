@@ -77,8 +77,8 @@
   --shadow-md: 0 6px 18px rgba(64, 50, 42, 0.09);
   --shadow-lg: 0 18px 44px rgba(64, 50, 42, 0.13);
 
-  --content: 1200px;
-  --gutter: clamp(1.25rem, 4vw, 3rem);
+  --content: 1280px;
+  --gutter: clamp(1.25rem, 3vw, 2.5rem);
   --header-h: 72px;
 }
 
@@ -155,7 +155,7 @@
 
        --step--2  12.6px  micro labels, badges, chips  (absolute floor)
        --step--1  14.2px  captions, credentials, meta
-       --step-0   16px    body and reading prose       (prose floor)
+       --step-0   17px    body and reading prose       (prose floor)
        --step-1   18px    lead paragraphs
        --step-2   20.3px  small headings
        --step-3   22.8px
@@ -166,7 +166,7 @@
      not text. */
   --step--2: 0.79rem;
   --step--1: 0.889rem;
-  --step-0: 1rem;
+  --step-0: 1.0625rem;
   --step-1: 1.125rem;
   --step-2: 1.266rem;
   --step-3: 1.424rem;
@@ -193,7 +193,7 @@
      untouched, so the layout does not shift with it. */
   --step--2: 0.889rem;
   --step--1: 1rem;
-  --step-0: 1.125rem;
+  --step-0: 1.188rem;
   --step-1: 1.266rem;
   --step-2: 1.424rem;
   --step-3: 1.602rem;
@@ -274,7 +274,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body-stack);
-  font-size: 1rem;
+  font-size: var(--step-0);
   line-height: 1.6;
   letter-spacing: var(--tracking-body);
   -webkit-font-smoothing: antialiased;
@@ -1200,7 +1200,7 @@ input {
   margin-top: 0.6rem;
   max-width: 46ch;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--step-0);
 }
 
 /* Scroll reveals are intentionally small and only run once. Content remains fully visible without JavaScript. */
@@ -1855,7 +1855,12 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-soft);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+
+.topic-card:hover small,
+.topic-card:focus-visible small { opacity: 1; }
 
 .topic-go {
   display: grid;
@@ -3598,15 +3603,15 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 /* Use the Topics library’s media frame everywhere content appears. This keeps
    R2 images consistently cropped rather than allowing each card variant to
    establish a competing height. */
-.content-case-art, .related-art, .saved-content-art { min-height: 12.5rem; height: 12.5rem; }.saved-content-art { flex-basis: 12.5rem; }.related-thumbnail, .saved-content-art img { display: block; width: 100%; height: 100%; object-fit: cover; }.saved-content-art img { position: absolute; inset: 0; }
+.content-case-art, .related-art, .saved-content-art { min-height: 12.5rem; height: 12.5rem; }.content-case-art { flex: 0 0 12.5rem; }.saved-content-art { flex-basis: 12.5rem; }.related-thumbnail, .saved-content-art img { display: block; width: 100%; height: 100%; object-fit: cover; }.saved-content-art img { position: absolute; inset: 0; }
 @media (max-width: 520px) { .content-case-art, .related-art, .saved-content-art { min-height: 11rem; height: 11rem; }.saved-content-art { flex-basis: 11rem; } }
 
 /* One card system: the catalogue, related results, and personal library use
    the same responsive grid, 28rem card frame, and 12.5rem artwork region. */
-.content-case-grid, .related-grid, .saved-content-grid { grid-auto-rows: 28rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }.content-case-card, .related-card, .saved-content-card { height: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }.related-card { display: flex; flex-direction: column; color: inherit; text-decoration: none; transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease; }.related-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }.related-art { flex: 0 0 12.5rem; border-radius: 0; }.related-topic { margin-top: 0; padding: 1.15rem 1.15rem 0; }.related-card h3, .related-card > p { padding-inline: 1.15rem; }.related-card > p { margin-top: auto; padding-bottom: 1.15rem; }.related-card:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; }
+.content-case-grid, .related-grid, .saved-content-grid { grid-auto-rows: minmax(28rem, auto); grid-template-columns: repeat(3, minmax(0, 1fr)); }.content-case-card, .related-card, .saved-content-card { height: 100%; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }.related-card { display: flex; flex-direction: column; color: inherit; text-decoration: none; transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease; }.related-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-md); }.related-art { flex: 0 0 12.5rem; border-radius: 0; }.related-topic { margin-top: 0; padding: 1.15rem 1.15rem 0; }.related-card h3, .related-card > p { padding-inline: 1.15rem; }.related-card > p { margin-top: auto; padding-bottom: 1.15rem; }.related-card:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; }
 .profile-saved-section { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 @media (max-width: 1000px) { .saved-content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 620px) { .content-case-grid, .related-grid, .saved-content-grid { grid-auto-rows: 27rem; grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .content-case-grid, .related-grid, .saved-content-grid { grid-auto-rows: minmax(27rem, auto); grid-template-columns: 1fr; } }
 
 /* Rich formatting is saved as a restricted HTML subset and uses these shared
    font-size steps wherever article content is presented. */
@@ -4565,5 +4570,25 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   .news-card:hover .news-card-go svg {
     transform: none;
   }
+}
+
+/* A compact desktop composition still fits comfortably on landscape tablets
+   and narrow browser windows. Keep the copy and anatomy plate side by side,
+   but scale both down instead of switching the hero to a tall mobile stack. */
+@media (min-width: 720px) and (max-width: 1080px) {
+  .hero-inner {
+    grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+    gap: clamp(1.25rem, 3vw, 2rem);
+    padding-block: clamp(2.25rem, 5vw, 3.5rem);
+  }
+
+  .hero-copy h1 { font-size: clamp(2rem, 4.4vw, 2.75rem); }
+  .anatomy-hero { min-height: 0; margin-inline: auto 0; border-radius: 1.5rem; }
+  .anatomy-hero-base { min-height: 0; }
+}
+
+/* This short description has room to read as the single sentence it is. */
+@media (min-width: 900px) {
+  .section-topics .section-sub { max-width: none; }
 }
 
