@@ -5,13 +5,11 @@ import ResearchCover from "../components/ResearchCover";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import IntroductionVideo from "../components/IntroductionVideo";
-import JoinCtaLink from "../components/JoinCtaLink";
 import NewsBanner from "../components/NewsBanner";
 import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
   IconArrowRight,
-  IconCheck,
   IconClock,
   IconGlobe,
   IconPlus,
@@ -27,13 +25,19 @@ import { getResearches } from "../lib/research";
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
     and nothing shifts when the rows arrive. Headings are passed in because the
-    same shell carries either the events or the newsroom. */
+    same shell carries either the events or the newsroom.
+
+    `loading` says which of the two this is. It is not inferred from a missing
+    prop any more: the newsroom has no count to put in the badge, and reading
+    that absence as "still waiting" left a shimmering placeholder next to
+    content that had already arrived. */
 function SidePanel({
   href,
   title,
   intro,
   linkLabel,
   badge,
+  loading = false,
   children,
 }: {
   href?: string;
@@ -41,6 +45,7 @@ function SidePanel({
   intro?: string;
   linkLabel?: string;
   badge?: string;
+  loading?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -50,13 +55,13 @@ function SidePanel({
             decided by the events read it is waiting on. Announcing "Upcoming
             Events" and then resolving to the newsroom is worse than a blank. */}
         <div>
-          {title ? <h2>{title}</h2> : <span className="skeleton-line skeleton-line-lg" />}
-          {intro ? <p className="panel-sub">{intro}</p> : <span className="skeleton-line skeleton-line-sm" />}
+          {loading ? <span className="skeleton-line skeleton-line-lg" /> : <h2>{title}</h2>}
+          {loading ? <span className="skeleton-line skeleton-line-sm" /> : <p className="panel-sub">{intro}</p>}
         </div>
-        {badge ? <span className="badge">{badge}</span> : <span className="badge is-skeleton"><span className="skeleton-line skeleton-line-xs" /></span>}
+        {loading ? <span className="badge is-skeleton"><span className="skeleton-line skeleton-line-xs" /></span> : badge ? <span className="badge">{badge}</span> : null}
       </div>
       <div className="webinar-list">
-        {children ?? [0, 1, 2].map((index) => (
+        {loading ? [0, 1, 2].map((index) => (
           <div className="webinar-row is-skeleton" key={index} aria-hidden="true">
             <span className="date-chip"><span className="skeleton-block" /></span>
             <span className="webinar-body">
@@ -64,22 +69,22 @@ function SidePanel({
               <span className="skeleton-line skeleton-line-sm" />
             </span>
           </div>
-        ))}
+        )) : children}
       </div>
-      {href && linkLabel ? (
+      {loading ? (
+        <span className="panel-link is-skeleton"><span className="skeleton-line skeleton-line-sm" /></span>
+      ) : href && linkLabel ? (
         <Link className="panel-link" href={href}>
           {linkLabel}
           <IconArrowRight size={16} />
         </Link>
-      ) : (
-        <span className="panel-link is-skeleton"><span className="skeleton-line skeleton-line-sm" /></span>
-      )}
+      ) : null}
     </article>
   );
 }
 
 function SidePanelSkeleton() {
-  return <SidePanel />;
+  return <SidePanel loading />;
 }
 
 /**
@@ -95,7 +100,7 @@ async function EventsOrNews({ locale, t, eventT }: { locale: Locale; t: Dictiona
     const news = (await getNewsItems()).slice(0, 3);
     if (!news.length) return null;
     return (
-      <SidePanel href={localePath(locale, "news")} title={t.newsTitle} intro={t.newsIntro} linkLabel={t.viewAllNews} badge="">
+      <SidePanel href={localePath(locale, "news")} title={t.newsTitle} intro={t.newsIntro} linkLabel={t.viewAllNews}>
         {news.map((item) => {
           const title = localizedText(locale, item.title, item.titleAr).value;
           const published = item.date ? new Date(`${item.date}T12:00:00`) : null;
@@ -165,7 +170,6 @@ export default async function Home({
   const dict = getDictionary(active);
   const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
   const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
-  const benefits = [dict.home.benefitAccess, dict.home.benefitSave];
   const research = await getResearches();
   const latestResearch = research[0];
   // At most one item is ever pinned; the banner is the homepage's only news.
@@ -266,9 +270,7 @@ export default async function Home({
           <div className="section-head">
             <div>
               <h2 id="topics-heading">{dict.topics.title}</h2>
-              <p className="section-sub">
-                {dict.home.topicsIntro}
-              </p>
+              <p className="section-sub">{dict.home.topicsIntro}</p>
             </div>
             <Link className="text-link" href={localePath(active, "topics")}>
               {dict.home.viewAllTopics}
@@ -302,7 +304,7 @@ export default async function Home({
         </section>
 
         {latestResearch && <section className="section section-research-preview" aria-labelledby="research-preview-heading">
-          <div className="research-preview-head"><div><h2 id="research-preview-heading">{dict.home.researchTitle}</h2><p>{dict.home.researchIntro}</p></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
+          <div className="research-preview-head"><div><h2 id="research-preview-heading">{dict.home.researchTitle}</h2></div><Link className="text-link" href={localePath(active, "research")}>{dict.home.exploreResearch} <IconArrowRight size={16}/></Link></div>
           <Link className="research-preview-card" href={localePath(active, `research/${latestResearch.id}`)}>
             <div className="research-preview-media"><ResearchCover title={latestResearch.title} label={latestResearch.topic?.name ?? dict.research.unfiled} palette={latestResearch.palette} paletteKey={latestResearch.journal}/></div>
             <div className="research-preview-body"><span className="research-preview-kicker">{fill(dict.home.latestPublication, { year: latestResearch.year })}</span>{latestResearchExcerpt && <p className="research-preview-excerpt">{latestResearchExcerpt}</p>}<span className="research-preview-cta">{dict.home.readResearch} <IconArrowRight size={16}/></span></div>
@@ -314,9 +316,6 @@ export default async function Home({
           <div className="section-head">
             <div>
               <h2 id="introduction-heading">{dict.home.introductionTitle}</h2>
-              <p className="section-sub">
-                {dict.home.introductionIntro}
-              </p>
             </div>
             <span className="badge badge-accent">{dict.home.clinicOverview}</span>
           </div>
@@ -382,23 +381,6 @@ export default async function Home({
           </div>
         </section>
 
-        {/* ---------------- Join CTA ---------------- */}
-        <section className="cta-band" id="join">
-          <div className="cta-inner">
-            <div>
-              <h2>{dict.home.joinTitle}</h2>
-              <p>{dict.home.joinBody}</p>
-              <ul className="cta-benefits">
-                {benefits.map((benefit) => (
-                  <li key={benefit}>
-                    <IconCheck size={15} /> {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <JoinCtaLink locale={active} t={dict.joinCta} />
-          </div>
-        </section>
       </main>
 
       <SiteFooter locale={active} dict={dict} />

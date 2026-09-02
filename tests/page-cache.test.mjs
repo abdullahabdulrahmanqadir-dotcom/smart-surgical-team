@@ -43,6 +43,12 @@ test("only public, anonymous document requests are cacheable", () => {
   // News is cached on the same terms as every other public section.
   assert.equal(isPublicDocumentRequest(publicRequest("/en/news")), true);
   assert.equal(isPublicDocumentRequest(publicRequest("/ar/news/example-summit-recap")), true);
+  // The library list page, like every other section's list page. Its slug was
+  // the one that was mandatory, so `/en/library` alone re-rendered on every
+  // request while `/en/topics` and `/en/posters` were served from the cache.
+  assert.equal(isPublicDocumentRequest(publicRequest("/en/library")), true);
+  assert.equal(isPublicDocumentRequest(publicRequest("/ar/library")), true);
+  assert.equal(isPublicDocumentRequest(publicRequest("/en/library/a-case")), true);
   assert.equal(isPublicDocumentRequest(publicRequest("/en/sign-in")), false);
   assert.equal(isPublicDocumentRequest(publicRequest("/api/profile")), false);
   assert.equal(isPublicDocumentRequest(publicRequest("/en?preview=1")), false);

@@ -42,6 +42,29 @@ interface ExecutionContext {
 let cacheHandlerInstalled = false;
 const ALLOWED_IMAGE_WIDTHS = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
 
+/**
+ * The answer to a path that matches no route at all.
+ *
+ * Inside a locale, `app/[locale]/[...unmatched]/page.tsx` catches this and
+ * renders the real 404 page, and `app/api/[...unmatched]/route.ts` now does the
+ * same for an API miss. Nothing can claim what is left — `/favicon.ico`,
+ * `/apple-touch-icon.png`, `/nope.txt` — because a dotted path is not given a
+ * locale to be redirected into, and a route handler at the app root is not
+ * registered. Those reach the router, match nothing, and raise `notFound()`
+ * with no boundary above it to answer; the signal then leaves the Worker as an
+ * uncaught exception and Cloudflare serves its own `error code: 1101` page with
+ * a 500. Every browser asks for `/favicon.ico`, so this was a server error on
+ * an ordinary request.
+ *
+ * Recognised by the signal itself rather than by catching everything: a real
+ * render failure still surfaces as a 500 and still reaches the logs.
+ */
+function isNotFoundSignal(error: unknown): boolean {
+  const { digest, message } = (error ?? {}) as { digest?: unknown; message?: unknown };
+  if (typeof digest === "string" && (digest === "NEXT_NOT_FOUND" || digest.startsWith("NEXT_HTTP_ERROR_FALLBACK;404"))) return true;
+  return message === "NEXT_NOT_FOUND";
+}
+
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -74,7 +97,15 @@ const worker = {
       }, ALLOWED_IMAGE_WIDTHS);
     }
 
-    return servePublicDocument(request, env, ctx, () => handler.fetch(request, env, ctx));
+    try {
+      return await servePublicDocument(request, env, ctx, () => handler.fetch(request, env, ctx));
+    } catch (error) {
+      if (!isNotFoundSignal(error)) throw error;
+      return new Response("Not Found", {
+        status: 404,
+        headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
   },
 };
 

@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 function PosterCard({ poster, locale, label }: { poster: PosterEntry; locale: Locale; label: string }) {
   return <Link className="poster-card" href={localePath(locale, `posters/${poster.slug}`)} aria-label={`${label}: ${poster.title}`}>
     <span className="poster-card-image"><img src={poster.imageUrl} alt="" loading="lazy" width={640} height={640}/></span>
-    <span className="poster-card-copy"><small>{poster.label}</small><strong {...authoredTitleProps(poster.title)}>{poster.title}</strong><span>{label} <IconArrowRight size={16}/></span></span>
+    <span className="poster-card-copy"><strong {...authoredTitleProps(poster.title)}>{poster.title}</strong><span>{label} <IconArrowRight size={16}/></span></span>
   </Link>;
 }
 
@@ -53,8 +53,6 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
           <img src={featured.imageUrl} alt={featured.imageAlt} width={1280} height={1280} fetchPriority="high"/>
         </Link>
         <div className="poster-details">
-          <span className="poster-featured-label">{t.featured}</span>
-          <span className="poster-study-type">{featured.label}</span>
           <h2 id="featured-poster-title" {...authoredTitleProps(featured.title)}>{featured.title}</h2>
           <p className="poster-summary">{featured.summary}</p>
           <Link className="btn btn-primary btn-lg poster-open" href={localePath(active, `posters/${featured.slug}`)}>{t.viewDetails} <IconArrowRight size={18}/></Link>

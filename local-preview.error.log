@@ -1,0 +1,4 @@
+(node:29908) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[i18n] No Arabic translation stored; /ar is showing English: "International consultants join our MDT meeting"
+[i18n] No Arabic translation stored; /ar is showing English: "Global consultants joined our regular Multidisciplinary Team meeting at Smart Health Tower to review complex and rare ca"

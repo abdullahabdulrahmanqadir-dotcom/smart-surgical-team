@@ -39,7 +39,7 @@ function defaultCache(): Cache {
 // Only cache public HTML documents. In particular, never cache authenticated
 // screens, API responses, React Server Component requests, or URLs with query
 // strings (which would create an unbounded attacker-controlled key space).
-const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library\/[^/]+|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
+const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about|contact|events(?:\/[^/]+)?|library(?:\/[^/]+)?|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
 
 /** A request for one of the public content URLs above, as a document, before
     the caller's own credentials are taken into account. Everything the shared

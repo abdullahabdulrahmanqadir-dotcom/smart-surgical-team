@@ -61,3 +61,6 @@ local-host.error.log
 /scratch/
 /.logs/
 /supabase/.temp/
+
+# impeccable local runtime state (design.json is derived into DESIGN.md)
+.impeccable/

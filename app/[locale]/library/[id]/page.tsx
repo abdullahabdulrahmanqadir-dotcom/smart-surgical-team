@@ -62,11 +62,24 @@ async function RelatedContent({ locale, contentId, topicSlug, kind }: { locale: 
   );
 }
 
+/**
+ * Also where a missing case is turned away.
+ *
+ * `notFound()` from the component below cannot set the status: this segment has
+ * a `loading.tsx`, so the shell — skeleton and a 200 — is already flushed by the
+ * time the record resolves, and a crawler is handed an indexable "Loading case"
+ * page for anything that does not exist. Metadata is awaited before the first
+ * byte, so refusing here is what actually produces a 404. The record read is
+ * cached, so asking for it twice costs one query.
+ */
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; id: string }> }): Promise<Metadata> {
   const { locale, id } = await params;
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const content = await getContent(id);
+  // A members-only case is not missing — the page renders its gate — so only a
+  // record that is absent for members too is a genuine 404.
+  if (!content && (await getContentForMember(id))?.accessLevel !== "members_only") notFound();
   return content ? pageMetadata({
     locale: active,
     path: `library/${content.slug}`,
@@ -116,6 +129,18 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const heroImages = heroPair ?? (mainImage ? [mainImage] : []);
   const galleryImages = heroImages.length ? images.filter((item) => !heroImages.some((hero) => hero.id === item.id)) : images;
   const contributors = content.contributors.length ? content.contributors : [{ ...content.presenter, photoUrl: undefined as string | undefined }];
+  // An e-poster keeps its sheet in `posterUrl` rather than in the media
+  // gallery, and has no video for the player to fall back on. Without these two
+  // the page showed a title and a summary and withheld the poster itself along
+  // with the link to the paper, which is the whole of what the record is for.
+  // The `/posters` archive already renders both; this is the same treatment for
+  // the same record reached through the library or a topic.
+  const posterSheet = content.kind === "poster" && content.posterUrl && !images.some((item) => item.publicUrl === content.posterUrl)
+    ? [{ id: `${content.id}-poster`, publicUrl: content.posterUrl, altText: fill(dict.posters.posterAlt, { title: content.title }), caption: content.title }]
+    : [];
+  const posterCta = content.kind === "poster" && content.posterCtaText && content.posterCtaUrl
+    ? { text: content.posterCtaText, url: content.posterCtaUrl }
+    : null;
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
@@ -126,6 +151,12 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
       <div className="content-grid">
         <section className="content-main"><ContentPlayer content={content} t={dict.media} />
+          {posterSheet.length || posterCta ? (
+            <div className="poster-display">
+              {posterSheet.length ? <ImageGallery images={posterSheet} label={dict.posters.openPoster} t={dict.media} presentation="poster" /> : null}
+              {posterCta ? <a className="poster-resource-link" href={posterCta.url} target="_blank" rel="noopener noreferrer"><span>{posterCta.text}</span><IconArrowRight size={17} /></a> : null}
+            </div>
+          ) : null}
           {heroImages.length ? <ImageGallery images={heroImages} t={dict.media} presentation="hero" pair={Boolean(heroPair)} /> : null}
           {documents.length ? <section className="content-downloads" aria-labelledby="content-downloads-title"><div className="section-mini-head"><div><h2 id="content-downloads-title">{dict.library.downloads}</h2></div></div><ul>{documents.map((item) => <li key={item.id}><a href={item.publicUrl} target="_blank" rel="noreferrer"><IconFile size={18}/>{item.caption || item.altText || dict.library.downloadDocument}</a></li>)}</ul></section> : null}
           <section className="case-summary-panel" aria-labelledby="case-summary-title">

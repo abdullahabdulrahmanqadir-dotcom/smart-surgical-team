@@ -38,8 +38,6 @@ export default function EventsExplorer({ locale, events, t }: { locale: Locale; 
   return <section className="events-collection" aria-labelledby="all-events-heading">
     <div className="events-collection-heading">
       <div><h2 id="all-events-heading">{t.allEvents}</h2></div>
-      {/* "Browse what is ahead" is only true when something is ahead. */}
-      <p>{events.some((event) => event.status === "upcoming") ? t.collectionIntro : t.archiveCollectionIntro}</p>
     </div>
     <div className="event-filters" aria-label={t.filterEvents}>
       <FilterSelect className="event-filter-control" label={t.status} value={status} onChange={setStatus} options={[{ value: "all", label: t.allStatuses }, { value: "upcoming", label: t.upcoming }, { value: "past", label: t.past }]} />

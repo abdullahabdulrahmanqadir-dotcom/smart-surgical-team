@@ -214,6 +214,7 @@ export const ar: Dictionary = {
     summary: "دراسة أترابية من مركز واحد في العراق تبحث في العرض السريري والتدبير الجراحي والنتائج قصيرة الأمد لهذا الورم فائق الندرة في الغدد اللعابية.",
     authors: "Abdulwahid M. Salih، Hiwa O. Baba، Ari M. Abdullah، Rebaz O. Mohammed، وآخرون.",
     openPoster: "فتح الملصق بالدقة الكاملة",
+    posterAlt: "ملصق سريري: {title}",
     imageAlt: "ملصق سريري يلخص دراسة أترابية من خمسة مرضى حول السرطانة الظهارية العضلية الظهارية للغدد اللعابية",
     studySnapshot: "لمحة عن الدراسة",
     cohort: "العينة",

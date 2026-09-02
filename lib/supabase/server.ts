@@ -1,7 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const SUPABASE_REQUEST_TIMEOUT_MS = 10_000;
-let cachedClient: ReturnType<typeof createClient> | undefined;
+// `SupabaseClient`, not `ReturnType<typeof createClient>`. Reading the return
+// type off the uncalled generic function instantiates `Database` to its
+// constraint instead of its `any` default, which collapses the row type of
+// every table to `never` and makes each column access a type error. Writing
+// the client type directly keeps the untyped-schema behaviour the callers
+// already cast against.
+let cachedClient: SupabaseClient | undefined;
 let cachedConfiguration: string | undefined;
 
 const fetchWithTimeout: typeof fetch = async (input, init) => {
