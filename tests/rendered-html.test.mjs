@@ -228,7 +228,10 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
   assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
   assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
   assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
-  assert.match(html, /M4 8\.1h16M4 10\.8h16/);
+  // Fragments of the two drawn glyphs: the skin section's full-bleed
+  // epidermal plane and the middle node's chain rotation.
+  assert.match(html, /M1\.6 10\.4H5\.4/);
+  assert.match(html, /rotate\(-32 12\.2 12\)/);
 });
 
 test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {

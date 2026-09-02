@@ -415,24 +415,50 @@ export function IconSinus(props: IconProps) {
   );
 }
 
+/**
+ * Three reniform nodes threaded on the jugular chain, each keeping the hilar
+ * notch a real node has. Drawn as solid ink rather than outline so it carries
+ * the same weight as the thyroid and parotid marks beside it — a hairline
+ * drawing next to those two silhouettes was why the row read as four unrelated
+ * icons. The nodes are deliberately spaced: touching, they fuse into one blob.
+ */
 export function IconLymphNodes(props: IconProps) {
   return (
-    <svg {...svgProps(props)}>
-      <path d="M7.6 5.2c1.7-.6 3-.1 3.6 1.3.6 1.4.1 2.7-1.4 3.6-1.6 1-3 .7-3.8-.6-.8-1.4-.2-3.6 1.6-4.3Z" />
-      <path d="M16.4 8.4c1.7.4 2.5 1.6 2.2 3.2-.3 1.5-1.4 2.4-3.1 2.3-1.9-.1-2.9-1.1-2.9-2.7 0-1.7 1.7-3.3 3.8-2.8Z" />
-      <path d="M9.4 15c1.5.3 2.3 1.3 2.1 2.7-.2 1.4-1.2 2.2-2.7 2.1-1.6-.1-2.5-1-2.5-2.4 0-1.5 1.4-2.7 3.1-2.4Z" />
-      <path d="M11 9.4 13.6 11M11.5 13.6l-1.4 1.5" />
+    <svg {...svgProps(props)} fill="currentColor" stroke="none">
+      <path
+        d="M21.6 2.2C20.5 3.2 19.4 4.2 18.3 5.2 16.3 7.5 14.2 9.7 12.2 12 10 14.3 7.8 16.6 5.6 18.9c-1 .9-2 1.8-2.9 2.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.15}
+        strokeLinecap="round"
+      />
+      <path
+        transform="rotate(-32 18.3 5.2)"
+        d="M18.3 2.7C20.71 2.7 21.66 3.9 21.66 5.2C21.66 6.5 20.71 7.7 18.3 7.7C15.94 7.7 14.51 7.06 17.16 5.2C14.51 3.34 15.94 2.7 18.3 2.7Z"
+      />
+      <path
+        transform="rotate(-32 12.2 12)"
+        d="M12.2 8.95C15.15 8.95 16.3 10.41 16.3 12C16.3 13.59 15.15 15.05 12.2 15.05C9.32 15.05 7.58 14.27 10.81 12C7.58 9.73 9.32 8.95 12.2 8.95Z"
+      />
+      <path
+        transform="rotate(-32 5.6 18.9)"
+        d="M5.6 16.15C8.26 16.15 9.29 17.47 9.29 18.9C9.29 20.33 8.26 21.65 5.6 21.65C3.01 21.65 1.44 20.94 4.34 18.9C1.44 16.86 3.01 16.15 5.6 16.15Z"
+      />
     </svg>
   );
 }
 
+/**
+ * Skin in section: a raised lesion with the epidermal plane running up and
+ * over it, the deep plane beneath, and the lobulated subcutaneous layer at the
+ * bottom. Two things keep it from reading as a hat — the planes follow the
+ * lesion rather than passing under it, and the sides run to the edge of the
+ * box, so it reads as a section rather than an object.
+ */
 export function IconSkinLayers(props: IconProps) {
   return (
-    <svg {...svgProps(props)}>
-      <path d="M4 8.1h16M4 10.8h16" />
-      <path d="M4 13.8c1.8-1.1 3.5-1.1 5.3 0s3.5 1.1 5.3 0 3.5-1.1 5.3 0" />
-      <path d="M4.6 17.1c1.5-.8 3.1-.8 4.6 0 1.6.8 3.2.8 4.8 0 1.5-.8 3.1-.8 4.6 0" />
-      <path d="M13.8 3.6c-1.2 1.2-1.8 2.7-1.8 4.5v3.8c0 1.4.8 2.5 2 3" />
+    <svg {...svgProps(props)} fill="currentColor" stroke="none" fillRule="evenodd">
+      <path d="M1.6 10.4H5.4C7.2 10.4 7.6 6.6 9.9 6.5C12.5 6.4 13.1 10 15.2 10.4C16.7 10.7 16.9 10.7 18.2 10.6H22.4V18.6C22.4 20.3 21.2 21 19.9 21C18.7 21 17.9 20.45 17.2 20.45C16.5 20.45 15.8 21 14.6 21C13.4 21 12.7 20.45 12 20.45C11.3 20.45 10.6 21 9.4 21C8.2 21 7.5 20.45 6.8 20.45C6.1 20.45 5.4 21 4.2 21C2.9 21 1.6 20.3 1.6 18.6ZM1.6 12.7H5.4C7.2 12.7 7.6 8.9 9.9 8.8C12.5 8.7 13.1 12.3 15.2 12.7C16.7 13 16.9 13 18.2 12.9H22.4V13.9H18.2C16.8 14 16.5 14 15 13.7C12.9 13.2 12.4 9.8 9.9 9.9C7.8 10 7.4 13.9 5.4 13.9H1.6ZM1.6 16.6H22.4V17.5H1.6Z" />
     </svg>
   );
 }

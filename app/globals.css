@@ -1599,7 +1599,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .content-topic-option { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .7rem; align-items: center; min-height: 6.4rem; padding: .85rem; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background 180ms ease; }
 .content-topic-option:hover, .content-topic-option:focus-visible { border-color: var(--primary); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
 .content-topic-option.is-active { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 3px var(--primary-ring); }
-.content-topic-glyph { display: grid; place-items: center; width: 38px; height: 38px; overflow: hidden; border-radius: 50%; color: var(--primary); }
+.content-topic-glyph { display: grid; place-items: center; width: 38px; height: 38px; overflow: hidden; border-radius: 50%; color: var(--brand-teal-deep); }
 .content-topic-option strong { display: block; font-size: .87rem; line-height: 1.2; }
 .content-topic-option small { display: block; margin-top: .28rem; color: var(--text-muted); font-size: var(--step--2); line-height: 1.4; }
 
@@ -1709,26 +1709,47 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .topic-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.25rem;
 }
 
-/* Four identical bordered boxes in a row was the clearest example of the
-   everything-is-a-card habit. They are now separated by a hairline and space,
-   with the surface reserved for things that genuinely lift off the page. The
-   whole card is still one link, so the hover has to remain legible — it is
-   carried by the rule and the glyph rather than by a shadow. */
+/* Four entries of one index, not four cards. The columns sit flush so their
+   top rules meet into a single line across the row, hairlines divide them,
+   and subgrid puts every glyph, title, blurb and footer on a shared baseline.
+   Ragged baselines and four detached rule segments were the whole reason the
+   group did not read as a group. */
 .topic-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 240px;
-  padding: 1.5rem 1.5rem 1.5rem 0;
+  min-height: 15rem;
+  padding: 1.6rem 1.5rem 1.4rem;
   border-top: 1px solid var(--line-strong);
-  transition: border-color 0.25s ease;
+  border-inline-start: 1px solid var(--line);
+  transition: border-top-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-[dir="rtl"] .topic-card {
-  padding-inline: 0 1.5rem;
+/* The outer columns run to the section's own margins so the row lines up with
+   the heading above it and the "view all" link opposite. */
+.topic-card:first-child {
+  padding-inline-start: 0;
+  border-inline-start: 0;
+}
+
+.topic-card:last-child {
+  padding-inline-end: 0;
+}
+
+@supports (grid-template-rows: subgrid) {
+  /* Cycling track list, so a wrapped two-column row gets the same four tracks
+     and stays aligned with itself. */
+  .topic-grid {
+    grid-auto-rows: auto auto 1fr auto;
+  }
+
+  .topic-card {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+  }
 }
 
 .topic-card > * {
@@ -1738,31 +1759,36 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 .topic-card:hover,
 .topic-card:focus-visible {
   border-top-color: var(--primary);
+  /* Doubles the rule without moving anything below it. */
+  box-shadow: inset 0 1px 0 var(--primary);
 }
 
 .topic-glyph {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 1.1rem;
-  overflow: hidden;
-  color: var(--primary);
-  transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 1.15rem;
+  /* Matches the ink the two photographic marks are drawn in; --primary is
+     several steps lighter and made the drawn glyphs look like a second set. */
+  color: var(--brand-teal-deep);
+  transition: transform 0.25s ease;
 }
 
-/* Slightly heavier stroke so the glyph still reads at 48px. */
 .topic-glyph svg {
+  width: 100%;
+  height: 100%;
   stroke-width: 1.5;
 }
 
 .topic-image-icon {
   display: block;
   flex: none;
+  width: 100%;
+  height: 100%;
   max-width: none;
   object-fit: contain;
-  transform: scale(1.1);
-  transition: filter 0.25s ease, transform 0.25s ease;
+  transition: transform 0.25s ease;
 }
 
 .topic-detail-glyph.topic-glyph-image {
@@ -1772,14 +1798,7 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
 .topic-card:hover .topic-glyph,
 .topic-card:focus-visible .topic-glyph {
-  background: var(--primary);
-  color: var(--on-primary);
-  transform: scale(1.06) rotate(-3deg);
-}
-
-.topic-card:hover .topic-glyph-image .topic-image-icon,
-.topic-card:focus-visible .topic-glyph-image .topic-image-icon {
-  filter: brightness(0) invert(1);
+  transform: translateY(-3px);
 }
 
 .topic-card b {
@@ -1862,7 +1881,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   height: 68px;
   border-radius: 20px;
   background: var(--primary-soft);
-  color: var(--primary);
+  /* Same ink as the photographic marks, so a drawn glyph never reads as a
+     second, lighter icon set sitting beside them. */
+  color: var(--brand-teal-deep);
 }
 
 @media (hover: none) {
@@ -2676,17 +2697,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
    ============================================================ */
 
 @media (max-width: 1080px) {
-  /* Tablet and phone layouts cannot rely on hover discovery. Keep the topic
-     card's highlighted treatment visible, and reserve elevation for the
-     moment the card is pressed. */
-  .topic-card .topic-glyph {
-    background: var(--primary);
-    color: var(--on-primary);
-    transform: scale(1.06) rotate(-3deg);
-  }
-
-  .topic-card .topic-glyph-image .topic-image-icon {
-    filter: brightness(0) invert(1);
+  /* Tablet and phone layouts cannot rely on hover discovery, so the column
+     rule and the arrow are inked in permanently rather than on hover. */
+  .topic-card {
+    border-top-color: var(--primary);
   }
 
   .topic-card .topic-go {
@@ -2699,18 +2713,17 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
 
   .topic-card:hover,
   .topic-card:focus-visible {
-    transform: none;
     box-shadow: none;
+  }
+
+  .topic-card:hover .topic-glyph,
+  .topic-card:focus-visible .topic-glyph {
+    transform: none;
   }
 
   .topic-card:focus-visible {
     outline: 3px solid var(--primary-ring);
     outline-offset: 3px;
-  }
-
-  .topic-card:active {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lg);
   }
 
   .hero-inner {
@@ -2797,9 +2810,20 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     grid-column: auto;
   }
 
+  /* Two columns: the divider and the flush outer edges move to the new first
+     and last column of each wrapped row. */
   .topic-card {
-    min-height: 260px;
-    padding: 1.5rem;
+    min-height: 16rem;
+    padding: 1.6rem 1.4rem 1.4rem;
+  }
+
+  .topic-card:nth-child(2n + 1) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .topic-card:nth-child(2n) {
+    padding-inline-end: 0;
   }
 
   .topic-detail-grid {
@@ -2894,8 +2918,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .topic-card {
+  .topic-card:nth-child(n) {
     min-height: 0;
+    border-inline-start: 0;
+    padding-inline: 0;
   }
 
   .topic-hero {
@@ -2930,9 +2956,9 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   }
 
   .topic-glyph {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 1.15rem;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 1.05rem;
   }
 
   .library-row {
@@ -4313,3 +4339,4 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
     transform: none;
   }
 }
+
