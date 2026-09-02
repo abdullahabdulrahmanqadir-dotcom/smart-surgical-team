@@ -47,6 +47,16 @@ let caseSectionsColumn = true;
 function missingCaseSections(message: string | undefined) { return Boolean(message) && /case_sections/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
 let posterCtaColumns = true;
 function missingPosterCtaColumns(message: string | undefined) { return Boolean(message) && /poster_cta_(text|url)/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
+// Migration 0024 adds `justify_body` to content_items, news_items and
+// researches. One flag covers all three: they are added by the same migration,
+// so a database has either all of them or none. Reading or writing a column
+// the database does not have fails the whole statement, so the first such
+// failure is remembered and the operation retried without it — the workspace
+// keeps saving, and every body renders justified, which is what the column
+// would have stored by default anyway.
+let justifyBodyColumn = true;
+function missingJustifyBody(message: string | undefined) { return Boolean(message) && /justify_body/.test(message!) && /does not exist|find the .* column|schema cache/i.test(message!); }
+const JUSTIFY_NOT_STORED = "Saved, but the reading-layout choice was not stored: the database is missing the justify_body column. Apply migration 0024_justify_body.sql, then save again.";
 // Migration 0021 creates the three news tables. There is nothing to degrade
 // gracefully to — without them the section has no data at all — so the raw
 // Postgres/PostgREST message is replaced with the one instruction that fixes
@@ -151,12 +161,14 @@ export async function GET(request: Request, context: RouteContext) {
     const contentSelect = () => "id,title,slug,summary,kind,status,access_level,video_url,poster_url,"
       + (posterCtaColumns ? "poster_cta_text,poster_cta_url," : "")
       + "thumbnail_source,thumbnail_media_path,thumbnail_before_path,thumbnail_after_path,duration_seconds,reading_minutes,level,is_teaching,published_at,scheduled_for,created_at,updated_at,contributor_id,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome,"
+      + (justifyBodyColumn ? "justify_body," : "")
       + (caseSectionsColumn ? "case_sections," : "")
       + "content_topics(topic_id),content_contributors(contributor_id),content_chapters(id,title,position,starts_at_seconds),content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
     const read = () => client.from("content_items").select(contentSelect()).order("updated_at", { ascending: false });
     let { data, error } = await read();
     if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data, error } = await read()); }
     if (error && posterCtaColumns && missingPosterCtaColumns(error.message)) { posterCtaColumns = false; ({ data, error } = await read()); }
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data, error } = await read()); }
     if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data, error } = await read()); }
     if (error) return apiError(error.message, 500);
     // The workspace needs to know whether custom case sections can be stored at
@@ -180,9 +192,13 @@ export async function GET(request: Request, context: RouteContext) {
     return Response.json({ data });
   }
   if (resource === "research") {
-    const { data, error } = await client.from("researches")
-      .select("id,title,authors,abstract,journal,link,published_date,status,topic_id,subtopic_id,created_at,updated_at,research_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
+    const read = () => client.from("researches")
+      .select("id,title,authors,abstract,journal,link,published_date,status,topic_id,subtopic_id,"
+        + (justifyBodyColumn ? "justify_body," : "")
+        + "created_at,updated_at,research_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
       .order("updated_at", { ascending: false });
+    let { data, error } = await read();
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data, error } = await read()); }
     if (error) return apiError(error.message, 500);
     return Response.json({ data });
   }
@@ -194,10 +210,14 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "news") {
     // Newest publication date first, then the most recently touched, so a draft
     // with no date yet does not sink below everything already published.
-    const { data, error } = await client.from("news_items")
-      .select("id,title,title_ar,slug,summary,summary_ar,body,body_ar,category_id,status,published_at,link_url,cover_url,pinned,related_type,related_ref,created_at,updated_at,news_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
+    const read = () => client.from("news_items")
+      .select("id,title,title_ar,slug,summary,summary_ar,body,body_ar,category_id,status,published_at,link_url,cover_url,pinned,"
+        + (justifyBodyColumn ? "justify_body," : "")
+        + "related_type,related_ref,created_at,updated_at,news_media(id,storage_path,public_url,kind,alt_text,caption,sort_order)")
       .order("published_at", { ascending: false, nullsFirst: true })
       .order("updated_at", { ascending: false });
+    let { data, error } = await read();
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data, error } = await read()); }
     if (error) return apiError(newsError(error.message, "Could not read the news items."), 500);
     return Response.json({ data });
   }
@@ -310,6 +330,11 @@ export async function POST(request: Request, context: RouteContext) {
       // ever true when the editor asked for it, so an older client that does
       // not send the field leaves a record a case.
       is_teaching: body.is_teaching === true || text(body.is_teaching) === "true",
+      // Justified written sections (0024). Only an explicit `false` turns it
+      // off, so an older client that does not send the field leaves the record
+      // justified — the site-wide default — rather than silently un-justifying
+      // everything it touches.
+      justify_body: body.justify_body !== false,
       case_sections: caseSections.length ? caseSections : null,
       // A save that carries sections defines the legacy columns entirely: a
       // built-in section the editor removed or renamed away must clear its
@@ -329,6 +354,7 @@ export async function POST(request: Request, context: RouteContext) {
       // built-ins still save to their own columns and nothing else is lost.
       const row: Record<string, unknown> = { ...item };
       if (!caseSectionsColumn) delete row.case_sections;
+      if (!justifyBodyColumn) delete row.justify_body;
       if (!posterCtaColumns) { delete row.poster_cta_text; delete row.poster_cta_url; }
       return existingId
         ? client.from("content_items").update(row).eq("id", existingId).select("id").single()
@@ -336,6 +362,7 @@ export async function POST(request: Request, context: RouteContext) {
     };
     let { data: saved, error } = await write();
     if (error && caseSectionsColumn && missingCaseSections(error.message)) { caseSectionsColumn = false; ({ data: saved, error } = await write()); }
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data: saved, error } = await write()); }
     if (error || !saved) return apiError(error?.message ?? "Could not save this content item.", 500);
     const topicIds = Array.isArray(body.topic_ids) ? body.topic_ids.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
     const chapters = Array.isArray(body.chapters) ? body.chapters : [];
@@ -382,7 +409,12 @@ export async function POST(request: Request, context: RouteContext) {
     // headings and added sections. Say so rather than report a clean save.
     const sectionsLost = !caseSectionsColumn && caseSections.length > 0;
     const ctaLost = !posterCtaColumns && Boolean(posterCtaText || posterCtaUrl);
+    // Only worth saying when the editor asked for the non-default: without the
+    // column every body renders justified regardless, so a "justify" that was
+    // not stored changes nothing a reader can see.
+    const justifyLost = !justifyBodyColumn && body.justify_body === false;
     await invalidatePublicCache(resource);
+    if (justifyLost) return Response.json({ data: saved, warning: JUSTIFY_NOT_STORED });
     return Response.json({ data: saved, warning: ctaLost ? "Saved, but the optional reader link was not stored because the database is missing the poster CTA columns. Apply migration 0015_poster_cta.sql, then save again." : sectionsLost ? "Saved, but custom section headings and added sections were not stored: the database is missing the case_sections column. Apply migration 0010_case_sections.sql, then save again." : purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
@@ -405,6 +437,8 @@ export async function POST(request: Request, context: RouteContext) {
       link: optionalText(body.link),
       published_date: date(body.published_date),
       status,
+      // Justified abstract (0024) unless the editor turned it off.
+      justify_body: body.justify_body !== false,
       topic_id: topicId,
       // A subtopic belonging to a different topic would file the paper under
       // two unrelated headings, and clearing the topic has to clear it too.
@@ -413,10 +447,17 @@ export async function POST(request: Request, context: RouteContext) {
       updated_at: new Date().toISOString(),
     };
     const existingId = idValue(body.id);
-    const { data: saved, error } = existingId
-      ? await client.from("researches").update(payload).eq("id", existingId).select("id").single()
-      : await client.from("researches").insert(payload).select("id").single();
+    const write = () => {
+      const row: Record<string, unknown> = { ...payload };
+      if (!justifyBodyColumn) delete row.justify_body;
+      return existingId
+        ? client.from("researches").update(row).eq("id", existingId).select("id").single()
+        : client.from("researches").insert(row).select("id").single();
+    };
+    let { data: saved, error } = await write();
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data: saved, error } = await write()); }
     if (error || !saved) return apiError(error?.message ?? "Could not save this research.", 500);
+    const justifyLost = !justifyBodyColumn && body.justify_body === false;
 
     const media = Array.isArray(body.media) ? body.media : [];
     const validMedia = media.flatMap((entry, sort_order) => {
@@ -438,7 +479,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
     const purgedResearch = await deleteFromStorage(removedMediaKeys);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved, warning: purgedResearch ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
+    return Response.json({ data: saved, warning: justifyLost ? JUSTIFY_NOT_STORED : purgedResearch ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand." });
   }
 
   if (resource === "research-topics") {
@@ -562,6 +603,10 @@ export async function POST(request: Request, context: RouteContext) {
       published_at: publishedAt,
       link_url: linkUrl,
       cover_url: coverUrl || null,
+      // Justified story sections (0024) unless the editor turned it off. The
+      // one choice covers both languages: the Arabic and English bodies are
+      // the same item, read the same way.
+      justify_body: body.justify_body !== false,
       // Written unpinned, then pinned below once the row exists. Setting it
       // here would collide with the single-pin unique index while the previous
       // item is still pinned.
@@ -571,9 +616,15 @@ export async function POST(request: Request, context: RouteContext) {
       updated_by: identity.id,
       updated_at: new Date().toISOString(),
     };
-    const { data: saved, error } = existingId
-      ? await client.from("news_items").update(payload).eq("id", existingId).select("id").single()
-      : await client.from("news_items").insert(payload).select("id").single();
+    const write = () => {
+      const row: Record<string, unknown> = { ...payload };
+      if (!justifyBodyColumn) delete row.justify_body;
+      return existingId
+        ? client.from("news_items").update(row).eq("id", existingId).select("id").single()
+        : client.from("news_items").insert(row).select("id").single();
+    };
+    let { data: saved, error } = await write();
+    if (error && justifyBodyColumn && missingJustifyBody(error.message)) { justifyBodyColumn = false; ({ data: saved, error } = await write()); }
     if (error || !saved) return apiError(error?.message.includes("news_items_slug_key") ? "Another news item already uses that URL slug. Change the title, or give this one its own slug." : newsError(error?.message, "Could not save this news item."), 500);
 
     // Pinning is a two-step on purpose: clear whatever was pinned, then pin
@@ -608,7 +659,8 @@ export async function POST(request: Request, context: RouteContext) {
       : [];
     const purged = await deleteFromStorage([...removedMediaKeys, ...staleCoverKeys]);
     await invalidatePublicCache(resource);
-    return Response.json({ data: saved, warning: pinWarning || (purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand.") });
+    const justifyLost = !justifyBodyColumn && body.justify_body === false;
+    return Response.json({ data: saved, warning: pinWarning || (justifyLost ? JUSTIFY_NOT_STORED : purged ? undefined : "Saved, but the images you deleted could not be removed from R2. They are now unreferenced — delete them from the bucket by hand.") });
   }
 
   if (resource === "news-categories") {

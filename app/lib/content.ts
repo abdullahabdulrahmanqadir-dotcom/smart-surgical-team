@@ -62,6 +62,7 @@ type CardRow = ContentBaseRow & {
 
 type FullRow = ContentBaseRow & {
   poster_url: string | null;
+  justify_body?: boolean | null;
   poster_cta_text?: string | null;
   poster_cta_url?: string | null;
   case_presentation: string | null;
@@ -97,6 +98,13 @@ function missingCaseSections(message: string) { return /case_sections/.test(mess
 // readable while a code deployment arrives before its database migration.
 let posterCtaColumns = true;
 function missingPosterCtaColumns(message: string) { return /poster_cta_(text|url)/.test(message) && /does not exist/i.test(message); }
+// Migration 0024 adds `justify_body`. Same treatment: a code deployment that
+// reaches production before its migration must not take every case page down,
+// so the first failure drops the column and the read is retried without it.
+// The site-wide default is justified, which is what `mapJustifyBody` falls
+// back to, so a case reads the same either way until the migration lands.
+let justifyBodyColumn = true;
+function missingJustifyBody(message: string) { return /justify_body/.test(message) && /does not exist/i.test(message); }
 
 const FULL_SELECT_BASE =
   `${BASE_COLUMNS},poster_url,case_presentation,case_imaging,case_procedure,case_histopathology,case_outcome` +
@@ -106,8 +114,9 @@ const FULL_SELECT_BASE =
   ",content_media(id,storage_path,kind,public_url,alt_text,caption,sort_order)";
 const FULL_SELECT = () => {
   const posterCta = posterCtaColumns ? ",poster_cta_text,poster_cta_url" : "";
+  const justify = justifyBodyColumn ? ",justify_body" : "";
   const sections = caseSectionsColumn ? ",case_sections" : "";
-  return FULL_SELECT_BASE.replace(",poster_url", `,poster_url${posterCta}`).replace(",case_outcome", `,case_outcome${sections}`);
+  return FULL_SELECT_BASE.replace(",poster_url", `,poster_url${posterCta}${justify}`).replace(",case_outcome", `,case_outcome${sections}`);
 };
 
 // `case_sections` is free-form JSON as far as the database is concerned, so
@@ -234,6 +243,11 @@ async function fetchRecord(identifier: string, includeMembersOnly: boolean): Pro
     posterCtaColumns = false;
     ({ data, error } = await run());
   }
+  if (error && justifyBodyColumn && missingJustifyBody(error.message)) {
+    console.warn("content_items.justify_body is missing — apply migration 0024. Reading every record as justified, the default.");
+    justifyBodyColumn = false;
+    ({ data, error } = await run());
+  }
   if (error && caseSectionsColumn && missingCaseSections(error.message)) {
     console.warn("content_items.case_sections is missing — apply migration 0010. Reading the legacy case columns instead.");
     caseSectionsColumn = false;
@@ -275,6 +289,9 @@ async function fetchRecord(identifier: string, includeMembersOnly: boolean): Pro
     posterUrl: row.poster_url ?? undefined,
     posterCtaText: row.poster_cta_text ?? undefined,
     posterCtaUrl: row.poster_cta_url ?? undefined,
+    // Justified unless the editor turned it off. A row from a database without
+    // the column reads as the default rather than as "off".
+    justifyBody: row.justify_body ?? true,
     chapters,
     caseSummary: {
       presentation: row.case_presentation ?? undefined,

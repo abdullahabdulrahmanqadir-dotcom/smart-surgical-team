@@ -50,14 +50,24 @@ type NewsRow = {
   link_url: string | null;
   cover_url: string | null;
   pinned: boolean | null;
+  justify_body?: boolean | null;
   related_type: string | null;
   related_ref: string | null;
   category: CategoryRow;
   news_media: { public_url: string; alt_text: string | null; caption: string | null; kind: string | null; sort_order: number }[] | null;
 };
 
-const NEWS_SELECT =
+// Migration 0024 adds `justify_body`. Selecting a column the database does not
+// have fails the whole query, which would take the news section down in the
+// window between a deploy and its migration; the first such failure drops the
+// column for the life of the process and the read is retried without it. Every
+// item then reads as justified, which is the site-wide default anyway.
+let justifyBodyColumn = true;
+function missingJustifyBody(message: string) { return /justify_body/.test(message) && /does not exist/i.test(message); }
+
+const NEWS_SELECT = () =>
   "id,title,title_ar,slug,summary,summary_ar,body,body_ar,published_at,link_url,cover_url,pinned," +
+  (justifyBodyColumn ? "justify_body," : "") +
   "related_type,related_ref," +
   "category:news_categories(id,name,name_ar,slug)," +
   "news_media(public_url,alt_text,caption,kind,sort_order)";
@@ -83,6 +93,9 @@ function mapRow(row: NewsRow): NewsItem {
     linkUrl: row.link_url ?? "",
     coverUrl: row.cover_url ?? "",
     pinned: Boolean(row.pinned),
+    // Justified unless the editor turned it off; a database without the column
+    // reads as the default rather than as "off".
+    justifyBody: row.justify_body ?? true,
     related: isNewsRelationType(row.related_type) && row.related_ref
       ? { type: row.related_type, ref: row.related_ref }
       : null,
@@ -100,11 +113,17 @@ function mapRow(row: NewsRow): NewsItem {
  */
 async function fetchNewsItems(): Promise<NewsItem[]> {
   if (!canUseDatabase()) return [];
-  const { data, error } = await getSupabaseServerClient()
+  const run = () => getSupabaseServerClient()
     .from("news_items")
-    .select(NEWS_SELECT)
+    .select(NEWS_SELECT())
     .eq("status", "published")
     .order("published_at", { ascending: false, nullsFirst: false });
+  let { data, error } = await run();
+  if (error && justifyBodyColumn && missingJustifyBody(error.message)) {
+    console.warn("news_items.justify_body is missing — apply migration 0024. Reading every item as justified, the default.");
+    justifyBodyColumn = false;
+    ({ data, error } = await run());
+  }
   if (error) throw new Error(`published news query failed: ${error.message}`);
   return ((data ?? []) as unknown as NewsRow[]).map(mapRow);
 }

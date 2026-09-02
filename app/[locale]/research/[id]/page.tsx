@@ -7,6 +7,7 @@ import ResearchContributors from "../../../components/ResearchContributors";
 import ImageGallery from "../../../components/ImageGallery";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight, IconCalendar } from "../../../components/icons";
+import { proseClass } from "../../../lib/content-types";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { pageMetadata, seoDescription } from "../../../lib/seo";
@@ -82,7 +83,7 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
         <article className="research-detail-main"><ResearchContributors contributors={contributors} t={dict.research}/><section className="research-abstract-section" aria-labelledby="abstract-title"><span className="section-kicker">{dict.research.summaryKicker}</span><h2 id="abstract-title">{dict.research.abstract}</h2><TranslatableContent
           locale={active}
           autoTranslate={active === "ar"}
-          className="research-detail-abstract"
+          className={proseClass("research-detail-abstract", paper.justifyBody)}
           labels={{
             translate: dict.library.translateCase,
             translating: dict.library.translatingCase,

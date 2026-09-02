@@ -59,6 +59,18 @@ export function resolveCaseSections(
   });
 }
 
+/**
+ * The class list for a container of editor-written prose.
+ *
+ * `justify` is the record's own `justify_body` choice (migration 0024).
+ * Anything but an explicit `false` justifies, so a record read from a database
+ * without the column — or from a cache entry written before it existed — gets
+ * the site-wide default rather than ragged-right.
+ */
+export function proseClass(base: string, justify?: boolean): string {
+  return justify === false ? base : `${base} is-justified`;
+}
+
 export type ContentTopic = { name: string; slug: string };
 
 /**
@@ -93,6 +105,12 @@ export type ContentCard = {
 };
 
 export type ContentRecord = ContentCard & {
+  /**
+   * Justify this record's written sections on its public page (migration
+   * 0024). Absent — an older cache entry, or a database without the column —
+   * reads as `true`, which is the site-wide default.
+   */
+  justifyBody?: boolean;
   presenter: { name: string; role: string; bio: string; initials: string };
   contributors: { name: string; role: string; initials: string; photoUrl?: string }[];
   posterUrl?: string;

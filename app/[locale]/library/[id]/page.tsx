@@ -11,7 +11,7 @@ import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
 import BackToPrevious from "../../../components/BackToPrevious";
 import { IconArrowRight, IconFile } from "../../../components/icons";
-import { getContent, getContentForMember, getLibraryContent, resolveCaseSections, type ContentKind } from "../../../lib/content";
+import { getContent, getContentForMember, getLibraryContent, proseClass, resolveCaseSections, type ContentKind } from "../../../lib/content";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { contentCardArt } from "../../../lib/content-thumbnail";
@@ -144,7 +144,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
                   failed: dict.library.translateFailed,
                 }}
               >
-                <dl className="case-summary-list">
+                <dl className={proseClass("case-summary-list", content.justifyBody)}>
                   {summarySections.map(({ key, label, body }) => <div key={key}><dt translate="no" lang={active}>{label}</dt><dd dangerouslySetInnerHTML={{ __html: body }} /></div>)}
                 </dl>
               </TranslatableContent>
