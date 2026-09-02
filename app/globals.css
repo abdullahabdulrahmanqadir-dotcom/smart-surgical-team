@@ -2211,6 +2211,206 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   border: 0;
 }
 
+/* The cover is the whole frame: one button, so the click target is the poster
+   itself and keyboard users get it for free. When the poster is missing — Save
+   Data, a 2G connection, a failed request — the teal panel behind it carries
+   the play mark and the title on its own. */
+.introduction-video-cover {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  text-align: start;
+  cursor: pointer;
+}
+
+.introduction-video-cover picture,
+.introduction-video-cover img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* A wash over the thumbnail, so the play mark keeps its contrast wherever the
+   frame happens to be bright. The bare panel needs no wash. */
+.introduction-video-cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(13, 56, 56, 0.5), rgba(13, 56, 56, 0.22) 45%, rgba(13, 56, 56, 0.34));
+  transition: background 160ms ease;
+}
+
+.introduction-video-cover.is-bare::after {
+  background: none;
+}
+
+.introduction-video-cover:hover::after {
+  background: radial-gradient(circle at 50% 50%, rgba(13, 56, 56, 0.58), rgba(13, 56, 56, 0.3) 45%, rgba(13, 56, 56, 0.42));
+}
+
+.introduction-video-play {
+  position: absolute;
+  inset-block-start: 50%;
+  z-index: 1;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  /* Solid, so the mark reads over any frame of the thumbnail rather than
+     depending on what happens to be behind it. */
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--brand-teal-deep);
+  box-shadow: 0 6px 20px rgba(13, 56, 56, 0.35);
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+[dir="rtl"] .introduction-video-play {
+  transform: translate(50%, -50%);
+}
+
+.introduction-video-play svg {
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-inline-start: 0.15rem;
+}
+
+[dir="rtl"] .introduction-video-play svg {
+  margin-inline-start: 0;
+  margin-inline-end: 0.15rem;
+}
+
+.introduction-video-cover:hover .introduction-video-play {
+  background: #fff;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+[dir="rtl"] .introduction-video-cover:hover .introduction-video-play {
+  transform: translate(50%, -50%) scale(1.06);
+}
+
+/* Hidden but announced while the thumbnail speaks for itself; laid out under
+   the play mark once there is no thumbnail to read. */
+.introduction-video-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* With no thumbnail the frame becomes a plain stack: play mark, then the
+   words that would otherwise have been read off the image. */
+.introduction-video-cover.is-bare {
+  display: grid;
+  gap: 1.1rem;
+  place-content: center;
+  justify-items: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.introduction-video-cover.is-bare .introduction-video-play {
+  position: static;
+  transform: none;
+}
+
+.introduction-video-cover.is-bare:hover .introduction-video-play {
+  transform: scale(1.06);
+}
+
+.introduction-video-cover.is-bare .introduction-video-label {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  display: grid;
+  gap: 0.3rem;
+  justify-items: center;
+  max-width: 32ch;
+}
+
+.introduction-video-action {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.introduction-video-title {
+  font-family: var(--font-display-stack);
+  font-size: clamp(1.05rem, 2.4vw, 1.4rem);
+  line-height: 1.25;
+  letter-spacing: var(--tracking-snug);
+  text-wrap: balance;
+}
+
+/* Firefox and Safari have no navigator.connection, so the user preference is
+   the only signal there. */
+@media (prefers-reduced-data: reduce) {
+  .introduction-video-cover picture {
+    display: none;
+  }
+}
+
+.introduction-video-cover:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .introduction-video-cover::after,
+  .introduction-video-play {
+    transition: none;
+  }
+
+  .introduction-video-cover:hover .introduction-video-play {
+    transform: translate(-50%, -50%);
+  }
+
+  [dir="rtl"] .introduction-video-cover:hover .introduction-video-play {
+    transform: translate(50%, -50%);
+  }
+
+  .introduction-video-cover.is-bare:hover .introduction-video-play {
+    transform: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .introduction-video-play {
+    width: 3.6rem;
+    height: 3.6rem;
+  }
+
+  .introduction-video-play svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .introduction-video-label {
+    padding: 1.1rem 1.1rem 1rem;
+  }
+}
+
 .featured-facts {
   display: flex;
   flex-wrap: wrap;

@@ -61,8 +61,12 @@ test("server-renders the English home page", async () => {
   // still here, so the assertion moves to its actual heading.
   assert.match(html, /Meet Smart Surgical Team/);
   assert.doesNotMatch(html, /Discover the people, expertise and care behind our clinic\./);
-  assert.match(html, /youtube-nocookie\.com\/embed\/gUKXoL-zXdM\?playsinline=1&amp;rel=0&amp;enablejsapi=1/);
-  assert.doesNotMatch(html, /gUKXoL-zXdM\?[^"']*start=/);
+  // The introduction player is a click-to-play facade now: the first response
+  // carries the poster and the button, and nothing from YouTube. The embed
+  // only appears once a visitor asks for it.
+  assert.match(html, /class="introduction-video-cover"/);
+  assert.match(html, /\/introduction-poster\.webp/);
+  assert.doesNotMatch(html, /youtube-nocookie\.com/);
   assert.match(html, /href="\/en\/sign-up"/);
   assert.doesNotMatch(html, /class="cta-form"|homepage-join/);
   assert.doesNotMatch(html, /codex-preview|Building your site|react-loading-skeleton/i);

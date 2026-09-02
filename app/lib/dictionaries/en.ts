@@ -364,7 +364,7 @@ export const en = {
   saveCase: { removeError: "We couldn't remove this case. Please try again.", saveError: "We couldn't save this case. Please try again.", saving: "Saving...", remove: "Remove from saved", save: "Save for later" },
   anatomyHero: { label: "Thyroid, trachea, and neck vessel illustration.", interact: "Interact", done: "Done" },
   joinCta: { profile: "Open your profile", createAccount: "Create free account" },
-  introduction: { videoTitle: "Meet the Smart Health Tower Thyroid Clinic" },
+  introduction: { videoTitle: "Meet the Smart Health Tower Thyroid Clinic", playLabel: "Play the introduction" },
   account: { signInTitle: "A quieter, more useful way to keep learning.", signInBody: "Bring together the topics and surgical cases worth returning to, in a private space shaped around your practice.",
     signInBulletOne: "Save cases for your next review", signInBulletTwo: "Keep selected topics in one place", signInBulletThree: "Receive only thoughtful team updates", signUpTitle: "Keep the cases you want to come back to", signUpBody: "An account opens the members-only cases in the library and saves any case to a list of your own.",
     signUpBulletOne: "Open members-only cases and articles", signUpBulletTwo: "Save any case to your own list", signUpBulletThree: "Free, and updates stay opt-in", recoveryTitle: "Access should never get in the way of learning.", recoveryBody: "We’ll help you return to your personal learning space with a private, time-limited recovery link.",
