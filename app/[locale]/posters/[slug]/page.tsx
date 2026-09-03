@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import ImageGallery from "../../../components/ImageGallery";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import ScrollMotion from "../../../components/ScrollMotion";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight } from "../../../components/icons";
 import { proseClass } from "../../../lib/content-types";
@@ -34,6 +35,7 @@ export default async function PosterDetailPage({ params }: { params: Promise<Par
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
+    <ScrollMotion />
     <main id="main-content" className="poster-detail-page">
       <nav className="poster-breadcrumb" aria-label={dict.posters.breadcrumb}><Link href={localePath(active, "posters")}>{dict.nav.posters}</Link><span>/</span><b {...authoredTitleProps(poster.title)}>{poster.title}</b></nav>
       <header className="poster-detail-heading"><h1 {...authoredTitleProps(poster.title)}>{poster.title}</h1><p>{poster.summary}</p></header>

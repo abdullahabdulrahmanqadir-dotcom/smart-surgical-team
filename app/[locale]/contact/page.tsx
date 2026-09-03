@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import SocialLinks from "../../components/SocialLinks";
 import ScrollMotion from "../../components/ScrollMotion";
+import SocialLinks from "../../components/SocialLinks";
 import { IconArrowRight, IconClock, IconMail } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";

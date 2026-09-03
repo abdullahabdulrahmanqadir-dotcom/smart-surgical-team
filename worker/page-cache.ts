@@ -213,6 +213,16 @@ export async function servePublicDocument(
   ctx: WorkerContext,
   render: RenderPage,
 ): Promise<Response> {
+  // Development must render the server document and client bundle from the
+  // same source revision. Persisting anonymous HTML across local dev-server
+  // restarts can pair an old document with a freshly compiled client chunk,
+  // which produces false hydration failures. Production hosts still use the
+  // full layered cache below.
+  const hostname = new URL(request.url).hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return restorableDocument(await render());
+  }
+
   if (!env.CACHE_BUCKET || !isPublicDocumentRequest(request)) {
     // A public content page rendered for a signed-in reader still has to be
     // restorable from their own history; anything else — an account screen, an

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 const revealSelectors = [
+  ".hero-copy > *",
+  ".anatomy-hero",
   ".credential-strip",
   ".section-head",
   ".topic-card",
@@ -13,12 +15,15 @@ const revealSelectors = [
   // are part of the initial hydrated tree.
   ".dashboard > .panel:not(#events)",
   ".team-feature-panel",
+  ".team-feature-card",
+  ".introduction-stage",
   ".vision-panel",
   ".cta-inner",
   ".section-research-preview",
   ".research-feature",
   ".research-archive-heading",
   ".research-row",
+  ".research-card:not(.is-skeleton)",
   ".research-team-heading",
   ".research-member",
   ".about-statement",
@@ -28,50 +33,109 @@ const revealSelectors = [
   ".contact-intro",
   ".contact-details",
   ".contact-location",
+  ".contact-map-section",
+  ".events-hero-copy > *",
+  ".featured-event",
+  ".events-collection-heading",
+  ".event-group",
+  ".event-row",
+  ".event-detail-hero-inner > *",
+  ".event-detail-content > *",
+  ".event-faculty .section-head",
+  ".event-faculty-grid > article",
+  ".library-index-head",
+  ".content-case-card:not(.is-skeleton)",
+  ".content-heading > *",
+  ".content-main > *",
+  ".content-aside > *",
+  ".related-section .section-mini-head",
+  ".related-card:not(.is-skeleton)",
+  ".news-detail-heading > *",
+  ".news-detail-cover",
+  ".news-detail-summary",
+  ".news-detail-body > *",
+  ".news-related",
+  ".news-more .section-mini-head",
+  ".news-more-card",
+  ".posters-intro > *",
+  ".poster-feature",
+  ".poster-archive-heading",
+  ".poster-card",
+  ".poster-detail-heading > *",
+  ".poster-display",
+  ".poster-written-details > *",
+  ".research-detail-heading > *",
+  ".research-detail-main > *",
+  ".research-detail-aside > *",
+  ".legal-page > header",
+  ".legal-page > article > section",
   ".profile-identity",
   ".profile-welcome",
   ".profile-panel",
 ];
 
 export default function ScrollMotion() {
-  // Keyed to the path, because this component is not remounted on a
-  // client-side navigation: every page renders `<ScrollMotion />` at the same
-  // position under the layout, so React reuses the instance and a `[]`
-  // dependency list ran the effect once for the whole session. The first page
-  // animated; every page after it silently kept `data-motion-ready` set on
-  // <html> and revealed nothing, because its own sections were never marked.
+  // Keyed to the path because the locale layout persists across client-side
+  // navigation. Re-run discovery for the new page while keeping one shared
+  // controller for every public route.
   const pathname = usePathname();
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    // Nothing here may become a condition for reading the page. Where the API
-    // is missing there is no way to reveal what would be hidden, so the reveal
-    // is skipped entirely and the content simply stays visible.
-    if (typeof IntersectionObserver === "undefined") return;
-
-    const elements = revealSelectors.flatMap((selector) => Array.from(document.querySelectorAll<HTMLElement>(selector)));
+    const elements = Array.from(new Set(revealSelectors.flatMap((selector) => Array.from(document.querySelectorAll<HTMLElement>(selector)))));
     if (!elements.length) return;
+
+    let observer: IntersectionObserver | null = null;
+    let frame = 0;
+    const revealInView = () => {
+      elements.forEach((element) => {
+        const bounds = element.getBoundingClientRect();
+        if (bounds.top < window.innerHeight * .93 && bounds.bottom > 0) element.classList.add("is-revealed");
+        else if (bounds.top >= window.innerHeight) element.classList.remove("is-revealed");
+      });
+    };
+    const updateScrollPosition = () => {
+      frame = 0;
+      const currentScrollY = window.scrollY;
+      const scrollable = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+      const progress = Math.min(Math.max(currentScrollY / scrollable, 0), 1);
+      document.documentElement.style.setProperty("--page-scroll", progress.toFixed(4));
+      const heroScroll = Math.min(currentScrollY, window.innerHeight);
+      document.documentElement.style.setProperty("--hero-copy-shift", `${heroScroll * -0.042}px`);
+      document.documentElement.style.setProperty("--hero-art-shift", `${heroScroll * 0.026}px`);
+      if (!observer) revealInView();
+    };
+    const scheduleScrollUpdate = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateScrollPosition);
+    };
+    updateScrollPosition();
+    window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
+    window.addEventListener("resize", scheduleScrollUpdate, { passive: true });
 
     // Built before anything is hidden. Hiding first and constructing after left
     // a window in which a throw here — an unsupported option, a hostile
     // environment — stranded the whole page at `opacity: 0` with no observer
     // and no timer to bring it back.
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add("is-revealed");
-          observer.unobserve(entry.target);
-        });
-      },
-      { rootMargin: "0px 0px -7%", threshold: 0.12 },
-    );
+    if (typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-revealed");
+            } else if (entry.boundingClientRect.top >= window.innerHeight) {
+              entry.target.classList.remove("is-revealed");
+            }
+          });
+        },
+        { rootMargin: "0px 0px -7%", threshold: 0.12 },
+      );
+    }
 
-    const reveal = () => elements.forEach((element) => element.classList.add("is-revealed"));
     const restore = () => {
       delete document.documentElement.dataset.motionReady;
       elements.forEach((element) => {
         delete element.dataset.scrollReveal;
+        delete element.dataset.revealStyle;
         element.style.removeProperty("--reveal-delay");
         element.classList.remove("is-revealed");
       });
@@ -91,26 +155,40 @@ export default function ScrollMotion() {
         const position = seenPerParent.get(parent) ?? 0;
         seenPerParent.set(parent, position + 1);
         element.dataset.scrollReveal = "";
+        if (element.matches(".topic-card, .team-feature-card, .research-member, .research-card, .content-case-card, .event-row, .event-faculty-grid > article, .related-card, .news-more-card, .poster-card")) {
+          element.dataset.revealStyle = position % 2 ? "right" : "left";
+        } else if (element.matches(".anatomy-hero, .research-preview-card, .introduction-stage, .featured-event, .news-detail-cover, .poster-feature, .poster-display")) {
+          element.dataset.revealStyle = "scale";
+        }
         element.style.setProperty("--reveal-delay", `${Math.min(position * 65, 260)}ms`);
       });
       document.documentElement.dataset.motionReady = "true";
       // IntersectionObserver callbacks are not guaranteed to arrive promptly on
       // every mobile browser during a client-side navigation.  The reveal effect
-      // must never become a condition for reading the page, so make all sections
-      // visible shortly afterwards as a safe fallback.
-      fallbackTimer = window.setTimeout(reveal, 700);
-      elements.forEach((element) => observer.observe(element));
+      // must never become a condition for reading the page, so reveal anything
+      // currently in view shortly afterwards as a safe fallback.
+      fallbackTimer = window.setTimeout(() => {
+        revealInView();
+      }, 900);
+      if (observer) elements.forEach((element) => observer?.observe(element));
+      else revealInView();
     } catch {
       // Whatever failed, it must not cost the reader the page.
       window.clearTimeout(fallbackTimer);
-      observer.disconnect();
+      observer?.disconnect();
       restore();
       return;
     }
 
     return () => {
+      window.removeEventListener("scroll", scheduleScrollUpdate);
+      window.removeEventListener("resize", scheduleScrollUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
+      document.documentElement.style.removeProperty("--page-scroll");
+      document.documentElement.style.removeProperty("--hero-copy-shift");
+      document.documentElement.style.removeProperty("--hero-art-shift");
       window.clearTimeout(fallbackTimer);
-      observer.disconnect();
+      observer?.disconnect();
       restore();
     };
   }, [pathname]);

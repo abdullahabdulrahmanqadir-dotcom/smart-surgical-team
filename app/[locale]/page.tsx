@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
+import ScrollMotion from "../components/ScrollMotion";
 import ResearchCover from "../components/ResearchCover";
 import SiteFooter from "../components/SiteFooter";
 import AnatomyHero from "../components/AnatomyHero";
 import IntroductionVideo from "../components/IntroductionVideo";
 import NewsBanner from "../components/NewsBanner";
-import ScrollMotion from "../components/ScrollMotion";
 import TopicGlyph from "../components/TopicGlyph";
 import {
   IconArrowRight,

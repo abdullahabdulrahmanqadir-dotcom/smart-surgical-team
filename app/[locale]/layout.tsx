@@ -160,7 +160,7 @@ export default async function LocaleLayout({
           // worker is checked at the network instead of reused from HTTP cache.
           dangerouslySetInnerHTML={{
             __html:
-              "if('serviceWorker'in navigator){addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).catch(function(){})},{once:true})}",
+              "if('serviceWorker'in navigator){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})});if('caches'in window){caches.keys().then(function(keys){return Promise.all(keys.map(function(key){return caches.delete(key)}))})}}else{addEventListener('load',function(){navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).catch(function(){})},{once:true})}}",
           }}
         />
       </head>

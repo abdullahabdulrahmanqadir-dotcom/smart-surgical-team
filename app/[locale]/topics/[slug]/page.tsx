@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ScrollMotion from "../../../components/ScrollMotion";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import ScrollMotion from "../../../components/ScrollMotion";
 import TopicsExplorer from "../../../components/TopicsExplorer";
 import { fill, getDictionary } from "../../../lib/dictionaries";
 import { getTopicContent } from "../../../lib/content";

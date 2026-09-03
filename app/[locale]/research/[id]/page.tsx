@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import ScrollMotion from "../../../components/ScrollMotion";
 import ResearchContributors from "../../../components/ResearchContributors";
 import ImageGallery from "../../../components/ImageGallery";
 import TranslatableContent from "../../../components/TranslatableContent";
@@ -72,6 +73,7 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
+    <ScrollMotion />
     <main id="main-content" className="research-detail-page">
       <nav className="research-breadcrumb" aria-label={dict.research.breadcrumb}><Link href={localePath(active, "research")}>{dict.research.research}</Link><span>/</span><b {...authoredTitleProps(paper.title)}>{paper.title}</b></nav>
       {/* Plain heading, not a cover panel. The generated cover earns its place

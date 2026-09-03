@@ -6,6 +6,7 @@ import NewsShare from "../../../components/NewsShare";
 import ResearchCover from "../../../components/ResearchCover";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import ScrollMotion from "../../../components/ScrollMotion";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { IconArrowRight } from "../../../components/icons";
 import { getContent, proseClass } from "../../../lib/content";
@@ -96,6 +97,7 @@ export default async function NewsItemPage({ params }: { params: Promise<Params>
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
+    <ScrollMotion />
     <main id="main-content" className="news-detail-page">
       <nav className="news-breadcrumb" aria-label={t.breadcrumb}>
         <Link href={localePath(active, "news")}>{dict.nav.news}</Link>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
-import SiteFooter from "../../components/SiteFooter";
 import ScrollMotion from "../../components/ScrollMotion";
+import SiteFooter from "../../components/SiteFooter";
 import TopicsExplorer from "../../components/TopicsExplorer";
 import { LOCALES, isLocale, type Locale } from "../../lib/i18n";
 import { getDictionary } from "../../lib/dictionaries";

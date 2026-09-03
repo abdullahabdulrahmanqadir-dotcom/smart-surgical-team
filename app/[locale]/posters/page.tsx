@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
+import ScrollMotion from "../../components/ScrollMotion";
 import { IconArrowRight } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
@@ -43,6 +44,7 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict}/>
+    <ScrollMotion />
     <main id="main-content" className="posters-page">
       <header className="posters-intro">
         <h1>{t.heroTitle}</h1>

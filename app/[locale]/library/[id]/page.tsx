@@ -6,6 +6,7 @@ import LazyImage from "../../../components/LazyImage";
 import ContentPlayer from "../../../components/ContentPlayer";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import ScrollMotion from "../../../components/ScrollMotion";
 import SaveCaseButton from "../../../components/SaveCaseButton";
 import MemberContentGate from "../../../components/MemberContentGate";
 import ImageGallery from "../../../components/ImageGallery";
@@ -102,7 +103,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   const content = await getContent(id);
   if (!content) {
     const memberContent = await getContentForMember(id);
-    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} t={dict.memberContent} mediaT={dict.media} caseSummaryT={dict.caseSummary} /></main><SiteFooter locale={active} dict={dict} /></>;
+    if (memberContent?.accessLevel === "members_only") return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict} /><ScrollMotion/><main id="main-content" className="content-page"><MemberContentGate identifier={id} locale={active} t={dict.memberContent} mediaT={dict.media} caseSummaryT={dict.caseSummary} /></main><SiteFooter locale={active} dict={dict} /></>;
     notFound();
   }
   const home = localePath(active);
@@ -145,6 +146,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
+    <ScrollMotion />
     <main id="main-content" className="content-page">
       <nav className="content-breadcrumb" aria-label={dict.library.breadcrumb}><Link href={localePath(active, "topics")}>{dict.library.content}</Link><span>/</span><BackToPrevious fallback={localePath(active, "topics")}>{content.topic}</BackToPrevious><span>/</span><b {...authoredTitleProps(content.title)}>{content.title}</b></nav>
       <div className="content-heading"><div><span className="content-kicker">{typeLabel} · {content.level}</span><h1 {...authoredTitleProps(content.title)}>{content.title}</h1><p>{content.summary}</p></div><SaveCaseButton locale={active} item={{ slug: content.slug, title: content.title, summary: content.summary, topic: content.topic, format: typeLabel, duration: content.duration }} t={dict.saveCase} /></div>

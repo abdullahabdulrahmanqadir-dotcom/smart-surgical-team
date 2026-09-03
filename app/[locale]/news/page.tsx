@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import NewsExplorer from "../../components/NewsExplorer";
-import ScrollMotion from "../../components/ScrollMotion";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
+import ScrollMotion from "../../components/ScrollMotion";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { getNewsCategories, getNewsItems } from "../../lib/news";

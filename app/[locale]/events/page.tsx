@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
+import ScrollMotion from "../../components/ScrollMotion";
 import EventsExplorer from "../../components/EventsExplorer";
 import { IconArrowRight, IconCalendar, IconPin } from "../../components/icons";
 import { eventDateRange, eventDateStamp, eventTypeLabel, getPublicEvents, localizeFallbackEvent } from "../../lib/events";
@@ -40,7 +41,7 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
   const hero = featured
     ? { title: dict.events.heroTitle, accent: dict.events.heroAccent }
     : { title: dict.events.archiveHeroTitle, accent: dict.events.archiveHeroAccent };
-  return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><main id="main-content">
+  return <><a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a><SiteHeader locale={active} dict={dict}/><ScrollMotion/><main id="main-content">
     <section className="events-hero"><div className="events-hero-photo" aria-hidden="true"><img src="/events/smart-health-tower-events-hero.webp" alt=""/></div><div className="events-hero-inner"><div className="events-hero-copy"><h1>{hero.title}<br/><span>{hero.accent}</span></h1></div></div></section>
     {featured && <section className="featured-event-section"><div className="featured-event"><div className="featured-event-art">{featured.image && <img src={featured.image} alt=""/>}<div className="featured-event-stamp"><span>{dict.events.featuredEvent}</span><strong>{eventDateStamp(featured, active).days}<br/>{eventDateStamp(featured, active).month}</strong></div></div><div className="featured-event-copy"><div className="event-card-tags"><span className={`event-status event-status-${featured.status}`}>{featured.status === "past" ? dict.events.pastEvent : dict.events.upcoming}</span><span>{eventTypeLabel(featured.type, dict.events)}</span></div><h2 {...authoredTitleProps(featured.title)}>{featured.title}</h2><p>{featured.summary}</p><div className="featured-event-meta"><span><IconCalendar size={18}/>{eventDateRange(featured, active)}</span><span><IconPin size={18}/>{featured.location}</span></div><Link className="btn btn-primary" href={localePath(active, `events/${featured.slug}`)}>{dict.events.exploreSummit} <IconArrowRight size={17}/></Link></div></div></section>}
     <div id="all-events"><EventsExplorer locale={active} events={events} t={dict.events}/></div>
