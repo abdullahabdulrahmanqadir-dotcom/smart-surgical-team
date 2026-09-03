@@ -126,7 +126,7 @@ export const ar: Dictionary = {
     detailsTitle: "بياناتنا.",
     detailsBody: "للاستفسارات العامة، نرحّب بزيارتكم في Smart Health Tower.",
     email: "البريد الإلكتروني",
-    emailComingSoon: "قريباً",
+    emailAddress: "info@ssthyroid.com",
     location: "الموقع",
     hours: "ساعات العمل",
     hoursValue: "من السبت إلى الخميس، من الساعة 1 ظهراً",

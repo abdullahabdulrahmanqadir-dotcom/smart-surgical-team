@@ -129,7 +129,7 @@ export const en = {
     detailsTitle: "Our details.",
     detailsBody: "For general enquiries, you are welcome to visit us at Smart Health Tower.",
     email: "Email",
-    emailComingSoon: "Coming soon",
+    emailAddress: "info@ssthyroid.com",
     location: "Location",
     hours: "Hours",
     hoursValue: "Saturday to Thursday, from 1pm",

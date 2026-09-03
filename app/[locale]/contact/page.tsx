@@ -3,7 +3,7 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import SocialLinks from "../../components/SocialLinks";
 import ScrollMotion from "../../components/ScrollMotion";
-import { IconArrowRight, IconClock, IconMail, IconPin } from "../../components/icons";
+import { IconArrowRight, IconClock, IconMail } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, type Locale } from "../../lib/i18n";
 import { pageMetadata } from "../../lib/seo";
@@ -47,12 +47,9 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           </header>
           <div className="contact-layout">
             <aside className="contact-details" aria-labelledby="contact-details-heading">
-              <span className="auth-kicker">{dict.contact.directDetails}</span>
               <h2 id="contact-details-heading">{dict.contact.detailsTitle}</h2>
-              <p>{dict.contact.detailsBody}</p>
               <dl>
-                <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd>{dict.contact.emailComingSoon}</dd></div>
-                <div><dt><IconPin size={19} /> {dict.contact.location}</dt><dd>{dict.footer.address}</dd></div>
+                <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${dict.contact.emailAddress}`}>{dict.contact.emailAddress}</a></dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
               </dl>
               <div className="contact-social-section">
@@ -62,11 +59,9 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
             </aside>
             <section className="contact-location" aria-labelledby="visit-heading">
               <div className="contact-location-orbit" aria-hidden="true"><span /><span /><i /></div>
-              <span className="auth-kicker">{dict.contact.visitUs}</span>
               <h2 id="visit-heading">{dict.contact.towerTitle}</h2>
               <p>{dict.contact.visitBody}</p>
               <a className="contact-directions" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">{dict.contact.getDirections} <IconArrowRight size={17} /></a>
-              <small>{dict.contact.shortAddress}</small>
             </section>
           </div>
 
@@ -75,10 +70,8 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           <section className="contact-map-section" aria-labelledby="map-heading">
             <div className="contact-map-head">
               <div>
-                <span className="auth-kicker">{dict.contact.mapKicker}</span>
                 <h2 id="map-heading">{dict.contact.mapTitle}</h2>
               </div>
-              <a className="contact-map-cta" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">{dict.contact.getDirections} <IconArrowRight size={17} /></a>
             </div>
             <div className="contact-map">
               <iframe
