@@ -870,6 +870,13 @@ input {
 /* --- interactive anatomy hero --- */
 
 .anatomy-hero { --lens-x:37%; --lens-y:49%; --micro-x:41%; --micro-y:49%; position:relative; width:min(100%,540px); min-height:420px; margin-inline:auto 0; overflow:hidden; isolation:isolate; border-radius:2rem; outline:none; touch-action:pan-y; user-select:none; }
+.anatomy-hero::before { content:""; position:absolute; z-index:4; inset:0; padding:3px; border-radius:inherit; background:conic-gradient(from var(--anatomy-border-angle,0deg),#087fcb 0 22%,#33a8ec 35%,#f09a4a 58%,#d66f2f 76%,#087fcb 100%); opacity:0; pointer-events:none; transition:opacity 180ms ease; -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); mask-composite:exclude; }
+@media (hover:hover) and (pointer:fine) {
+  .anatomy-hero:hover::before { opacity:1; animation:anatomy-border-orbit 2.4s linear infinite; }
+}
+.anatomy-hero:focus-visible::before { opacity:1; animation:anatomy-border-orbit 2.4s linear infinite; }
+@property --anatomy-border-angle { syntax:"<angle>"; inherits:false; initial-value:0deg; }
+@keyframes anatomy-border-orbit { to { --anatomy-border-angle:360deg; } }
 .anatomy-hero--touch-interactive { touch-action:none; }
 .anatomy-hero:focus-visible { box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 38%,transparent); }
 .anatomy-hero-base { display:block; width:100%; min-height:420px; aspect-ratio:1/1.35; background:url('/hero-anatomy-base.webp') center/cover no-repeat; }
@@ -881,7 +888,11 @@ input {
   .anatomy-hero-interact { display:inline-flex; position:absolute; z-index:3; right:0.8rem; bottom:0.8rem; min-width:44px; min-height:44px; align-items:center; justify-content:center; padding:0.55rem 0.8rem; border:1px solid rgba(255,255,255,.72); border-radius:999px; background:rgba(4,70,77,.88); color:#fff; font:inherit; font-size:0.875rem; font-weight:700; box-shadow:0 6px 18px rgba(4,70,77,.24); }
   .anatomy-hero-interact:focus-visible { outline:3px solid #fff; outline-offset:2px; }
 }
-@media (prefers-reduced-motion:reduce) { .anatomy-hero-lens { transition:none; } }
+@media (prefers-reduced-motion:reduce) {
+  .anatomy-hero-lens { transition:none; }
+  .anatomy-hero:hover::before,
+  .anatomy-hero:focus-visible::before { animation:none; }
+}
 
 /* --- legacy hero visual (no photography: composed UI mock) --- */
 
