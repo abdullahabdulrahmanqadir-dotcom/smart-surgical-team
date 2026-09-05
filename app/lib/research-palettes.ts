@@ -35,6 +35,7 @@ export const RESEARCH_PALETTES = {
   copper: { base: "#31261f", glow: "#8a5026", edge: "#f4ead4" },
   olive: { base: "#232c1c", glow: "#5b6847", edge: "#e9eddf" },
   honey: { base: "#332415", glow: "#b08c47", edge: "#f7ead9" },
+  rose: { base: "#3d1430", glow: "#a8336e", edge: "#f9e3ee" },
 } satisfies Record<string, Palette>;
 
 export type PaletteName = keyof typeof RESEARCH_PALETTES;
@@ -49,6 +50,7 @@ export const PALETTE_LABELS: Record<PaletteName, string> = {
   copper: "Copper",
   olive: "Olive",
   honey: "Honey",
+  rose: "Rose",
 };
 
 export function isPaletteName(value: unknown): value is PaletteName {
