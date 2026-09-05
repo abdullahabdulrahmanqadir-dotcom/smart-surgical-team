@@ -202,6 +202,8 @@ export const en = {
     topic: "Topic", allTopics: "All topics", subtopic: "Subtopic", allSubtopics: "All subtopics", unfiled: "Unfiled",
     readResearch: "Read research", publicationPages: "Publication pages", previous: "Previous", next: "Next",
     noMatches: "No publications match those filters.", clearFilters: "Clear filters", authors: "Authors", collapseAuthors: "Collapse authors", showAuthors: "Show authors",
+    filterBy: "Filter by", publicationCount: "{count} publication", publicationCountPlural: "{count} publications",
+    filteredResults: "Showing {count} of {total} publications", clearAll: "Clear all",
   },
   posters: {
     pageTitle: "Clinical Posters | Smart Surgical Team",

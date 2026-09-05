@@ -7,7 +7,7 @@ import { localePath, type Locale } from "../lib/i18n";
 import ResearchCover from "./ResearchCover";
 import FilterSelect from "./FilterSelect";
 import type { Publication, ResearchTopicTree } from "../lib/research";
-import type { Dictionary } from "../lib/dictionaries";
+import { fill, type Dictionary } from "../lib/dictionaries";
 
 const PAGE_SIZE = 9;
 const RESEARCH_VIEW_KEY = "sst-research-view";
@@ -81,6 +81,10 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
   const pageWindowStart = Math.min(Math.max(1, safePage - 2), Math.max(1, totalPages - 4));
   const pageNumbers = Array.from({ length: Math.min(5, totalPages) }, (_, index) => pageWindowStart + index);
   const displayed = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // Mirrors the case library: the archive total sits beside the "Filter by"
+  // label, and a summary strip appears the moment a filter narrows it, so the
+  // reader always knows how much of the archive they are looking at.
+  const filtersAreActive = query.trim().length > 0 || year !== "all" || topic !== "all" || subtopic !== "all";
   const resetFilters = () => { setQuery(""); setYear("all"); setTopic("all"); setSubtopic("all"); setPage(1); };
   // Changing the topic strands any subtopic chosen under the previous one, so
   // it clears rather than silently filtering everything down to nothing.
@@ -94,12 +98,23 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
 
   return <section className="research-archive" id="publications" aria-labelledby="publications-heading">
     <div className="research-archive-heading"><h1 id="publications-heading">{t.publications}</h1></div>
-    <div className="research-controls" aria-label={t.filterPublications}>
-      <label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label>
-      <FilterSelect className="research-filter-control" label={t.topic} value={topic} onChange={changeTopic} options={[{ value: "all", label: t.allTopics }, ...topicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
-      <FilterSelect className="research-filter-control" label={t.subtopic} value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(value) => { setSubtopic(value); setPage(1); }} options={[{ value: "all", label: t.allSubtopics }, ...subtopicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
-      <FilterSelect className="research-filter-control" label={t.year} value={year} onChange={(value) => { setYear(value); setPage(1); }} options={[{ value: "all", label: t.allYears }, ...years.map((value) => ({ value, label: value }))]} />
-      {(query || year !== "all" || topic !== "all" || subtopic !== "all") && <button type="button" className="research-clear" onClick={resetFilters}>{t.clear}</button>}
+    <div className={`research-filters${filtersAreActive ? " has-active-filters" : ""}`}>
+      <div className="content-filter-header">
+        <span className="content-filter-label">{t.filterBy}</span>
+        <span className="content-filter-total" aria-live="polite">{fill(publications.length === 1 ? t.publicationCount : t.publicationCountPlural, { count: publications.length })}</span>
+      </div>
+      <div className="research-controls" aria-label={t.filterPublications}>
+        <label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label>
+        <FilterSelect className="research-filter-control" label={t.topic} value={topic} onChange={changeTopic} options={[{ value: "all", label: t.allTopics }, ...topicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
+        <FilterSelect className="research-filter-control" label={t.subtopic} value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(value) => { setSubtopic(value); setPage(1); }} options={[{ value: "all", label: t.allSubtopics }, ...subtopicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
+        <FilterSelect className="research-filter-control" label={t.year} value={year} onChange={(value) => { setYear(value); setPage(1); }} options={[{ value: "all", label: t.allYears }, ...years.map((value) => ({ value, label: value }))]} />
+      </div>
+      {filtersAreActive ? (
+        <div className="content-filter-summary" aria-live="polite">
+          <p>{fill(t.filteredResults, { count: results.length, total: publications.length })}</p>
+          <button className="content-clear-filters" type="button" onClick={resetFilters}>{t.clearAll}</button>
+        </div>
+      ) : null}
     </div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
       <ResearchCover title={paper.title} label={paper.topic?.name ?? t.unfiled} palette={paper.palette} paletteKey={paper.journal}/>

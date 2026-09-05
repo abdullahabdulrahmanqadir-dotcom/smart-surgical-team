@@ -197,6 +197,8 @@ export const ar: Dictionary = {
     topic: "المجال", allTopics: "جميع المجالات", subtopic: "المجال الفرعي", allSubtopics: "جميع المجالات الفرعية", unfiled: "غير مصنّف",
     readResearch: "قراءة البحث", publicationPages: "صفحات المنشورات", previous: "السابق", next: "التالي",
     noMatches: "لا توجد منشورات تطابق عوامل التصفية.", clearFilters: "مسح عوامل التصفية", authors: "المؤلفون", collapseAuthors: "طيّ قائمة المؤلفين", showAuthors: "عرض المؤلفين",
+    filterBy: "تصفية حسب", publicationCount: "منشور واحد", publicationCountPlural: "{count} منشورات",
+    filteredResults: "عرض {count} من أصل {total} منشورًا", clearAll: "مسح الكل",
   },
   posters: {
     pageTitle: "الملصقات السريرية | Smart Surgical Team",

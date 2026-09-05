@@ -271,6 +271,13 @@ html {
 
 body {
   margin: 0;
+  /* The scroll-reveal styles start cards 28px to one side with a 1deg tilt.
+     The page is gutter-bound below ~1360px, so on a laptop or a phone that
+     offset lands past the viewport edge and leaves the whole site pannable
+     sideways. `clip` discards it without making body a scroll container, so
+     the sticky header and the fixed lightbox are untouched. */
+  overflow-x: clip;
+  overflow-y: visible;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body-stack);
@@ -4300,6 +4307,25 @@ html:has(.image-lightbox)::before { display: none; }
 @media (max-width:620px) {
   .event-filter-control,.research-filter-control { min-width:0; }
   .research-controls > .research-filter-control:last-of-type { grid-column:1/-1; }
+}
+
+/* The publication filters carry the same count furniture as the case library:
+   the archive total beside the "Filter by" label, and a summary strip that
+   opens under the controls once a filter narrows the results. The panel frame
+   moves out to this wrapper so the header, controls and summary share one
+   border instead of stacking three. */
+.research-filters { position:relative; z-index:4; overflow:visible; margin-top:2rem; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surface-2); }
+.research-filters .research-controls { margin-top:0; border:0; border-radius:0; background:transparent; padding:.7rem 1.25rem 1.25rem; }
+.research-filters .content-filter-header { padding:.75rem 1.25rem 0; }
+.research-filters .content-filter-summary { border-radius:0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px); }
+/* "Showing 50 of 119 publications" is a longer sentence than the case
+   library's, so on a narrow screen it is the sentence that wraps, never the
+   button beside it. */
+.research-filters .content-clear-filters { white-space:nowrap; }
+@media (max-width:620px) {
+  .research-filters .research-controls { padding-inline:1rem; }
+  .research-filters .content-filter-header { padding-inline:1rem; }
+  .research-filters .content-filter-summary { align-items:flex-start; padding-inline:1rem; }
 }
 
 /* ---------------------------------------------------------------------------
