@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import LazyImage from "./LazyImage";
 import { fill, type Dictionary } from "../lib/dictionaries";
 
@@ -235,7 +236,12 @@ export default function ImageGallery({ images, label, t, presentation = "gallery
       </button>)}
     </div>
     {isHero && images[0]?.caption ? <p className="content-hero-caption">{images[0].caption}</p> : null}
-    {active ? <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || t.imageViewer}>
+    {/* Rendered into <body> rather than in place. The viewer is `position: fixed`,
+        and the scroll-reveal treatment puts a `transform`/`filter` on the
+        gallery's ancestors — either one makes that ancestor the containing
+        block for fixed children, which trapped the full-screen viewer inside
+        the gallery card instead of covering the page. */}
+    {active ? createPortal(<div className="image-lightbox" role="dialog" aria-modal="true" aria-label={active.altText || t.imageViewer}>
       <div className="image-lightbox-bar">
         <p className="image-lightbox-title">{active.caption || active.altText || t.caseImage}{images.length > 1 ? <span> · {(openIndex ?? 0) + 1} / {images.length}</span> : null}</p>
         <div className="image-lightbox-tools">
@@ -288,6 +294,6 @@ export default function ImageGallery({ images, label, t, presentation = "gallery
             ><img src={image.publicUrl} alt="" loading="lazy"/></button>)}
         </div>
       </> : null}
-    </div> : null}
+    </div>, document.body) : null}
   </section>;
 }

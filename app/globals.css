@@ -1273,6 +1273,10 @@ html[data-motion-ready="true"] [data-scroll-reveal].is-revealed {
   html::before { display: none; }
 }
 
+/* The image viewer covers the page; a scroll indicator over it reads as a stray
+   line across the top of the photograph. */
+html:has(.image-lightbox)::before { display: none; }
+
 /* --- topics --- */
 
 .section-topic-index {
