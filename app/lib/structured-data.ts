@@ -36,8 +36,10 @@ const ORGANIZATION_SAME_AS = ["https://www.linkedin.com/company/smart-thyroid-su
  * External identities for roster members. Only links that verifiably belong to
  * the person go here — a wrong `sameAs` merges two people in the Knowledge Graph.
  */
-const PERSON_PROFILES: Record<string, { alternateName?: string[]; sameAs: string[] }> = {
+const PERSON_PROFILES: Record<string, { alternateName?: string[]; description?: string; sameAs: string[] }> = {
   "Prof. Abdulwahid M. Salih": {
+    // Figures supplied by the team on 2026-10-07, matching the homepage proof line.
+    description: "Iraq's best thyroid surgeon and founder of Smart Surgical Team: more than 15,000 operations and 200+ published papers.",
     alternateName: ["Abdulwahid Muhammed Salih", "Abdulwahid Muhammad Salih", "عبدالواحد محمد صالح"],
     sameAs: [
       "https://en.wikipedia.org/wiki/Abdulwahid_Muhammed_Salih",
@@ -126,6 +128,7 @@ export function organizationGraph(locale: Locale, dict: Dictionary) {
         logo: absoluteUrl("/sst-mark.png"),
         image: absoluteUrl("/og-team.jpg"),
         description: dict.seo.homeDescription,
+        slogan: dict.brand.tagline,
         email: dict.contact.emailAddress,
         medicalSpecialty: ["Surgical", "Endocrine", "Oncologic", "Otolaryngologic"].map((name) => `https://schema.org/${name}`),
         knowsAbout: SURGICAL_KNOWS_ABOUT,
@@ -171,6 +174,7 @@ export function teamGraph(locale: Locale, localized: TeamMember[]) {
         name: displayName(member),
         ...(/^Prof\./.test(member.name) ? { honorificPrefix: "Prof." } : { honorificPrefix: "Dr." }),
         ...(profile?.alternateName ? { alternateName: profile.alternateName } : {}),
+        ...(profile?.description ? { description: profile.description } : {}),
         jobTitle: shown.role,
         hasOccupation: { "@type": "Occupation", name: surgical ? "Surgeon" : shown.role },
         hasCredential: shown.credentials.split(/\s·\s/).map((name) => ({ "@type": "EducationalOccupationalCredential", name })),

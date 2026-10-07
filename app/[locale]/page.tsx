@@ -169,7 +169,7 @@ export default async function Home({
   const active: Locale = isLocale(locale) ? locale : "en";
   const dict = getDictionary(active);
   const featuredTeam = getLocalizedTeamGroups(dict.team)[0].members.slice(0, 3);
-  const credentials = [dict.home.credentialTower, dict.home.credentialDepartment];
+  const credentials = [dict.home.proofOperations, dict.home.proofPapers, dict.home.proofSummit];
   const research = await getResearches();
   const latestResearch = research[0];
   // At most one item is ever pinned; the banner is the homepage's only news.

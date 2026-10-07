@@ -2,7 +2,7 @@ import type { Dictionary } from "./index";
 
 // Modern Standard Arabic, clinical/academic register. The brand remains Latin.
 export const ar: Dictionary = {
-  brand: { name: "Smart Surgical Team", short: "SST", tagline: "جراحة الرأس والعنق، بقيادة الخبرة", location: "Smart Health Tower · السليمانية، كردستان" },
+  brand: { name: "Smart Surgical Team", short: "SST", tagline: "أفضل جرّاحي الغدة الدرقية في العراق", location: "Smart Health Tower · السليمانية، كردستان" },
   nav: { home: "الرئيسية", about: "من نحن", publications: "المنشورات", aboutMenu: "حول", topics: "المحتوى", library: "المكتبة", webinars: "الندوات الإلكترونية", events: "الفعاليات", news: "الأخبار", research: "البحوث", posters: "الملصقات", team: "فريقنا", contact: "اتصل بنا", signIn: "تسجيل الدخول", register: "إنشاء حساب", skipToContent: "تخطي إلى المحتوى", languageLabel: "اللغة", menu: "القائمة", close: "إغلاق" },
   cta: { exploreLibrary: "تصفّح المكتبة", viewAll: "عرض الكل", learnMore: "اعرف المزيد" },
   topics: {
@@ -54,9 +54,10 @@ export const ar: Dictionary = {
     "neck-lymphatic": "الجهاز اللمفاوي", "skin-soft-tissue": "الجلد",
   },
   home: {
-    builtWith: "بالتعاون مع أطباء من",
-    credentialTower: "Smart Health Tower",
-    credentialDepartment: "قسم جراحة الرأس والعنق",
+    builtWith: "بقيادة البروفيسور عبدالواحد محمد صالح",
+    proofOperations: "أكثر من 15,000 عملية",
+    proofPapers: "أكثر من 200 بحث منشور",
+    proofSummit: "مستضيف قمة الشرق الأوسط للغدة الدرقية",
     topicsIntro: "أربعة مجالات جراحية مختارة من المنهج المتكامل لجراحة الرأس والعنق.",
     viewAllTopics: "عرض جميع المواضيع",
     researchTitle: "بحوث من القسم",
@@ -307,10 +308,10 @@ export const ar: Dictionary = {
     contact: "تواصل مع الفريق",
   },
   seo: {
-    homeTitle: "جراحة الرأس والعنق في السليمانية | Smart Surgical Team",
-    homeDescription: "تعليم جراحة الرأس والعنق والبحوث السريرية والخبرات التخصصية من Smart Surgical Team في Smart Health Tower بالسليمانية، العراق.",
-    aboutTitle: "فريق جراحة الرأس والعنق في السليمانية | Smart Surgical Team",
-    aboutDescription: "تعرّف إلى الجرّاحين والاختصاصيين وطاقم البحث في Smart Surgical Team بSmart Health Tower في السليمانية، العراق.",
+    homeTitle: "أفضل جرّاحي الغدة الدرقية في العراق بقيادة البروفيسور عبدالواحد محمد صالح | SST",
+    homeDescription: "بقيادة البروفيسور عبدالواحد محمد صالح، فريق Smart Surgical Team في السليمانية هو أفضل فريق لجراحة الغدة الدرقية والرأس والعنق في العراق: أكثر من 15,000 عملية وأكثر من 200 بحث منشور.",
+    aboutTitle: "البروفيسور عبدالواحد محمد صالح وفريقه | أفضل جرّاحي الغدة الدرقية في العراق",
+    aboutDescription: "تعرّف إلى البروفيسور عبدالواحد محمد صالح، أفضل جرّاح للغدة الدرقية في العراق، وإلى جرّاحي واختصاصيي Smart Surgical Team في Smart Health Tower بالسليمانية.",
     contactTitle: "تواصل مع Smart Surgical Team في السليمانية",
     contactDescription: "اعثر على Smart Surgical Team في Smart Health Tower بشارع ماجد باغ الرئيسي في السليمانية، العراق، مع ساعات الزيارة والاتجاهات.",
     signInPageTitle: "تسجيل الدخول | Smart Surgical Team",

@@ -1,6 +1,6 @@
 // English is the source of truth. Arabic falls back to English per-key.
 export const en = {
-  brand: { name: "Smart Surgical Team", short: "SST", tagline: "Head & Neck Surgery, Guided by Expertise", location: "Smart Health Tower · Sulaymaniyah, Kurdistan" },
+  brand: { name: "Smart Surgical Team", short: "SST", tagline: "Iraq's Best Thyroid Surgeons", location: "Smart Health Tower · Sulaymaniyah, Kurdistan" },
   nav: { home: "Home", about: "About us", publications: "Publications", aboutMenu: "About", topics: "Content", library: "Library", webinars: "Webinars", events: "Events", news: "News", research: "Research", posters: "Posters", team: "Our Team", contact: "Contact", signIn: "Sign in", register: "Register", skipToContent: "Skip to content", languageLabel: "Language", menu: "Menu", close: "Close" },
   cta: { exploreLibrary: "Explore the Library", viewAll: "View all", learnMore: "Learn more" },
   topics: {
@@ -52,9 +52,12 @@ export const en = {
     "neck-lymphatic": "Lymph", "skin-soft-tissue": "Skin",
   },
   home: {
-    builtWith: "Built with clinicians from",
-    credentialTower: "Smart Health Tower",
-    credentialDepartment: "Head & Neck department",
+    // The proof under the headline. Figures supplied by the team on 2026-10-07;
+    // the paper count matches Prof. Abdulwahid's Google Scholar profile (241 works).
+    builtWith: "Led by Prof. Abdulwahid M. Salih",
+    proofOperations: "15,000+ operations",
+    proofPapers: "200+ published papers",
+    proofSummit: "Host of the Middle East Thyroid Summit",
     topicsIntro: "Four highlighted surgical areas from the complete head and neck curriculum.",
     viewAllTopics: "View all topics",
     researchTitle: "Research from the department",
@@ -312,10 +315,10 @@ export const en = {
     contact: "Contact the team",
   },
   seo: {
-    homeTitle: "Head & Neck Surgery in Sulaymaniyah | Smart Surgical Team",
-    homeDescription: "Head and neck surgery education, clinical research and specialist expertise from Smart Surgical Team at Smart Health Tower in Sulaymaniyah, Iraq.",
-    aboutTitle: "Head & Neck Surgery Team in Sulaymaniyah | Smart Surgical Team",
-    aboutDescription: "Meet the surgeons, specialists and research staff of Smart Surgical Team at Smart Health Tower in Sulaymaniyah, Iraq.",
+    homeTitle: "Iraq's Best Thyroid Surgeons, led by Prof. Abdulwahid M. Salih | SST",
+    homeDescription: "Led by Prof. Abdulwahid M. Salih, Smart Surgical Team in Sulaymaniyah is Iraq's best thyroid and head & neck surgery team: 15,000+ operations, 200+ papers.",
+    aboutTitle: "Prof. Abdulwahid M. Salih & Team | Iraq's Best Thyroid Surgeons",
+    aboutDescription: "Meet Prof. Abdulwahid M. Salih, Iraq's best thyroid surgeon, and the surgeons and specialists of Smart Surgical Team at Smart Health Tower, Sulaymaniyah.",
     contactTitle: "Contact Smart Surgical Team in Sulaymaniyah",
     contactDescription: "Find Smart Surgical Team at Smart Health Tower on Majid Bag Main Street in Sulaymaniyah, Iraq, with visiting hours and directions.",
     signInPageTitle: "Sign in | Smart Surgical Team",
