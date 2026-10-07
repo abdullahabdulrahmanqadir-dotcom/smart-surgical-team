@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patient Review Card</title>
+<!-- Print this page (A5 or A6) for reception and the recovery ward. The QR code
+     opens Prof. Abdulwahid's Google Business Profile; patients tap "Reviews",
+     then "Write a review". Asking every patient is allowed; scripting what they
+     write, rewarding them, or writing reviews for them is not. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root { --teal: #146c6a; --ink: #40322a; --muted: #6d5f54; --line: #ded5c6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f5f2ea; color: var(--ink); font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif; }
+  .card { width: 148mm; min-height: 105mm; margin: 12mm auto; padding: 10mm 12mm; background: #fff; border: 1px solid var(--line); border-radius: 6mm; display: grid; grid-template-columns: 1fr auto; gap: 8mm; align-items: center; }
+  h1 { margin: 0 0 3mm; color: var(--teal); font-size: 20pt; line-height: 1.3; }
+  p { margin: 0 0 2.5mm; font-size: 11.5pt; line-height: 1.6; color: var(--muted); }
+  .en { direction: ltr; text-align: left; font-family: Inter, "Segoe UI", Arial, sans-serif; margin-top: 4mm; padding-top: 3mm; border-top: 1px solid var(--line); }
+  .en h2 { margin: 0 0 1.5mm; font-size: 13pt; color: var(--ink); }
+  .en p { font-size: 10pt; }
+  #qr { padding: 3mm; border: 1px solid var(--line); border-radius: 3mm; }
+  #qr img, #qr canvas { display: block; width: 38mm !important; height: 38mm !important; }
+  .steps { font-size: 9.5pt; color: var(--muted); text-align: center; margin-top: 2mm; }
+  .brand { font-size: 9pt; color: var(--teal); font-weight: 600; margin-top: 3mm; }
+  @media print { body { background: #fff; } .card { margin: 0 auto; border: 0; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div>
+      <h1>شكراً لثقتكم بنا</h1>
+      <p>رأيكم يساعد مرضى آخرين على اختيار طبيبهم. امسحوا الرمز واكتبوا تقييماً قصيراً على Google بكلماتكم الخاصة عن تجربتكم مع البروفيسور عبدالواحد محمد صالح وفريقه.</p>
+      <div class="en">
+        <h2>Thank you for trusting us</h2>
+        <p>Your experience helps other patients choose their surgeon. Scan the code and leave a short Google review, in your own words, about your care with Prof. Abdulwahid M. Salih and his team.</p>
+      </div>
+      <p class="brand">Smart Surgical Team · Smart Health Tower · ssthyroid.com</p>
+    </div>
+    <div>
+      <div id="qr"></div>
+      <p class="steps">التقييمات ← كتابة مراجعة<br>Reviews → Write a review</p>
+    </div>
+  </div>
+  <script>
+    new QRCode(document.getElementById("qr"), { text: "https://maps.google.com/?cid=17337054107407027291", width: 512, height: 512, correctLevel: QRCode.CorrectLevel.M });
+  </script>
+</body>
+</html>
