@@ -445,4 +445,13 @@ export const ar: Dictionary = {
     genericSignIn: "لا يطابق هذا البريد الإلكتروني وكلمة المرور أي حساب. تحقق منهما وحاول مرة أخرى.",
   },
   common: { loading: "جارٍ التحميل", comingSoon: "قريباً" },
+  teamProfile: {
+    backToTeam: "العودة إلى الفريق",
+    portraitOf: "صورة {name}",
+    publicationsTitle: "أحدث أبحاثه على هذا الموقع",
+    publicationsCount: "{count} من أبحاثه منشورة على هذا الموقع",
+    viewAllResearch: "عرض جميع البحوث",
+    elsewhereTitle: "روابط أخرى",
+    viewProfile: "عرض الملف الشخصي",
+  },
 };

@@ -10,6 +10,7 @@ import { getLocalizedTeamGroups } from "../../lib/team";
 import { pageMetadata } from "../../lib/seo";
 import JsonLd from "../../components/JsonLd";
 import { teamGraph } from "../../lib/structured-data";
+import { profileForMember } from "../../lib/team-profiles";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -47,7 +48,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           <div className="team-profile-grid">
             {group.members.map((member) => <article className="team-profile" key={member.name}>
               <div className="team-portrait"><img src={member.portrait} alt={fill(dict.about.portraitOf, { name: member.name })} /></div>
-              <div className="team-profile-copy"><p className="team-role">{member.role}</p><h4 {...authoredTitleProps(member.name)}>{member.name}</h4><p className="team-credentials">{member.credentials}</p></div>
+              <div className="team-profile-copy"><p className="team-role">{member.role}</p><h4 {...authoredTitleProps(member.name)}>{(() => { const page = profileForMember(member.name); return page ? <Link className="team-profile-link" href={localePath(active, `about/${page.slug}`)}>{member.name}</Link> : member.name; })()}</h4><p className="team-credentials">{member.credentials}</p></div>
             </article>)}
           </div>
         </section>)}

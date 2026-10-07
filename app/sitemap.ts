@@ -6,6 +6,7 @@ import { getNewsItems, newsItemShape } from "./lib/news";
 import { getPosters } from "./lib/posters";
 import { getResearches } from "./lib/research";
 import { PUBLIC_TOPIC_GROUPS } from "./lib/topics";
+import { TEAM_PROFILES } from "./lib/team-profiles";
 
 const SITE_ORIGIN = "https://ssthyroid.com";
 const PUBLIC_ROUTES = ["", "about", "topics", "events", "news", "posters", "research", "contact", "privacy", "terms"];
@@ -56,6 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: SitemapPage[] = [
     ...PUBLIC_ROUTES.map((route) => ({ route })),
     ...PUBLIC_TOPIC_GROUPS.map((topic) => ({ route: `topics/${topic.slug}` })),
+    ...TEAM_PROFILES.map((profile) => ({ route: `about/${profile.slug}` })),
     // Posters have their own richer detail route, so do not also advertise the
     // duplicate /library URL for the same record.
     ...content

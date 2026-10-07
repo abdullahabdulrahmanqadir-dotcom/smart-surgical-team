@@ -22,6 +22,7 @@ import { getPublicEvents, eventDateRange, localizeFallbackEvent } from "../lib/e
 import { getLocalizedTeamGroups } from "../lib/team";
 import { getNewsItems, getPinnedNewsItem, localizedText } from "../lib/news";
 import { getResearches } from "../lib/research";
+import { profileForMember } from "../lib/team-profiles";
 
 /** Shared shell so the placeholder and the resolved panel are the same shape
     and nothing shifts when the rows arrive. Headings are passed in because the
@@ -338,7 +339,7 @@ export default async function Home({
             </div>
             <div className="team-feature-list">
               {featuredTeam.map((member) => (
-                <Link href={localePath(active, "about")} className="team-feature-card" key={member.name}>
+                <Link href={localePath(active, profileForMember(member.name) ? `about/${profileForMember(member.name)!.slug}` : "about")} className="team-feature-card" key={member.name}>
                   <span className="team-feature-portrait"><img src={member.portrait} alt={fill(dict.home.portraitOf, { name: member.name })} width={96} height={96} loading="lazy" decoding="async"/></span>
                   <span className="team-feature-body">
                     <h3 {...authoredTitleProps(member.name)}>{member.name}</h3>

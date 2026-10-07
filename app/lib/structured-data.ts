@@ -19,6 +19,7 @@ import { TEAM_GROUPS, type TeamMember } from "./team";
 import type { ContentRecord } from "./content-types";
 import type { NewsItem } from "./news-data";
 import type { TeamEvent } from "./event-data";
+import { profileForMember, type TeamProfile } from "./team-profiles";
 
 export const SITE_ORIGIN = "https://ssthyroid.com";
 export const ORGANIZATION_ID = `${SITE_ORIGIN}/#organization`;
@@ -160,31 +161,50 @@ export function organizationGraph(locale: Locale, dict: Dictionary) {
   };
 }
 
+function personNode(locale: Locale, member: TeamMember, shown: TeamMember, surgical: boolean) {
+  const profile = PERSON_PROFILES[member.name];
+  const page = profileForMember(member.name);
+  return {
+    "@type": "Person",
+    "@id": personId(member),
+    name: displayName(member),
+    ...(/^Prof\./.test(member.name) ? { honorificPrefix: "Prof." } : { honorificPrefix: "Dr." }),
+    ...(profile?.alternateName ? { alternateName: profile.alternateName } : {}),
+    ...(profile?.description ? { description: profile.description } : {}),
+    jobTitle: shown.role,
+    hasOccupation: { "@type": "Occupation", name: surgical ? "Surgeon" : shown.role },
+    hasCredential: shown.credentials.split(/\s·\s/).map((name) => ({ "@type": "EducationalOccupationalCredential", name })),
+    image: absoluteUrl(member.portrait),
+    // A member with a profile page is described by that page, not the roster.
+    url: absoluteUrl(localePath(locale, page ? `about/${page.slug}` : "about")),
+    worksFor: { "@id": ORGANIZATION_ID },
+    ...(surgical ? { knowsAbout: SURGICAL_KNOWS_ABOUT } : {}),
+    ...(profile?.sameAs.length ? { sameAs: profile.sameAs } : {}),
+  };
+}
+
 /** The roster as Person entities, for the About page. */
 export function teamGraph(locale: Locale, localized: TeamMember[]) {
   const copy = new Map(localized.map((member) => [member.name, member]));
   return {
     "@context": "https://schema.org",
-    "@graph": entityMembers().map(({ member, surgical }) => {
-      const shown = copy.get(member.name) ?? member;
-      const profile = PERSON_PROFILES[member.name];
-      return {
-        "@type": "Person",
-        "@id": personId(member),
-        name: displayName(member),
-        ...(/^Prof\./.test(member.name) ? { honorificPrefix: "Prof." } : { honorificPrefix: "Dr." }),
-        ...(profile?.alternateName ? { alternateName: profile.alternateName } : {}),
-        ...(profile?.description ? { description: profile.description } : {}),
-        jobTitle: shown.role,
-        hasOccupation: { "@type": "Occupation", name: surgical ? "Surgeon" : shown.role },
-        hasCredential: shown.credentials.split(/\s·\s/).map((name) => ({ "@type": "EducationalOccupationalCredential", name })),
-        image: absoluteUrl(member.portrait),
-        url: absoluteUrl(localePath(locale, "about")),
-        worksFor: { "@id": ORGANIZATION_ID },
-        ...(surgical ? { knowsAbout: SURGICAL_KNOWS_ABOUT } : {}),
-        ...(profile?.sameAs.length ? { sameAs: profile.sameAs } : {}),
-      };
-    }),
+    "@graph": entityMembers().map(({ member, surgical }) => personNode(locale, member, copy.get(member.name) ?? member, surgical)),
+  };
+}
+
+/** A profile page: the page itself, about the one Person it describes. */
+export function profilePageJsonLd(locale: Locale, member: TeamMember, shown: TeamMember, profile: TeamProfile) {
+  const url = absoluteUrl(localePath(locale, `about/${profile.slug}`));
+  const surgical = entityMembers().find((entry) => entry.member.name === member.name)?.surgical ?? false;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${url}#page`,
+    url,
+    name: `${member.name} | ${profile.copy[locale].headline}`,
+    inLanguage: LOCALE_META[locale].htmlLang,
+    isPartOf: { "@id": WEBSITE_ID },
+    mainEntity: personNode(locale, member, shown, surgical),
   };
 }
 

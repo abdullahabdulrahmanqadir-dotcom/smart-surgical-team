@@ -12,7 +12,8 @@ import { proseClass } from "../../../lib/content-types";
 import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { pageMetadata, seoDescription } from "../../../lib/seo";
-import { getResearchById } from "../../../lib/research";
+import { getResearchById, staffMemberFor } from "../../../lib/research";
+import { profileForMember } from "../../../lib/team-profiles";
 import JsonLd from "../../../components/JsonLd";
 import { scholarlyArticleJsonLd } from "../../../lib/structured-data";
 
@@ -67,7 +68,11 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
   const paper = await getResearchById(id);
   if (!paper) notFound();
   const dict = getDictionary(active);
-  const contributors = contributorsFor(paper);
+  // An author with a profile page links to it from the author list.
+  const contributors = contributorsFor(paper).map((contributor) => {
+    const page = profileForMember(staffMemberFor(contributor.name)?.name ?? "");
+    return page ? { ...contributor, href: localePath(active, `about/${page.slug}`) } : contributor;
+  });
   // Only the paper's own figures. The cover is generated from the title now,
   // so there is no uploaded cover image to lead the gallery with.
   const researchImages = (paper.media ?? []).map((item, index) => ({ id: `figure-${index}`, publicUrl: item.publicUrl, altText: item.altText, caption: item.caption }));

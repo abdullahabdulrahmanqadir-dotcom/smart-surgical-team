@@ -452,4 +452,13 @@ export const en = {
     genericSignIn: "That email address and password do not match an account. Check them and try again.",
   },
   common: { loading: "Loading", comingSoon: "Coming soon" },
+  teamProfile: {
+    backToTeam: "Back to the team",
+    portraitOf: "Portrait of {name}",
+    publicationsTitle: "Recent papers on this site",
+    publicationsCount: "{count} of his papers are published on this site",
+    viewAllResearch: "View all research",
+    elsewhereTitle: "Elsewhere",
+    viewProfile: "View profile",
+  },
 };
