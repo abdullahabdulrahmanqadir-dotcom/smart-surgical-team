@@ -13,6 +13,8 @@ import { fill, getDictionary, type Dictionary } from "../../../lib/dictionaries"
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { pageMetadata, seoDescription } from "../../../lib/seo";
 import { getResearchById } from "../../../lib/research";
+import JsonLd from "../../../components/JsonLd";
+import { scholarlyArticleJsonLd } from "../../../lib/structured-data";
 
 function readableDate(value: string, locale: Locale, t: Dictionary["research"]) {
   const date = new Date(`${value}T00:00:00`);
@@ -72,6 +74,7 @@ export default async function ResearchDetailPage({ params }: { params: Promise<{
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
+    <JsonLd data={scholarlyArticleJsonLd(active, paper)} />
     <SiteHeader locale={active} dict={dict}/>
     <ScrollMotion />
     <main id="main-content" className="research-detail-page">

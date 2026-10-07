@@ -16,6 +16,8 @@ import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../
 import { categoryLabel, getNewsItem, getNewsItems, localizedSections, localizedText, newsCoverImage, newsDate, newsGalleryImages, newsItemShape, type NewsItem, type NewsRelation } from "../../../lib/news";
 import { getResearchById } from "../../../lib/research";
 import { pageMetadata, seoDescription } from "../../../lib/seo";
+import JsonLd from "../../../components/JsonLd";
+import { newsArticleJsonLd } from "../../../lib/structured-data";
 
 type Params = { locale: string; slug: string };
 
@@ -96,6 +98,8 @@ export default async function NewsItemPage({ params }: { params: Promise<Params>
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
+    {/* A link-out item is noindexed; describing it as an article would contradict that. */}
+    {newsItemShape(item) !== "link" && <JsonLd data={newsArticleJsonLd(active, item, title, summary)} />}
     <SiteHeader locale={active} dict={dict}/>
     <ScrollMotion />
     <main id="main-content" className="news-detail-page">

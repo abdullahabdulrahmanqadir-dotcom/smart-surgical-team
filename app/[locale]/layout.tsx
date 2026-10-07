@@ -6,6 +6,8 @@ import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import { seoAlternates } from "../lib/seo";
 import GoogleAnalytics from "../components/GoogleAnalytics";
+import JsonLd from "../components/JsonLd";
+import { organizationGraph } from "../lib/structured-data";
 import "../globals.css";
 
 // Type revised 2026-09-02. The display face was Newsreader, which is one of
@@ -170,6 +172,8 @@ export default async function LocaleLayout({
           English database content opt back in with translate="yes" (see
           TranslatableContent). English pages stay fully translatable. */}
       <body className="antialiased" translate={locale === "ar" ? "no" : undefined}>
+        {/* The team and website entities every other page's JSON-LD points at. */}
+        <JsonLd data={organizationGraph(locale, getDictionary(locale))} />
         {children}
         <GoogleAnalytics />
       </body>

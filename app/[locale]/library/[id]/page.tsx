@@ -20,6 +20,8 @@ import CardArt from "../../../components/CardArt";
 import { TEAM_GROUPS } from "../../../lib/team";
 import TranslatableContent from "../../../components/TranslatableContent";
 import { pageMetadata, seoDescription } from "../../../lib/seo";
+import JsonLd from "../../../components/JsonLd";
+import { medicalPageJsonLd } from "../../../lib/structured-data";
 
 const staffPortraits = new Map(TEAM_GROUPS.flatMap((group) => group.members.map((member) => [member.name, member.portrait])));
 
@@ -145,6 +147,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
 
   return <>
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
+    <JsonLd data={medicalPageJsonLd(active, content)} />
     <SiteHeader locale={active} dict={dict} />
     <ScrollMotion />
     <main id="main-content" className="content-page">

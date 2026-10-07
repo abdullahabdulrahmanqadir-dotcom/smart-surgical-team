@@ -1,0 +1,30 @@
+# Smart Surgical Team (SST)
+
+> Smart Surgical Team is a thyroid and head & neck surgery team at Smart Health Tower, Sulaymaniyah, Kurdistan Region, Iraq, founded by Prof. Abdulwahid M. Salih (Abdulwahid Muhammed Salih), a professor at the University of Sulaymaniyah College of Medicine. This site publishes the team's own operative cases, peer-reviewed research, e-posters, news and events, in English and Arabic.
+
+Also known as: SST, Smart Thyroid Subspecialty, Smart Health Tower Surgery Team.
+
+Specialties: thyroid surgery (thyroidectomy, thyroid cancer), parathyroid surgery, salivary gland surgery, neck dissection, skin and soft-tissue tumours of the head and neck, and breast surgery research.
+
+Location: Smart Health Tower, Majid Bag Main Street, beside the University of Sulaymaniyah Old Campus, Sulaymaniyah, Kurdistan Region, Iraq. Email: info@ssthyroid.com
+
+## Surgeons
+
+- Prof. Abdulwahid M. Salih, M.D. (General Surgery): head & neck and thyroid surgery; founder. Wikipedia: https://en.wikipedia.org/wiki/Abdulwahid_Muhammed_Salih
+- Dr. Yadgar A. Saeed, F.I.B.M.S. (General Surgery): head & neck and thyroid surgery
+- Dr. Aso S. Muhialdeen, F.K.B.M.S. (General Surgery): head & neck and thyroid surgery
+- Dr. Karzan M. Salih, F.I.B.M.S. (General Surgery): head & neck and thyroid surgery
+
+Specialist contributors: radiology (Dr. Aras J. Qaradaxy), pathology (Dr. Ari M. Abdullah), endocrinology (Dr. Shaho F. Ahmed).
+
+## Main pages
+
+- [About the team](https://ssthyroid.com/en/about): surgeons, specialists and how the team works
+- [Research](https://ssthyroid.com/en/research): the team's peer-reviewed publications, newest first
+- [Case library](https://ssthyroid.com/en/library): documented surgical cases and teaching material
+- [Topics](https://ssthyroid.com/en/topics): thyroid, parathyroid, salivary gland, neck, lymphatic, skin and soft-tissue surgery
+- [Events](https://ssthyroid.com/en/events): including the Middle East Thyroid Summit, hosted in Sulaymaniyah
+- [News](https://ssthyroid.com/en/news): announcements and media coverage
+- [Contact and directions](https://ssthyroid.com/en/contact)
+
+Arabic versions are at the same paths under /ar/.

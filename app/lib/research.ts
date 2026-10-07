@@ -56,9 +56,15 @@ function nameKey(name: string) {
 }
 
 function staffPortraitFor(name: string) {
+  return staffMemberFor(name)?.portrait;
+}
+
+/** The roster member an author name refers to, tolerating initials and the
+    transliteration drift between journals ("Qaradakhy" / "Qaradaxy"). */
+export function staffMemberFor(name: string) {
   const key = nameKey(name);
   const aliasedName = STAFF_NAME_ALIASES[key];
-  if (aliasedName) return STAFF.find((member) => member.name === aliasedName)?.portrait;
+  if (aliasedName) return STAFF.find((member) => member.name === aliasedName);
   const tokens = key.split(" ");
   const first = tokens[0];
   const last = tokens.at(-1);
@@ -67,7 +73,7 @@ function staffPortraitFor(name: string) {
     const memberFirst = memberTokens[0];
     const memberLast = memberTokens.at(-1);
     return (key === nameKey(member.name)) || (first === memberFirst && last === memberLast) || (first === memberFirst && last && memberLast && (last.startsWith(memberLast.slice(0, 4)) || memberLast.startsWith(last.slice(0, 4))));
-  })?.portrait;
+  });
 }
 
 function contributorsFromNames(authors: string) {

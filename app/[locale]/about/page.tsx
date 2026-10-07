@@ -8,6 +8,8 @@ import { fill, getDictionary } from "../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getLocalizedTeamGroups } from "../../lib/team";
 import { pageMetadata } from "../../lib/seo";
+import JsonLd from "../../components/JsonLd";
+import { teamGraph } from "../../lib/structured-data";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -27,6 +29,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
     <SiteHeader locale={active} dict={dict} />
     <ScrollMotion />
+    <JsonLd data={teamGraph(active, teamGroups.flatMap((group) => group.members))} />
     <main id="main-content" className="about-page">
       <h1 className="visually-hidden">{dict.about.pageTitle}</h1>
 
