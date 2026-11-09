@@ -79,7 +79,7 @@
 
   --content: 1280px;
   --gutter: clamp(1.25rem, 3vw, 2.5rem);
-  --header-h: 72px;
+  --header-h: 106px;
 }
 
 [data-theme="dark"] {
@@ -291,10 +291,6 @@ body {
 [dir="rtl"] body {
   line-height: 1.9;
   letter-spacing: 0;
-}
-
-body.nav-open {
-  overflow: hidden;
 }
 
 h1,
@@ -537,10 +533,36 @@ input {
   border-bottom: 1px solid var(--line);
 }
 
+.header-utility {
+  background: var(--primary-soft);
+  border-block-end: 1px solid var(--line);
+}
+
+.header-utility-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: var(--content);
+  min-height: 42px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.header-location {
+  color: var(--text);
+  font-size: var(--step--1);
+}
+
+.header-location:hover { text-decoration: underline; }
+.header-utility .theme-toggle { min-height: 42px; }
+.header-utility .header-signup { background: var(--primary); box-shadow: none; }
+.header-utility .header-signup:hover { background: var(--primary-strong); }
+
 .header-inner {
   max-width: var(--content);
   margin: 0 auto;
-  height: var(--header-h);
+  height: calc(var(--header-h) - 42px);
   padding: 0 var(--gutter);
   display: flex;
   align-items: center;
@@ -2845,11 +2867,11 @@ html:has(.image-lightbox)::before { display: none; }
    content is unchanged — this is a ground, not a site index — so every colour
    inside it is re-pointed at the dark surface rather than restyled. */
 .site-footer {
-  --footer-ink: #f2efe7;
-  --footer-ink-muted: color-mix(in srgb, var(--footer-ink) 72%, transparent);
-  --footer-line: color-mix(in srgb, var(--footer-ink) 18%, transparent);
+  --footer-ink: var(--text);
+  --footer-ink-muted: var(--text-muted);
+  --footer-line: var(--line);
 
-  background: var(--brand-teal-deep);
+  background: var(--primary-soft);
   color: var(--footer-ink);
 }
 
@@ -2867,22 +2889,18 @@ html:has(.image-lightbox)::before { display: none; }
 
 .site-footer .footer-col h3 { color: var(--footer-ink); }
 
-/* The wordmark is drawn for a light ground. The name is text and can simply
-   take the band's ink; the mark is a PNG, so it is knocked back to white
-   rather than left as teal-on-teal. */
 .site-footer .brand-name { color: var(--footer-ink); }
-.site-footer .brand-mark { filter: brightness(0) invert(1); opacity: 0.85; }
 
 .footer-main {
   max-width: var(--content);
   margin: 0 auto;
   padding: clamp(2.5rem, 5vw, 3.5rem) var(--gutter);
   display: grid;
-  grid-template-columns: minmax(14rem, 1fr) minmax(20rem, 1.45fr) minmax(16rem, 1.05fr);
-  gap: clamp(2rem, 4vw, 4.5rem);
+  grid-template-columns: minmax(10rem, .8fr) minmax(0, 2fr) minmax(12rem, 1fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
 }
 
-.footer-navigation { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(1.5rem, 4vw, 3.5rem); }
+.footer-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1rem, 2vw, 2rem); }
 
 .footer-brand p {
   margin-top: 1rem;
@@ -3069,13 +3087,15 @@ html:has(.image-lightbox)::before { display: none; }
 }
 
 @media (max-width: 900px) {
-  .primary-nav,
-  .header-signin {
+  body.nav-open { overflow: hidden; }
+
+  .primary-nav {
     display: none;
   }
 
   .menu-button {
     display: grid;
+    margin-inline-start: auto;
   }
 
   .header-inner {
@@ -3088,6 +3108,8 @@ html:has(.image-lightbox)::before { display: none; }
 
   .mobile-nav {
     display: flex;
+    max-height: calc(100dvh - var(--header-h));
+    overflow-y: auto;
   }
 
   .mobile-nav[hidden] {
@@ -3154,16 +3176,15 @@ html:has(.image-lightbox)::before { display: none; }
 }
 
 @media (max-width: 620px) {
+  :root { --header-h: 96px; }
+
   .header-cta,
-  .header-actions > .language-menu {
+  .header-location {
     display: none;
   }
 
-  .mobile-language {
-    display: grid;
-    gap: 0.55rem;
-    padding-block: 0.85rem 0.35rem;
-    border-top: 1px solid var(--line);
+  .header-inner .brand-name {
+    display: flex;
   }
 
   .mobile-language > span {

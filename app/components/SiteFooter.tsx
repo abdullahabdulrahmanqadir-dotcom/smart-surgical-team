@@ -11,11 +11,6 @@ import {
 
 const CONTACT_EMAIL = "info@smartsurgicalteam.com";
 
-/**
- * Extracted from the home page so every page shares one footer. The class names
- * are the originals — their styles already exist in globals.css and the
- * three-column layout keeps the compact social presence intentional.
- */
 export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const home = localePath(locale);
 
@@ -31,14 +26,18 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
         </div>
 
         <div className="footer-navigation">
-          <nav className="footer-col" aria-label={dict.footer.quickLinks}>
-            <h3>{dict.footer.quickLinks}</h3>
-            <Link href={localePath(locale, "topics")}>{dict.nav.topics}</Link>
+          <nav className="footer-col" aria-label={dict.footer.learning}>
+            <h3>{dict.footer.learning}</h3>
+            <Link href={localePath(locale, "topics")}>{dict.nav.library}</Link>
             <Link href={localePath(locale, "research")}>{dict.nav.research}</Link>
             <Link href={localePath(locale, "posters")}>{dict.nav.posters}</Link>
-            <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
+          </nav>
+
+          <nav className="footer-col" aria-label={dict.footer.teamUpdates}>
+            <h3>{dict.footer.teamUpdates}</h3>
             <Link href={localePath(locale, "about")}>{dict.nav.about}</Link>
-            <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
+            <Link href={localePath(locale, "news")}>{dict.nav.news}</Link>
+            <Link href={localePath(locale, "events")}>{dict.nav.events}</Link>
           </nav>
 
           <nav className="footer-col" aria-label={dict.topics.title}>
@@ -53,6 +52,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
 
         <div className="footer-col">
           <h3>{dict.footer.contactUs}</h3>
+          <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
           <p>
             <IconMail size={16} />
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>

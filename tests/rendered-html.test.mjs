@@ -53,7 +53,7 @@ test("server-renders the English home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<html[^>]+lang="en"[^>]*dir="ltr"/i);
-  assert.match(html, /Head &amp; Neck/);
+  assert.match(html, /<h1 id="home-title">Thyroid and head &amp; neck surgery, through real cases<\/h1>/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
   // Was /Introducing the clinic/ — that was the section's uppercase kicker,
@@ -102,7 +102,7 @@ test("public hubs expose unique localized SEO metadata and optimized imagery", a
   const home = await (await fetchPath("/en")).text();
   assert.match(home, /gtag\('consent','default'.*analytics_storage:'denied'/);
   assert.match(home, /og-team\.jpg/);
-  assert.match(home, /hero-histology-(?:thyroid|trachea|artery|vessels)\.webp/);
+  assert.match(home, /class="editorial-plate"/);
 
   const events = await (await fetchPath("/en/events")).text();
   assert.match(events, /smart-health-tower-events-hero\.webp/);
@@ -215,8 +215,9 @@ test("every locale offers a switcher linking to both languages", async () => {
   }
 });
 
-test("home page topic cards use the shared taxonomy and link to real routes", async () => {
+test("home page topic links use the shared taxonomy and link to real routes", async () => {
   const html = await (await fetchPath("/en")).text();
+  const topics = html.match(/<ul class="editorial-topics">([\s\S]*?)<\/ul>/)?.[1] ?? "";
 
   for (const slug of [
     "thyroid-parathyroid",
@@ -224,20 +225,12 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
     "neck-lymphatic",
     "skin-soft-tissue",
   ]) {
-    assert.match(html, new RegExp(`href="/en/topics/${slug}"`));
+    assert.match(topics, new RegExp(`href="/en/topics/${slug}"`));
   }
 
   assert.doesNotMatch(html, /\b(?:9|12|16|18) lessons\b/i);
   assert.match(html, /href="\/en\/topics"/);
-  // Preserve the approved thyroid and parotid artwork; lower cards use the
-  // shared lymph and skin glyphs rather than their older standalone assets.
-  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
-  assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
-  assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
-  // Fragments of the two drawn glyphs: the skin section's full-bleed
-  // epidermal plane and the middle node's chain rotation.
-  assert.match(html, /M1\.6 10\.4H5\.4/);
-  assert.match(html, /rotate\(-32 12\.2 12\)/);
+  assert.match(topics, /Thyroidectomy and parathyroid preservation/);
 });
 
 test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {

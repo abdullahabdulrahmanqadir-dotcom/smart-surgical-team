@@ -41,7 +41,7 @@ export const en = {
     admin: "Admin", profile: "Profile", openProfile: "Open {name}'s profile",
     mainNavigation: "Main", switchColourMode: "Switch colour mode",
   },
-  footer: { rights: "All rights reserved.", quickLinks: "Quick links", contactUs: "Contact us", blurb: "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.", privacy: "Privacy Policy", terms: "Terms of Use", hours: "Saturday – Thursday, 9:00 – 17:00", address: "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq" },
+  footer: { learning: "Learning", teamUpdates: "Team & updates", rights: "All rights reserved.", quickLinks: "Quick links", contactUs: "Contact us", blurb: "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.", privacy: "Privacy Policy", terms: "Terms of Use", hours: "Saturday – Thursday, 9:00 – 17:00", address: "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq" },
   social: { ariaLabel: "Smart Health Tower social media" },
   caseSummary: {
     presentation: "Presentation", imaging: "Imaging & workup", procedure: "Procedure",
@@ -52,6 +52,11 @@ export const en = {
     "neck-lymphatic": "Lymph", "skin-soft-tissue": "Skin",
   },
   home: {
+    heroTitle: "Thyroid and head & neck surgery, through real cases",
+    heroIntro: "Explore documented surgical cases, e-posters and peer-reviewed research from our team at Smart Health Tower.",
+    browseResearch: "Browse Research",
+    anatomyCaption: "Thyroid and lower neck · schematic",
+    updatesTitle: "News & events",
     // The proof under the headline. Figures supplied by the team on 2026-10-07;
     // the paper count matches Prof. Abdulwahid's Google Scholar profile (241 works).
     builtWith: "Led by Prof. Abdulwahid M. Salih",
