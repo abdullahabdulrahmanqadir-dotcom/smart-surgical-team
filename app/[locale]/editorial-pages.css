@@ -1,7 +1,6 @@
 .topic-index-heading h1,
 .library-index-head h1,
 .research-archive-heading h1,
-.publication-citation h2,
 .posters-intro h1,
 .poster-feature h2,
 .news-feed-head h1,
@@ -15,7 +14,7 @@
 
 [dir="rtl"] :is(.topic-index-heading, .library-index-head, .research-archive-heading,
   .posters-intro, .news-feed-head, .events-hero, .about-statement, .contact-intro) h1,
-[dir="rtl"] :is(.publication-citation, .poster-feature, .news-entry) h2 {
+[dir="rtl"] :is(.poster-feature, .news-entry) h2 {
   font-family: "Noto Naskh Arabic", Georgia, "Times New Roman", serif;
   line-height: 1.35;
 }
@@ -75,10 +74,8 @@
 
 .research-archive { padding-block-start: clamp(2rem, 4.5vw, 3.75rem); }
 
-.publication-list,
 .news-entry-list { margin-block-start: 1.25rem; border-block-start: 1px solid var(--line); }
 
-.publication-entry,
 .news-entry {
   display: grid;
   align-items: start;
@@ -87,14 +84,7 @@
   border-block-end: 1px solid var(--line);
 }
 
-.publication-entry { grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr) auto; }
-.publication-entry > svg { margin-block-start: .3rem; color: var(--primary); }
-.publication-meta { display: grid; gap: .25rem; color: var(--primary); font-size: var(--step--1); }
-.publication-citation h2 { font-size: clamp(1.15rem, 2.2vw, 1.6rem); line-height: 1.35; }
-.publication-citation :is(h2, p) { overflow-wrap: anywhere; }
-.publication-entry:hover h2,
 .news-entry:hover h2 { color: var(--primary); text-decoration: underline; text-underline-offset: .18em; }
-.publication-journal { margin-block-start: .25rem; color: var(--text-muted); font-size: var(--step--1); }
 
 .posters-page .poster-feature {
   grid-template-columns: minmax(0, 21rem) minmax(0, 1fr);
@@ -150,7 +140,5 @@ main.contact-page { padding-block-start: clamp(1.9rem, 4vw, 3.25rem); }
 
 @media (max-width: 540px) {
   .library-index-filters .content-filter-grid { grid-template-columns: minmax(0, 1fr); }
-  .publication-entry { grid-template-columns: minmax(0, 1fr) auto; gap: .4rem .75rem; }
-  .publication-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .25rem .8rem; }
   .news-entry:has(.news-entry-media) { grid-template-columns: minmax(0, 1fr) minmax(4.5rem, 22%); }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { fill, type Dictionary } from "../lib/dictionaries";
 import FilterSelect, { type FilterOption } from "./FilterSelect";
 import { IconSearch } from "./icons";
@@ -58,7 +58,7 @@ export default function CaseLibraryExplorer({
     </div>
     {filtered.length ? (
       <div className="content-case-grid">
-        {filtered.map(({ slug, card }) => <div key={slug}>{card}</div>)}
+        {filtered.map(({ slug, card }) => <Fragment key={slug}>{card}</Fragment>)}
       </div>
     ) : (
       <div className="events-empty">
