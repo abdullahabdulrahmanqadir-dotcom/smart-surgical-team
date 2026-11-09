@@ -51,11 +51,19 @@ export const en = {
     "thyroid-parathyroid": "Thyroid", "salivary-glands": "Salivary",
     "neck-lymphatic": "Lymph", "skin-soft-tissue": "Skin",
   },
+  newsletter: {
+    title: "Newsletter",
+    email: "Email address",
+    request: "Request signup",
+    help: "Send a signup request from your email app.",
+    subject: "SST newsletter signup request",
+    message: "Please add this address to the SST newsletter: {email}",
+  },
   home: {
     heroTitle: "Thyroid and head & neck surgery, through real cases",
     heroIntro: "Explore documented surgical cases, e-posters and peer-reviewed research from our team at Smart Health Tower.",
     browseResearch: "Browse Research",
-    anatomyCaption: "Thyroid and lower neck · schematic",
+    anatomyLabel: "Schematic of the thyroid and lower neck",
     updatesTitle: "News & events",
     // The proof under the headline. Figures supplied by the team on 2026-10-07;
     // the paper count matches Prof. Abdulwahid's Google Scholar profile (241 works).

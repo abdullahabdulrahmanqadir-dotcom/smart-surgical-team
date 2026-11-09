@@ -2889,6 +2889,32 @@ html:has(.image-lightbox)::before { display: none; }
 
 .site-footer .footer-col h3 { color: var(--footer-ink); }
 
+.footer-newsletter {
+  display: grid;
+  gap: .55rem;
+  margin-block-start: 1.25rem;
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--footer-line);
+}
+
+.footer-newsletter label,
+.footer-newsletter small {
+  color: var(--footer-ink-muted);
+  font-size: var(--step--1);
+}
+
+.footer-newsletter input {
+  width: 100%;
+  min-height: 44px;
+  padding: .6rem .75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.footer-newsletter .btn { justify-self: start; min-height: 44px; }
+
 .site-footer .brand-name { color: var(--footer-ink); }
 
 .footer-main {

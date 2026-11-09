@@ -65,14 +65,14 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               {t.builtWith}
             </Link>
           </div>
-          <ThyroidPlate caption={t.anatomyCaption} />
+          <ThyroidPlate label={t.anatomyLabel} />
         </section>
 
         {pinnedNews && <div className="editorial-announcement">
           <NewsBanner locale={active} item={pinnedNews} t={dict.news} />
         </div>}
 
-        <section className="editorial-wrap editorial-band" id="topics" aria-labelledby="topics-heading">
+        <section className="editorial-wrap editorial-band editorial-topic-band" id="topics" aria-labelledby="topics-heading">
           <div className="editorial-heading">
             <h2 id="topics-heading">{dict.topics.title}</h2>
             <Link className="text-link" href={localePath(active, "topics")}>{t.viewAllTopics}<IconArrowRight size={16} /></Link>
@@ -90,8 +90,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         </section>
 
         <div className="editorial-updates">
-          <div className="editorial-wrap editorial-band editorial-columns">
-            <section aria-labelledby="research-preview-heading">
+          <div className="editorial-wrap editorial-band editorial-columns editorial-update-columns">
+            <section className="editorial-update-panel editorial-research-panel" aria-labelledby="research-preview-heading">
               <h2 id="research-preview-heading">{t.researchTitle}</h2>
               {latestResearch && (
                 <article className="editorial-citation">
@@ -104,7 +104,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               )}
               <Link className="text-link" href={localePath(active, "research")}>{t.exploreResearch}<IconArrowRight size={16} /></Link>
             </section>
-            <section id="events" aria-labelledby="updates-heading">
+            <section className="editorial-update-panel" id="events" aria-labelledby="updates-heading">
               <h2 id="updates-heading">{t.updatesTitle}</h2>
               <div className="editorial-update-group">
                 <h3>{t.newsTitle}</h3>
@@ -138,7 +138,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
             <h2 id="introduction-heading">{t.introductionTitle}</h2>
             <Link className="text-link" href={localePath(active, "about")}>{t.meetFullTeam}<IconArrowRight size={16} /></Link>
           </div>
-          <div className="editorial-columns" id="team">
+          <div className="editorial-columns editorial-team-columns" id="team">
             <ul className="editorial-team">
               {featuredTeam.map((member) => {
                 const profile = profileForMember(member.name);
@@ -152,7 +152,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                 );
               })}
             </ul>
-            <div id="introduction"><IntroductionVideo t={dict.introduction} /></div>
+            <div className="editorial-introduction" id="introduction">
+              <h3>{t.clinicOverview}</h3>
+              <IntroductionVideo t={dict.introduction} />
+            </div>
           </div>
           <ul className="editorial-credentials">
             <li>{t.proofOperations}</li>
