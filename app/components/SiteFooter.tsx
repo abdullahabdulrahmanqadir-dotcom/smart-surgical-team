@@ -3,7 +3,6 @@ import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 import { PUBLIC_TOPIC_GROUPS } from "../lib/topics";
 import SocialLinks from "./SocialLinks";
-import NewsletterSignup from "./NewsletterSignup";
 import {
   BrandMark,
   IconMail,
@@ -61,7 +60,6 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           <p>
             <IconPin size={16} /> {dict.footer.address}
           </p>
-          <NewsletterSignup recipient={CONTACT_EMAIL} t={dict.newsletter} />
         </div>
 
       </div>

@@ -77,7 +77,11 @@
   font-size: var(--step--1);
 }
 
-.editorial-plate { color: var(--primary); text-align: center; }
+.editorial-plate {
+  --thyroid-ink: color-mix(in srgb, var(--brand-copper) 78%, var(--text));
+  color: var(--primary);
+  text-align: center;
+}
 .editorial-plate svg { display: block; width: 100%; height: auto; max-height: 27rem; }
 
 .editorial-announcement:has(.news-banner:not([data-dismissed="1"])) {
