@@ -44,6 +44,9 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           <header className="contact-intro">
             <h1>{dict.contact.title}</h1>
             <p>{dict.contact.intro}</p>
+            <a className="text-link" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">
+              {dict.contact.getDirections}<IconArrowRight size={17} />
+            </a>
           </header>
           <div className="contact-layout">
             <aside className="contact-details" aria-labelledby="contact-details-heading">
@@ -61,7 +64,6 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <div className="contact-location-orbit" aria-hidden="true"><span /><span /><i /></div>
               <h2 id="visit-heading">{dict.contact.towerTitle}</h2>
               <p>{dict.contact.visitBody}</p>
-              <a className="contact-directions" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">{dict.contact.getDirections} <IconArrowRight size={17} /></a>
             </section>
           </div>
 

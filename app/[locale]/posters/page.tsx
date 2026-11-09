@@ -48,6 +48,9 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
     <main id="main-content" className="posters-page">
       <header className="posters-intro">
         <h1>{t.heroTitle}</h1>
+        {archive.length > 0 && (
+          <a className="text-link" href="#poster-archive-title">{t.archiveTitle}<IconArrowRight size={16} /></a>
+        )}
       </header>
 
       {featured && <article className="poster-feature" aria-labelledby="featured-poster-title">

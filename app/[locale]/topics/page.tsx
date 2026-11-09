@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
 import SiteFooter from "../../components/SiteFooter";
 import TopicsExplorer from "../../components/TopicsExplorer";
-import { LOCALES, isLocale, type Locale } from "../../lib/i18n";
+import { IconArrowRight } from "../../components/icons";
+import { LOCALES, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getDictionary } from "../../lib/dictionaries";
 import { localizeTopicGroups } from "../../lib/topics";
 import { getPublicTopicTree } from "../../lib/topic-tree";
@@ -49,8 +51,13 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <ScrollMotion />
 
       <main id="main-content">
-        <section className="section section-topic-index" aria-labelledby="topic-index-heading">
-          <h1 className="visually-hidden" id="topic-index-heading">{dict.topics.title}</h1>
+        <section className="section section-topic-index editorial-topic-index" aria-labelledby="topic-index-heading">
+          <div className="topic-index-heading">
+            <h1 id="topic-index-heading">{dict.topics.title}</h1>
+            <Link className="text-link" href={localePath(active, "library")}>
+              {dict.libraryIndex.allCases}<IconArrowRight size={16} />
+            </Link>
+          </div>
           <TopicsExplorer groups={groups} locale={active} t={dict.topics} anatomyLabels={dict.anatomy} initialLatestCase={latestCase} />
         </section>
       </main>

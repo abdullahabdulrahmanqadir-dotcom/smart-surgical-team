@@ -301,6 +301,8 @@ export const en = {
     exploreResearch: "Read our research",
   },
   libraryIndex: {
+    allCases: "View all cases",
+    searchCases: "Search cases",
     title: "Case library",
     intro: "Every published case from the head and neck department, newest first.",
     countOne: "1 published case",

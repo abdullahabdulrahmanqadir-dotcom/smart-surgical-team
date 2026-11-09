@@ -294,6 +294,8 @@ export const ar: Dictionary = {
     exploreResearch: "اقرأ بحوثنا",
   },
   libraryIndex: {
+    allCases: "عرض جميع الحالات",
+    searchCases: "البحث في الحالات",
     title: "مكتبة الحالات",
     intro: "جميع الحالات المنشورة من قسم جراحة الرأس والعنق، الأحدث أولاً.",
     countOne: "حالة منشورة واحدة",

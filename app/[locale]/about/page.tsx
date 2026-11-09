@@ -32,17 +32,19 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <ScrollMotion />
     <JsonLd data={teamGraph(active, teamGroups.flatMap((group) => group.members))} />
     <main id="main-content" className="about-page">
-      <h1 className="visually-hidden">{dict.about.pageTitle}</h1>
+      <header className="about-statement">
+        <div>
+          <h1>{dict.about.pageTitle}</h1>
+          <a className="text-link" href="#team-directory">{dict.nav.team}</a>
+        </div>
+        <div className="about-mission">
+          <h2>{dict.about.missionTitle}</h2>
+          <p>{dict.about.missionBody} {dict.about.locationBody}</p>
+        </div>
+      </header>
 
-      {/* The mission led the page's closing section, which meant the page
-          opened on a staff directory and only said what the department is
-          about after eighteen portraits. It now introduces the team. */}
-      <section className="about-statement" aria-labelledby="about-statement-title">
-        <div><h2 id="about-statement-title">{dict.about.missionTitle}</h2></div>
-        <p>{dict.about.missionBody} {dict.about.locationBody}</p>
-      </section>
-
-      <section className="team-directory" aria-label={dict.about.teamDirectory}>
+      <section className="team-directory" id="team-directory" aria-labelledby="team-directory-heading">
+        <h2 className="visually-hidden" id="team-directory-heading">{dict.about.teamDirectory}</h2>
         {teamGroups.map((group, index) => <section className={`team-group team-group-${index + 1}`} key={group.title} aria-labelledby={`group-${index}`}>
           <div className="team-group-head"><div><h3 id={`group-${index}`} {...authoredTitleProps(group.title)}>{group.title}</h3>{group.intro && <p>{group.intro}</p>}</div></div>
           <div className="team-profile-grid">

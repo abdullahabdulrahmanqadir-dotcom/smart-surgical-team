@@ -3,14 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import ScrollMotion from "../../components/ScrollMotion";
 import CaseCard, { type LibraryItem } from "../../components/CaseCard";
+import CaseLibraryExplorer from "../../components/CaseLibraryExplorer";
 import { IconArrowRight } from "../../components/icons";
 import { getLibraryContent } from "../../lib/content";
 import { fill, getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
 import { pageMetadata } from "../../lib/seo";
-import { PUBLIC_TOPIC_GROUPS } from "../../lib/topics";
+import { getPublicTopicTree } from "../../lib/topic-tree";
+import { localizeTopicGroups, PUBLIC_TOPIC_GROUPS } from "../../lib/topics";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -32,13 +33,15 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
   const dict = getDictionary(active);
   const t = dict.libraryIndex;
 
-  const cards = await getLibraryContent();
+  const [cards, tree] = await Promise.all([getLibraryContent(), getPublicTopicTree()]);
+  const groups = localizeTopicGroups(tree, dict.taxonomy);
+  const fallbackGroup = groups[0] ?? PUBLIC_TOPIC_GROUPS[0];
   const subTopicIndex = new Map(
-    PUBLIC_TOPIC_GROUPS.flatMap((group) =>
+    groups.flatMap((group) =>
       group.subTopics.map((sub) => [sub.slug, { group, sub }] as const),
     ),
   );
-  const groupIndex = new Map(PUBLIC_TOPIC_GROUPS.map((group) => [group.slug, group] as const));
+  const groupIndex = new Map(groups.map((group) => [group.slug, group] as const));
 
   const items = cards
     .slice()
@@ -47,8 +50,8 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
       // A card carries every topic it is filed under; the first that resolves
       // to a known sub-topic decides the label and the fallback glyph.
       const match = card.topics.map(({ slug }) => subTopicIndex.get(slug)).find(Boolean);
-      const group = match?.group ?? groupIndex.get(card.topicSlug) ?? PUBLIC_TOPIC_GROUPS[0];
-      const name = match?.sub.name ?? group.name;
+      const group = match?.group ?? groupIndex.get(card.topicSlug) ?? fallbackGroup;
+      const name = match?.sub.name ?? groupIndex.get(card.topicSlug)?.name ?? (card.topic || group.name);
       const item: LibraryItem = {
         ...card,
         subTopic: name,
@@ -59,14 +62,25 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
           : dict.topics.recentlyAdded,
         hasVideo: card.kind === "video" || card.kind === "webinar_recording",
       };
-      return { item, icon: group.icon };
+      const topicSlugs = [...new Set([card.topicSlug, ...card.topics.map(({ slug }) => slug)]
+        .map((slug) => subTopicIndex.get(slug)?.group.slug ?? slug))];
+      const searchText = [card.title, card.summary, name, ...card.topics.map(({ name }) => name),
+        ...topicSlugs.map((slug) => groupIndex.get(slug)?.name)].join(" ").toLocaleLowerCase();
+      return {
+        slug: item.slug,
+        topicSlugs,
+        searchText,
+        card: <CaseCard item={item} icon={group.icon} t={dict.topics} locale={active} />,
+      };
     });
+  const usedTopics = new Set(items.flatMap(({ topicSlugs }) => topicSlugs));
+  const filterTopics = groups.filter(({ slug }) => usedTopics.has(slug))
+    .map(({ slug, name }) => ({ value: slug, label: name }));
 
   return (
     <>
       <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
       <SiteHeader locale={active} dict={dict} />
-      <ScrollMotion />
       <main id="main-content" className="library-index">
         <header className="library-index-head">
           <h1>{t.title}</h1>
@@ -81,11 +95,7 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
         </header>
 
         {items.length ? (
-          <div className="content-case-grid">
-            {items.map(({ item, icon }) => (
-              <CaseCard item={item} icon={icon} t={dict.topics} locale={active} key={item.slug} />
-            ))}
-          </div>
+          <CaseLibraryExplorer entries={items} topics={filterTopics} t={t} labels={dict.topics} />
         ) : (
           <div className="events-empty">
             <h2>{t.empty}</h2>

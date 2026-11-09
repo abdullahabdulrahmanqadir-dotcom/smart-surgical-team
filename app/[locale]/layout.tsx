@@ -9,6 +9,7 @@ import GoogleAnalytics from "../components/GoogleAnalytics";
 import JsonLd from "../components/JsonLd";
 import { organizationGraph } from "../lib/structured-data";
 import "../globals.css";
+import "./editorial-pages.css";
 
 // Type revised 2026-09-02. The display face was Newsreader, which is one of
 // the most-used serifs on the web right now and read as a default rather than

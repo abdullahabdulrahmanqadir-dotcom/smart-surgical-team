@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconSearch } from "./icons";
-import { localePath, type Locale } from "../lib/i18n";
-import ResearchCover from "./ResearchCover";
+import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import FilterSelect from "./FilterSelect";
 import type { Publication, ResearchTopicTree } from "../lib/research";
 import { fill, type Dictionary } from "../lib/dictionaries";
@@ -116,10 +115,26 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
         </div>
       ) : null}
     </div>
-    <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
-      <ResearchCover title={paper.title} label={paper.topic?.name ?? t.unfiled} palette={paper.palette} paletteKey={paper.journal}/>
-      <div className="research-card-copy"><p className="research-authors">{paper.authors}</p><div className="research-card-footer"><p className="research-card-date">{dateLabel(paper)}</p><span className="research-read">{t.readResearch} <IconArrowRight size={16}/></span></div></div>
-    </Link>)}</div>
+    {displayed.length > 0 && (
+      <ul className="publication-list">
+        {displayed.map((paper) => (
+          <li key={paper.id}>
+            <Link className="publication-entry" href={localePath(locale, `research/${paper.id}`)}>
+              <div className="publication-meta">
+                <bdi>{dateLabel(paper)}</bdi>
+                <bdi>{paper.topic?.name ?? t.unfiled}</bdi>
+              </div>
+              <div className="publication-citation">
+                <h2 {...authoredTitleProps(paper.title)}>{paper.title}</h2>
+                {paper.authors && <p className="research-authors" dir="auto">{paper.authors}</p>}
+                {paper.journal && <p className="publication-journal"><bdi>{paper.journal}</bdi></p>}
+              </div>
+              <IconArrowRight size={18} aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    )}
     {totalPages > 1 && <nav className="research-pagination" aria-label={t.publicationPages}><button type="button" onClick={() => goToPage(Math.max(1, safePage - 1))} disabled={safePage === 1}>{t.previous}</button>{pageNumbers.map((number) => <button key={number} type="button" className={number === safePage ? "is-current" : ""} onClick={() => goToPage(number)} aria-current={number === safePage ? "page" : undefined}>{number}</button>)}<button type="button" onClick={() => goToPage(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>{t.next}</button></nav>}
     {!results.length && <div className="research-empty"><h3>{t.noMatches}</h3><button type="button" onClick={resetFilters}>{t.clearFilters}</button></div>}
   </section>;
