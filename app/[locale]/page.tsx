@@ -91,7 +91,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         <div className="editorial-updates">
           <div className="editorial-wrap editorial-band editorial-columns editorial-update-columns">
-            <section className="editorial-update-panel editorial-research-panel" aria-labelledby="research-preview-heading">
+            <section aria-labelledby="research-preview-heading">
               <h2 id="research-preview-heading">{t.researchTitle}</h2>
               {latestResearch && (
                 <article className="editorial-citation">
@@ -104,7 +104,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               )}
               <Link className="text-link" href={localePath(active, "research")}>{t.exploreResearch}<IconArrowRight size={16} /></Link>
             </section>
-            <section className="editorial-update-panel" id="events" aria-labelledby="updates-heading">
+            <section id="events" aria-labelledby="updates-heading">
               <h2 id="updates-heading">{t.updatesTitle}</h2>
               <div className="editorial-update-group">
                 <h3>{t.newsTitle}</h3>
