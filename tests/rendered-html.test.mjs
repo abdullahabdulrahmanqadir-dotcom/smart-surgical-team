@@ -65,7 +65,7 @@ test("server-renders the English home page", async () => {
   // carries the poster and the button, and nothing from YouTube. The embed
   // only appears once a visitor asks for it.
   assert.match(html, /class="introduction-video-cover"/);
-  assert.match(html, /\/introduction-poster\.webp/);
+  assert.match(html, /\/events\/smart-health-tower-events-hero\.webp/);
   assert.doesNotMatch(html, /youtube-nocookie\.com/);
   assert.match(html, /href="\/en\/sign-up"/);
   assert.doesNotMatch(html, /class="cta-form"|homepage-join/);

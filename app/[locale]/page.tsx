@@ -68,7 +68,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               {t.builtWith}
             </Link>
           </div>
-          <ThyroidPlate label={t.anatomyLabel} />
+          <ThyroidPlate description={t.anatomyDescription} structures={t.anatomyStructures} />
         </section>
 
         {pinnedNews && <div className="editorial-announcement">
@@ -152,37 +152,38 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           </div>
         </div>
 
-        <section className="editorial-wrap editorial-band" id="library" aria-labelledby="introduction-heading">
-          <div className="editorial-heading">
-            <h2 id="introduction-heading">{t.introductionTitle}</h2>
-            <Link className="text-link" href={localePath(active, "about")}>{t.meetFullTeam}<IconArrowRight size={16} /></Link>
-          </div>
-          <p className="editorial-team-intro">{t.introductionIntro}</p>
-          <div className="editorial-columns editorial-team-columns" id="team">
-            <ul className="editorial-team">
-              {featuredTeam.map((member) => {
-                const profile = profileForMember(member.name);
-                return (
-                  <li key={member.name}>
-                    <Link href={localePath(active, profile ? `about/${profile.slug}` : "about")}>
-                      <img src={member.portrait} alt="" width={64} height={64} loading="lazy" decoding="async" />
-                      <span><strong {...authoredTitleProps(member.name)}>{member.name}</strong><small>{member.credentials}</small></span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="editorial-introduction" id="introduction">
-              <h3>{t.clinicOverview}</h3>
+        <div className="editorial-wrap editorial-band" id="library">
+          <div className="editorial-columns editorial-team-columns">
+            <section id="team" aria-labelledby="team-heading">
+              <h2 id="team-heading">{t.introductionTitle}</h2>
+              <p className="editorial-section-intro">{t.teamIntro}</p>
+              <ul className="editorial-team">
+                {featuredTeam.map((member) => {
+                  const profile = profileForMember(member.name);
+                  return (
+                    <li key={member.name}>
+                      <Link href={localePath(active, profile ? `about/${profile.slug}` : "about")}>
+                        <img src={member.portrait} alt="" width={64} height={64} loading="lazy" decoding="async" />
+                        <span><strong {...authoredTitleProps(member.name)}>{member.name}</strong><small>{member.credentials}</small></span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+              <Link className="text-link" href={localePath(active, "about")}>{t.meetFullTeam}<IconArrowRight size={16} /></Link>
+            </section>
+            <section className="editorial-introduction" id="introduction" aria-labelledby="introduction-heading">
+              <h2 id="introduction-heading">{t.clinicOverview}</h2>
+              <p className="editorial-section-intro">{t.introductionIntro}</p>
               <IntroductionVideo t={dict.introduction} />
-            </div>
+            </section>
           </div>
           <ul className="editorial-credentials">
             <li>{t.proofOperations}</li>
             <li>{t.proofPapers}</li>
             <li>{t.proofSummit}</li>
           </ul>
-        </section>
+        </div>
       </main>
       <SiteFooter locale={active} dict={dict} />
     </>

@@ -61,23 +61,20 @@ export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, 
   return (
     <div className={`content-map${region ? " is-focused" : ""}`} style={camera} ref={map}>
       <div className="content-map-stage">
-        <div className="content-map-camera">
-          {/* A CSS background lets the active theme fetch only its own plate;
-              two hidden img elements would still download both full assets. */}
-          <span
-            className="content-map-plate"
-            style={{
-              "--plate-image-light": `url(${ANATOMY_PLATE.src})`,
-              "--plate-image-dark": `url(${ANATOMY_PLATE.darkSrc})`,
-            } as CSSProperties}
-            aria-hidden="true"
-          />
+        <div className="content-map-viewport" aria-hidden="true">
+          <div className="content-map-camera">
+            {/* A CSS background fetches only the active theme's plate. */}
+            <span
+              className="content-map-plate"
+              style={{
+                "--plate-image-light": `url(${ANATOMY_PLATE.src})`,
+                "--plate-image-dark": `url(${ANATOMY_PLATE.darkSrc})`,
+              } as CSSProperties}
+            />
+          </div>
+          {/* The stationary veil softens the anatomy surrounding the focus. */}
+          <span className="content-map-veil" />
         </div>
-
-        {/* Softens everything outside the focus, so the surrounding anatomy
-            falls away instead of disappearing. Sits outside the camera and
-            never moves — only its opacity changes. */}
-        <span className="content-map-veil" aria-hidden="true" />
 
         {region ? (
           <button
