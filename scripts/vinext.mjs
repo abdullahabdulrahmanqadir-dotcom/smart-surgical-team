@@ -26,7 +26,15 @@ child.on("error", (error) => {
   console.error(`Failed to start vinext: ${error.message}`);
   process.exit(1);
 });
-child.on("exit", (code, signal) => {
+child.on("exit", async (code, signal) => {
   if (signal) process.kill(process.pid, signal);
-  else process.exit(code ?? 0);
+  else if (code === 0 && command === "build" && process.env.WORKERS_CI === "1") {
+    try {
+      const { retainPreviousAssets } = await import("./retain-previous-assets.mjs");
+      await retainPreviousAssets();
+    } catch (error) {
+      console.error("Could not retain the previous release's assets:", error);
+      process.exitCode = 1;
+    }
+  } else process.exit(code ?? 0);
 });

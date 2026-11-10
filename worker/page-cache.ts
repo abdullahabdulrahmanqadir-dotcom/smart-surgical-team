@@ -223,6 +223,13 @@ export async function servePublicDocument(
     return restorableDocument(await render());
   }
 
+  // Cloudflare version previews can share the production R2 binding. Keep
+  // their HTML out of both document caches so it cannot refer to another
+  // version's assets, and leave preview responses non-storable.
+  if (hostname.endsWith(".workers.dev")) {
+    return render();
+  }
+
   if (!env.CACHE_BUCKET || !isPublicDocumentRequest(request)) {
     // A public content page rendered for a signed-in reader still has to be
     // restorable from their own history; anything else — an account screen, an
