@@ -18,7 +18,10 @@ import "./home-editorial.css";
 
 async function UpcomingEvents({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const events = await getPublicEvents();
-  const upcoming = events.filter((event) => event.status === "upcoming").slice(0, 2);
+  const upcoming = events
+    .filter((event) => event.status === "upcoming")
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .slice(0, 2);
 
   if (!upcoming.length) return <p className="editorial-empty">{dict.home.noUpcomingEvents}</p>;
 

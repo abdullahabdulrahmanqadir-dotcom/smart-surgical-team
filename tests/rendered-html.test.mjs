@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access } from "node:fs/promises";
 import test from "node:test";
+import { getCacheHandler, NoOpCacheHandler, setCacheHandler } from "vinext/shims/cache";
 
 async function fetchPath(path, headers = {}, init = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -523,6 +524,38 @@ test("a two-day event prints one month name, in the right place per locale", asy
 
   const arabic = await (await fetchPath("/ar/events")).text();
   assert.match(arabic, /27–28 أغسطس 2026/);
+});
+
+test("the homepage lists the two soonest upcoming events", async (t) => {
+  const cacheHandler = getCacheHandler();
+  setCacheHandler(new NoOpCacheHandler());
+  t.after(() => setCacheHandler(cacheHandler));
+
+  const env = { SUPABASE_URL: "https://events.example.invalid", SUPABASE_SERVICE_ROLE_KEY: "test-key" };
+  for (const [name, value] of Object.entries(env)) {
+    const previous = process.env[name];
+    process.env[name] = value;
+    t.after(() => {
+      if (previous === undefined) delete process.env[name];
+      else process.env[name] = previous;
+    });
+  }
+  const futureYear = new Date().getUTCFullYear() + 1;
+  const rows = [
+    { slug: "last-event", title: "Last event", starts_at: `${futureYear}-03-01` },
+    { slug: "middle-event", title: "Middle event", starts_at: `${futureYear}-02-01` },
+    { slug: "next-event", title: "Next event", starts_at: `${futureYear}-01-01` },
+    { slug: "past-event", title: "Past event", starts_at: "2024-01-01" },
+  ];
+  t.mock.method(globalThis, "fetch", (input) =>
+    Response.json(new URL(input).pathname === "/rest/v1/events" ? rows : []),
+  );
+
+  const response = await fetchPath("/en");
+  assert.equal(response.status, 200);
+  const html = (await response.text()).replace(/<script[\s\S]*?<\/script>/g, "");
+  const eventLinks = Array.from(html.matchAll(/href="\/en\/events\/([^"]+)"/g), (match) => match[1]);
+  assert.deepEqual(eventLinks, ["next-event", "middle-event"]);
 });
 
 test("events stand down to an archive when nothing is upcoming", async () => {
