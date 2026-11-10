@@ -29,6 +29,10 @@ function serverSparingData() {
   return false;
 }
 
+function focusPlayer(frame: HTMLIFrameElement | null) {
+  frame?.focus();
+}
+
 /**
  * The player is a facade: until someone asks for the video, the section is a
  * poster image and a play button. Nothing plays on its own.
@@ -46,6 +50,7 @@ export default function IntroductionVideo({ t }: { t: Dictionary["introduction"]
     return (
       <div className="introduction-video">
         <iframe
+          ref={focusPlayer}
           src={videoUrl}
           title={t.videoTitle}
           referrerPolicy="strict-origin-when-cross-origin"

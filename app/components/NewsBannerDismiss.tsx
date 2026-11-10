@@ -1,18 +1,35 @@
 "use client";
 
-import { NEWS_DISMISS_KEY } from "./NewsBanner";
+import { useLayoutEffect, useRef } from "react";
 
 /**
  * The banner's close button.
  *
- * Deliberately stateless. It hides the banner by setting the same attribute the
- * pre-paint script sets, rather than by re-rendering: the banner is server
- * markup shared by every reader, and holding its visibility in React state
- * would mean either an effect reading `localStorage` on mount — which flashes —
- * or a hydration mismatch between the shared HTML and this reader's storage.
+ * The server's inline script restores dismissal on a document load. Restore
+ * the same attribute when this button mounts through client navigation, where
+ * the inline script does not run.
  */
-export default function NewsBannerDismiss({ itemId, label, nextHeadingId }: { itemId: string; label: string; nextHeadingId: string }) {
+export default function NewsBannerDismiss({
+  itemId, storageKey, label, nextHeadingId,
+}: {
+  itemId: string;
+  storageKey: string;
+  label: string;
+  nextHeadingId: string;
+}) {
+  const button = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    const banner = button.current?.closest<HTMLElement>("[data-news-banner]");
+    if (!banner) return;
+    try {
+      if (window.localStorage.getItem(storageKey) === itemId) banner.dataset.dismissed = "1";
+      else delete banner.dataset.dismissed;
+    } catch { /* storage unavailable */ }
+  }, [itemId, storageKey]);
+
   return <button
+    ref={button}
     type="button"
     className="news-banner-dismiss"
     aria-label={label}
@@ -22,7 +39,7 @@ export default function NewsBannerDismiss({ itemId, label, nextHeadingId }: { it
       document.getElementById(nextHeadingId)?.focus({ preventScroll: true });
       // A private window or blocked site data simply means this reader is asked
       // again next time; the banner still closes now.
-      try { window.localStorage.setItem(NEWS_DISMISS_KEY, itemId); } catch { /* storage unavailable */ }
+      try { window.localStorage.setItem(storageKey, itemId); } catch { /* storage unavailable */ }
     }}
   >
     <span aria-hidden="true">×</span>

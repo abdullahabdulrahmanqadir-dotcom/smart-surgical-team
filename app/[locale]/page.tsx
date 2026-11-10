@@ -55,7 +55,6 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <main id="main-content" className="editorial-home">
         <section className="editorial-wrap editorial-hero" aria-labelledby="home-title">
           <div>
-            <p className="editorial-kicker">{t.heroKicker}</p>
             <h1 id="home-title">{t.heroTitle}</h1>
             <p className="editorial-intro">{t.heroIntro}</p>
             <div className="editorial-actions">
@@ -68,7 +67,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               {t.builtWith}
             </Link>
           </div>
-          <ThyroidPlate description={t.anatomyDescription} structures={t.anatomyStructures} />
+          <ThyroidPlate description={t.anatomyDescription} />
         </section>
 
         {pinnedNews && <div className="editorial-announcement">

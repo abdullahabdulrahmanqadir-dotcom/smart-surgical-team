@@ -52,12 +52,10 @@ export const en = {
     "neck-lymphatic": "Lymph", "skin-soft-tissue": "Skin",
   },
   home: {
-    heroKicker: "Surgical education & research",
     heroTitle: "Thyroid and head\u00a0&\u00a0neck surgery, through real cases",
     heroIntro: "Explore documented surgical cases, e-posters and peer-reviewed research from our team at Smart Health Tower.",
     browseResearch: "Browse Research",
     anatomyDescription: "Two thyroid lobes sit on either side of the upper trachea, below the larynx, and join across the front.",
-    anatomyStructures: ["Thyroid gland", "Larynx", "Trachea"],
     updatesTitle: "News & events",
     // The proof under the headline. Figures supplied by the team on 2026-10-07;
     // the paper count matches Prof. Abdulwahid's Google Scholar profile (241 works).

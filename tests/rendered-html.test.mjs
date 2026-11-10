@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
 import test from "node:test";
 
 async function fetchPath(path, headers = {}, init = {}) {
@@ -53,6 +54,12 @@ test("server-renders the English home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<html[^>]+lang="en"[^>]*dir="ltr"/i);
+  // When Vinext bundles self-hosted fonts, their CSS must reference packaged assets.
+  const fontUrls = new Set(Array.from(html.matchAll(/url\(([^)]+\.woff2)\)/g), (match) => match[1]));
+  for (const url of fontUrls) {
+    assert.match(url, /^\/assets\/_vinext_fonts\//);
+    await access(new URL(`../dist/client${url}`, import.meta.url));
+  }
   assert.match(html, /<h1 id="home-title">Thyroid and head\s&amp;\sneck surgery, through real cases<\/h1>/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
