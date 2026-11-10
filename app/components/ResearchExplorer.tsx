@@ -18,6 +18,8 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
   const [topic, setTopic] = useState("all");
   const [subtopic, setSubtopic] = useState("all");
   const [page, setPage] = useState(1);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   // The page number and filters live in the URL, so opening a paper and coming
   // back returns to the same page of results rather than resetting to the
   // first. Reading them after mount (rather than in the initial state) keeps
@@ -27,7 +29,8 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
   // /research path, so the URL alone cannot carry the reader back to where
   // they were. The last view is kept for the tab so those links land on it
   // too; it is deliberately per-tab, so a fresh visit starts clean.
-  const restored = useRef(false);
+  const [restored, setRestored] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect -- Restore the browser-only view after hydration, keeping the server and first client render in sync. */
   useEffect(() => {
     let search = window.location.search;
     if (!search) {
@@ -35,7 +38,7 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
     }
     const params = new URLSearchParams(search);
     const savedPage = Number(params.get("page"));
-    if (Number.isFinite(savedPage) && savedPage > 1) setPage(savedPage);
+    if (Number.isSafeInteger(savedPage) && savedPage > 1) setPage(savedPage);
     const savedQuery = params.get("q");
     if (savedQuery) setQuery(savedQuery);
     const savedYear = params.get("year");
@@ -44,10 +47,11 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
     if (savedTopic) setTopic(savedTopic);
     const savedSubtopic = params.get("subtopic");
     if (savedSubtopic) setSubtopic(savedSubtopic);
-    restored.current = true;
+    setRestored(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!restored.current) return;
+    if (!restored) return;
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (year !== "all") params.set("year", year);
@@ -57,7 +61,7 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
     const search = params.toString();
     window.history.replaceState(null, "", search ? `?${search}` : window.location.pathname);
     try { sessionStorage.setItem(RESEARCH_VIEW_KEY, search ? `?${search}` : ""); } catch { /* storage unavailable */ }
-  }, [query, year, topic, subtopic, page]);
+  }, [restored, query, year, topic, subtopic, page]);
   const years = [...new Set(publications.map((paper) => paper.year))].sort((a, b) => b.localeCompare(a));
   // Only topics that actually hold a published paper: an empty option in a
   // filter is a dead end, and the admin can create a topic before filing
@@ -85,36 +89,44 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
   // label, and a summary strip appears the moment a filter narrows it, so the
   // reader always knows how much of the archive they are looking at.
   const filtersAreActive = query.trim().length > 0 || year !== "all" || topic !== "all" || subtopic !== "all";
-  const resetFilters = () => { setQuery(""); setYear("all"); setTopic("all"); setSubtopic("all"); setPage(1); };
+  const resetFilters = () => {
+    setQuery("");
+    setYear("all");
+    setTopic("all");
+    setSubtopic("all");
+    setPage(1);
+    searchInput.current?.focus();
+  };
   // Changing the topic strands any subtopic chosen under the previous one, so
   // it clears rather than silently filtering everything down to nothing.
   const changeTopic = (value: string) => { setTopic(value); setSubtopic("all"); setPage(1); };
   const updateQuery = (value: string) => { setQuery(value); setPage(1); };
   const goToPage = (nextPage: number) => {
     setPage(nextPage);
+    heading.current?.focus({ preventScroll: true });
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.getElementById("publications")?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
   };
 
   return <section className="research-archive" id="publications" aria-labelledby="publications-heading">
-    <div className="research-archive-heading"><h1 id="publications-heading">{t.publications}</h1></div>
+    <div className="research-archive-heading"><h1 id="publications-heading" ref={heading} tabIndex={-1}>{t.publications}</h1></div>
     <div className={`research-filters${filtersAreActive ? " has-active-filters" : ""}`}>
       <div className="content-filter-header">
         <span className="content-filter-label">{t.filterBy}</span>
         <span className="content-filter-total" aria-live="polite">{fill(publications.length === 1 ? t.publicationCount : t.publicationCountPlural, { count: publications.length })}</span>
       </div>
       <div className="research-controls" aria-label={t.filterPublications}>
-        <label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label>
+        <label className="research-search"><span>{t.searchPublications}</span><span className="research-search-field"><IconSearch size={18}/><input ref={searchInput} type="search" dir="auto" value={query} onChange={(event) => updateQuery(event.target.value)} placeholder={t.searchPlaceholder} /></span></label>
         <FilterSelect className="research-filter-control" label={t.topic} value={topic} onChange={changeTopic} options={[{ value: "all", label: t.allTopics }, ...topicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
         <FilterSelect className="research-filter-control" label={t.subtopic} value={subtopic} disabled={topic === "all" || !subtopicOptions.length} onChange={(value) => { setSubtopic(value); setPage(1); }} options={[{ value: "all", label: t.allSubtopics }, ...subtopicOptions.map((option) => ({ value: option.slug, label: option.name }))]} />
         <FilterSelect className="research-filter-control" label={t.year} value={year} onChange={(value) => { setYear(value); setPage(1); }} options={[{ value: "all", label: t.allYears }, ...years.map((value) => ({ value, label: value }))]} />
       </div>
-      {filtersAreActive ? (
-        <div className="content-filter-summary" aria-live="polite">
-          <p>{fill(t.filteredResults, { count: results.length, total: publications.length })}</p>
+      <div className={filtersAreActive ? "content-filter-summary" : "visually-hidden"}>
+        <p role="status">{filtersAreActive ? fill(t.filteredResults, { count: results.length, total: publications.length }) : ""}</p>
+        {filtersAreActive && (
           <button className="content-clear-filters" type="button" onClick={resetFilters}>{t.clearAll}</button>
-        </div>
-      ) : null}
+        )}
+      </div>
     </div>
     <div className="research-card-grid">{displayed.map((paper) => <Link className="research-card research-card-link" href={localePath(locale, `research/${paper.id}`)} key={paper.id}>
       <ResearchCover title={paper.title} label={paper.topic?.name ?? t.unfiled} palette={paper.palette} paletteKey={paper.journal}/>

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
 import test from "node:test";
+import { getCacheHandler, NoOpCacheHandler, setCacheHandler } from "vinext/shims/cache";
 
 async function fetchPath(path, headers = {}, init = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -53,7 +55,13 @@ test("server-renders the English home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<html[^>]+lang="en"[^>]*dir="ltr"/i);
-  assert.match(html, /Head &amp; Neck/);
+  // When Vinext bundles self-hosted fonts, their CSS must reference packaged assets.
+  const fontUrls = new Set(Array.from(html.matchAll(/url\(([^)]+\.woff2)\)/g), (match) => match[1]));
+  for (const url of fontUrls) {
+    assert.match(url, /^\/assets\/_vinext_fonts\//);
+    await access(new URL(`../dist/client${url}`, import.meta.url));
+  }
+  assert.match(html, /<h1 id="home-title">Thyroid and head\s&amp;\sneck surgery, through real cases<\/h1>/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
   // Was /Introducing the clinic/ — that was the section's uppercase kicker,
@@ -65,7 +73,7 @@ test("server-renders the English home page", async () => {
   // carries the poster and the button, and nothing from YouTube. The embed
   // only appears once a visitor asks for it.
   assert.match(html, /class="introduction-video-cover"/);
-  assert.match(html, /\/introduction-poster\.webp/);
+  assert.match(html, /\/events\/smart-health-tower-events-hero\.webp/);
   assert.doesNotMatch(html, /youtube-nocookie\.com/);
   assert.match(html, /href="\/en\/sign-up"/);
   assert.doesNotMatch(html, /class="cta-form"|homepage-join/);
@@ -102,7 +110,7 @@ test("public hubs expose unique localized SEO metadata and optimized imagery", a
   const home = await (await fetchPath("/en")).text();
   assert.match(home, /gtag\('consent','default'.*analytics_storage:'denied'/);
   assert.match(home, /og-team\.jpg/);
-  assert.match(home, /hero-histology-(?:thyroid|trachea|artery|vessels)\.webp/);
+  assert.match(home, /class="editorial-plate"/);
 
   const events = await (await fetchPath("/en/events")).text();
   assert.match(events, /smart-health-tower-events-hero\.webp/);
@@ -215,8 +223,9 @@ test("every locale offers a switcher linking to both languages", async () => {
   }
 });
 
-test("home page topic cards use the shared taxonomy and link to real routes", async () => {
+test("home page topic links use the shared taxonomy and link to real routes", async () => {
   const html = await (await fetchPath("/en")).text();
+  const topics = html.match(/<ul class="editorial-topics">([\s\S]*?)<\/ul>/)?.[1] ?? "";
 
   for (const slug of [
     "thyroid-parathyroid",
@@ -224,20 +233,12 @@ test("home page topic cards use the shared taxonomy and link to real routes", as
     "neck-lymphatic",
     "skin-soft-tissue",
   ]) {
-    assert.match(html, new RegExp(`href="/en/topics/${slug}"`));
+    assert.match(topics, new RegExp(`href="/en/topics/${slug}"`));
   }
 
   assert.doesNotMatch(html, /\b(?:9|12|16|18) lessons\b/i);
   assert.match(html, /href="\/en\/topics"/);
-  // Preserve the approved thyroid and parotid artwork; lower cards use the
-  // shared lymph and skin glyphs rather than their older standalone assets.
-  assert.match(html, /\/topic-icons\/thyroid-sst-cropped\.webp/);
-  assert.match(html, /\/topic-icons\/parotid-sst-cropped\.webp/);
-  assert.doesNotMatch(html, /\/topic-icons\/(?:lymph-nodes-tabler|skin-tabler)\.svg/);
-  // Fragments of the two drawn glyphs: the skin section's full-bleed
-  // epidermal plane and the middle node's chain rotation.
-  assert.match(html, /M1\.6 10\.4H5\.4/);
-  assert.match(html, /rotate\(-32 12\.2 12\)/);
+  assert.match(topics, /Thyroidectomy and parathyroid preservation/);
 });
 
 test("bare topic index opens on the whole head and neck, with no topic chosen", async () => {
@@ -272,8 +273,8 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     assert.doesNotMatch(html, /class="content-case-grid"/);
     assert.doesNotMatch(html, /class="content-topic-option is-active/, `${locale} preselects no topic`);
 
-    // Every region stays reachable without client JS having run, each labelled
-    // and with a leader running out to one side or the other.
+    // The overview renders four callouts. Keep the short visible labels
+    // readable on phones and preserve the full topic names for assistive tech.
     assert.equal(
       (html.match(/class="content-map-callout content-map-callout--(?:left|right)"/g) ?? []).length,
       4,
@@ -281,15 +282,24 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     );
     const labels = locale === "ar"
       ? [
-          "الغدة الدرقية وجارات الدرقية",
-          "الغدد اللعابية",
-          "جراحة العنق والجهاز اللمفاوي",
-          "الجلد والأنسجة الرخوة",
+          ["الغدة الدرقية", "الغدة الدرقية وجارات الدرقية"],
+          ["الغدد اللعابية", "الغدد اللعابية"],
+          ["الجهاز اللمفاوي", "جراحة العنق والجهاز اللمفاوي"],
+          ["الجلد", "الجلد والأنسجة الرخوة"],
         ]
-      : ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"];
-    for (const label of labels) {
+      : [
+          ["Thyroid", "Thyroid &amp; Parathyroid"],
+          ["Salivary", "Salivary Glands"],
+          ["Lymph", "Neck &amp; Lymphatic Surgery"],
+          ["Skin", "Skin &amp; Soft Tissue"],
+        ];
+    const callouts = visible.match(/<button class="content-map-callout [^"]+"[^>]*>[\s\S]*?<\/button>/g) ?? [];
+    for (const [label, fullLabel] of labels) {
+      const accessibleName = fullLabel.startsWith(label) ? fullLabel : `${label} · ${fullLabel}`;
       assert.ok(
-        html.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`),
+        callouts.some((callout) =>
+          callout.includes(`aria-label="${accessibleName}"`) &&
+          callout.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`)),
         `${locale} labels ${label}`,
       );
     }
@@ -514,6 +524,38 @@ test("a two-day event prints one month name, in the right place per locale", asy
 
   const arabic = await (await fetchPath("/ar/events")).text();
   assert.match(arabic, /27–28 أغسطس 2026/);
+});
+
+test("the homepage lists the two soonest upcoming events", async (t) => {
+  const cacheHandler = getCacheHandler();
+  setCacheHandler(new NoOpCacheHandler());
+  t.after(() => setCacheHandler(cacheHandler));
+
+  const env = { SUPABASE_URL: "https://events.example.invalid", SUPABASE_SERVICE_ROLE_KEY: "test-key" };
+  for (const [name, value] of Object.entries(env)) {
+    const previous = process.env[name];
+    process.env[name] = value;
+    t.after(() => {
+      if (previous === undefined) delete process.env[name];
+      else process.env[name] = previous;
+    });
+  }
+  const futureYear = new Date().getUTCFullYear() + 1;
+  const rows = [
+    { slug: "last-event", title: "Last event", starts_at: `${futureYear}-03-01` },
+    { slug: "middle-event", title: "Middle event", starts_at: `${futureYear}-02-01` },
+    { slug: "next-event", title: "Next event", starts_at: `${futureYear}-01-01` },
+    { slug: "past-event", title: "Past event", starts_at: "2024-01-01" },
+  ];
+  t.mock.method(globalThis, "fetch", (input) =>
+    Response.json(new URL(input).pathname === "/rest/v1/events" ? rows : []),
+  );
+
+  const response = await fetchPath("/en");
+  assert.equal(response.status, 200);
+  const html = (await response.text()).replace(/<script[\s\S]*?<\/script>/g, "");
+  const eventLinks = Array.from(html.matchAll(/href="\/en\/events\/([^"]+)"/g), (match) => match[1]);
+  assert.deepEqual(eventLinks, ["next-event", "middle-event"]);
 });
 
 test("events stand down to an archive when nothing is upcoming", async () => {

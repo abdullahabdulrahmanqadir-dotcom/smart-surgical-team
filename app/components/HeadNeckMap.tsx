@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { ANATOMY_PLATE, ANATOMY_REGIONS, getAnatomyRegion } from "../lib/anatomy-map";
 
 type HeadNeckMapProps = {
@@ -22,6 +22,21 @@ type HeadNeckMapProps = {
  */
 export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, onReset, resetLabel }: HeadNeckMapProps) {
   const region = getAnatomyRegion(active);
+  const map = useRef<HTMLDivElement>(null);
+  const reset = useRef<HTMLButtonElement>(null);
+  const nextFocus = useRef<{ control: "reset" | "callout"; slug: string } | null>(null);
+
+  useEffect(() => {
+    const target = nextFocus.current;
+    nextFocus.current = null;
+    if (!target) return;
+    if (target.control === "reset" && region?.slug === target.slug) {
+      reset.current?.focus({ preventScroll: true });
+    } else if (target.control === "callout" && !region) {
+      const buttons = map.current?.querySelectorAll<HTMLButtonElement>(".content-map-callout");
+      Array.from(buttons ?? []).find((button) => button.dataset.region === target.slug)?.focus({ preventScroll: true });
+    }
+  }, [region]);
 
   // Scaling about the focus point keeps it fixed, so the translate that brings
   // it to the centre of the stage is a plain, unscaled offset.
@@ -44,37 +59,43 @@ export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, 
   } as CSSProperties;
 
   return (
-    <div className={`content-map${region ? " is-focused" : ""}`} style={camera}>
+    <div className={`content-map${region ? " is-focused" : ""}`} style={camera} ref={map}>
       <div className="content-map-stage">
-        <div className="content-map-camera">
-          {/* A CSS background lets the active theme fetch only its own plate;
-              two hidden img elements would still download both full assets. */}
-          <span
-            className="content-map-plate"
-            style={{
-              "--plate-image-light": `url(${ANATOMY_PLATE.src})`,
-              "--plate-image-dark": `url(${ANATOMY_PLATE.darkSrc})`,
-            } as CSSProperties}
-            aria-hidden="true"
-          />
+        <div className="content-map-viewport" aria-hidden="true">
+          <div className="content-map-camera">
+            {/* A CSS background fetches only the active theme's plate. */}
+            <span
+              className="content-map-plate"
+              style={{
+                "--plate-image-light": `url(${ANATOMY_PLATE.src})`,
+                "--plate-image-dark": `url(${ANATOMY_PLATE.darkSrc})`,
+              } as CSSProperties}
+            />
+          </div>
+          {/* The stationary veil softens the anatomy surrounding the focus. */}
+          <span className="content-map-veil" />
         </div>
 
-        {/* Softens everything outside the focus, so the surrounding anatomy
-            falls away instead of disappearing. Sits outside the camera and
-            never moves — only its opacity changes. */}
-        <span className="content-map-veil" aria-hidden="true" />
-
         {region ? (
-          <button className="content-map-reset" type="button" onClick={onReset}>
-            <span className="visually-hidden">{resetLabel}</span>
+          <button
+            className="content-map-reset"
+            ref={reset}
+            type="button"
+            onClick={() => {
+              nextFocus.current = { control: "callout", slug: region.slug };
+              onReset();
+            }}
+          >
+            <span>{resetLabel}</span>
           </button>
         ) : null}
 
-        <div className="content-map-callouts">
-          {ANATOMY_REGIONS.map((item, index) => (
-            (() => {
-              const label = labels[item.slug] ?? fallbackLabels[item.slug] ?? item.label;
-              return <button
+        <div className="content-map-callouts" inert={Boolean(region)}>
+          {ANATOMY_REGIONS.map((item) => {
+            const shortLabel = fallbackLabels[item.slug] ?? item.label;
+            const fullLabel = labels[item.slug] ?? shortLabel;
+            return (
+              <button
                 className={`content-map-callout content-map-callout--${item.side}`}
                 // The button spans dot to tag, so the leader's percentage width
                 // resolves against the stage rather than a zero-width box.
@@ -82,20 +103,22 @@ export default function HeadNeckMap({ active, labels, fallbackLabels, onSelect, 
                   left: `${item.side === "left" ? item.x - item.leader : item.x}%`,
                   top: `${item.y}%`,
                   width: `${item.leader}%`,
-                  "--float-order": index,
-                } as CSSProperties}
+                }}
                 type="button"
-                onClick={() => onSelect(item.slug)}
-                tabIndex={region ? -1 : undefined}
+                data-region={item.slug}
+                aria-label={fullLabel.startsWith(shortLabel) ? fullLabel : `${shortLabel} · ${fullLabel}`}
+                onClick={() => {
+                  nextFocus.current = { control: "reset", slug: item.slug };
+                  onSelect(item.slug);
+                }}
                 key={item.slug}
               >
                 <span className="content-map-dot" aria-hidden="true" />
                 <span className="content-map-leader" aria-hidden="true" />
-                <span className="content-map-tag" aria-hidden="true">{label}</span>
-                <span className="visually-hidden">{label}</span>
-              </button>;
-            })()
-          ))}
+                <span className="content-map-tag" aria-hidden="true">{shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

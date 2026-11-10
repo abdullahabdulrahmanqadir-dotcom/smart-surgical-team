@@ -29,15 +29,16 @@ function serverSparingData() {
   return false;
 }
 
+function focusPlayer(frame: HTMLIFrameElement | null) {
+  frame?.focus();
+}
+
 /**
  * The player is a facade: until someone asks for the video, the section is a
- * poster image and a play button, so the page costs one ~43 KB image instead
- * of the YouTube iframe and its player bundle. Nothing plays on its own.
+ * poster image and a play button. Nothing plays on its own.
  *
- * The poster is the video's own thumbnail, stored locally rather than pulled
- * from ytimg, so a visitor who never presses play never touches YouTube. If
- * even that image is too much — Save Data is on, or the connection reports
- * itself as 2G — we skip it and show the plain teal panel behind it.
+ * The poster is a local photo of the clinic building. On a 2G connection or
+ * with Save Data enabled, the play button sits on a plain teal panel.
  */
 export default function IntroductionVideo({ t }: { t: Dictionary["introduction"] }) {
   const [playing, setPlaying] = useState(false);
@@ -49,6 +50,7 @@ export default function IntroductionVideo({ t }: { t: Dictionary["introduction"]
     return (
       <div className="introduction-video">
         <iframe
+          ref={focusPlayer}
           src={videoUrl}
           title={t.videoTitle}
           referrerPolicy="strict-origin-when-cross-origin"
@@ -64,35 +66,26 @@ export default function IntroductionVideo({ t }: { t: Dictionary["introduction"]
       <button
         type="button"
         className={showPoster ? "introduction-video-cover" : "introduction-video-cover is-bare"}
+        aria-label={`${t.playLabel} — ${t.videoTitle}`}
         onClick={() => setPlaying(true)}
       >
         {showPoster ? (
-          <picture>
-            <source srcSet="/introduction-poster.webp" type="image/webp" />
-            <img
-              src="/introduction-poster.jpg"
-              alt=""
-              width={1280}
-              height={720}
-              loading="lazy"
-              decoding="async"
-              onError={() => setPosterFailed(true)}
-            />
-          </picture>
+          <img
+            src="/events/smart-health-tower-events-hero.webp"
+            alt=""
+            width={1672}
+            height={941}
+            loading="lazy"
+            decoding="async"
+            onError={() => setPosterFailed(true)}
+          />
         ) : null}
 
-        <span className="introduction-video-play" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
+        <span className="introduction-video-label" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
             <path d="M8 5.5v13l11-6.5z" fill="currentColor" />
           </svg>
-        </span>
-        {/* The thumbnail already carries the video's own headline, so the
-            written label only shows itself when there is no thumbnail. It
-            stays in the accessibility tree either way — it is what names the
-            button. */}
-        <span className="introduction-video-label">
-          <span className="introduction-video-action">{t.playLabel}</span>
-          <span className="introduction-video-title">{t.videoTitle}</span>
+          {t.playLabel}
         </span>
       </button>
     </div>

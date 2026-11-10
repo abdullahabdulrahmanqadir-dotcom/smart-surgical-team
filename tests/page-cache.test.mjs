@@ -37,6 +37,27 @@ function context() {
 
 const KEY = "page:v1:/en";
 
+test("Cloudflare previews neither read nor write the production document cache", async () => {
+  edgeCache.clear();
+  const bucket = new MemoryR2();
+  const production = context();
+  await (await servePublicDocument(publicRequest(), { CACHE_BUCKET: bucket }, production, async () =>
+    new Response("production", { headers: { "content-type": "text/html" } }),
+  )).text();
+  await Promise.all(production.pending);
+
+  const request = new Request("https://branch-smart.ssteam.workers.dev/en", { headers: { accept: "text/html" } });
+  const preview = context();
+  const response = await servePublicDocument(request, { CACHE_BUCKET: bucket }, preview, async () =>
+    new Response("preview", { headers: { "content-type": "text/html", "cache-control": "no-store" } }),
+  );
+  assert.equal(await response.text(), "preview");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(preview.pending.length, 0);
+  assert.equal(await edgeCache.match(request), undefined);
+  assert.equal(await (await bucket.get(KEY)).text(), "production");
+});
+
 test("only public, anonymous document requests are cacheable", () => {
   assert.equal(isPublicDocumentRequest(publicRequest("/en/topics")), true);
   assert.equal(isPublicDocumentRequest(publicRequest("/ar/events/summit")), true);

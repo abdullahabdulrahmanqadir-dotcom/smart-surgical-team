@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { BrandMark, IconChevronDown, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
+import { BrandMark, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
@@ -27,40 +28,6 @@ function subscribeToTheme(onChange: () => void) {
   return () => observer.disconnect();
 }
 
-// One dropdown, used by both the desktop bar and the mobile sheet. `open` is
-// controlled so that choosing a link closes it; the functional update stops a
-// menu that is closing from clearing a different one that just opened.
-function NavMenu({ id, label, links, menuClass, dropdownClass, iconSize, openMenu, setOpenMenu, onNavigate }: {
-  id: string;
-  label: string;
-  links: [string, string][];
-  menuClass: string;
-  dropdownClass: string;
-  iconSize: number;
-  openMenu: string | null;
-  setOpenMenu: (update: (current: string | null) => string | null) => void;
-  onNavigate?: () => void;
-}) {
-  return (
-    <details
-      className={menuClass}
-      data-nav-menu
-      open={openMenu === id}
-      onToggle={(event) => {
-        const isOpen = event.currentTarget.open;
-        setOpenMenu((current) => (isOpen ? id : current === id ? null : current));
-      }}
-    >
-      <summary>{label}<IconChevronDown size={iconSize}/></summary>
-      <div className={dropdownClass}>
-        {links.map(([text, href]) => (
-          <Link key={text} href={href} onClick={() => { setOpenMenu(() => null); onNavigate?.(); }}>{text}</Link>
-        ))}
-      </div>
-    </details>
-  );
-}
-
 function memberFromUser(user: HeaderUser): HeaderMember | null {
   if (!user?.email) return null;
   return { name: String(user.user_metadata?.full_name ?? user.email), email: user.email };
@@ -74,10 +41,8 @@ export default function SiteHeader({
   dict: Dictionary;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  // A <details> menu stays open across a client-side navigation, so choosing an
-  // item left the dropdown hanging open over the new page. Driving `open` from
-  // state lets a chosen link close it, and keeps one menu open at a time.
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
   const [member, setMember] = useState<HeaderMember | null>(null);
   const [isStaff, setIsStaff] = useState(false);
   // The switch is positioned by CSS from <html data-theme>; this only mirrors
@@ -88,49 +53,29 @@ export default function SiteHeader({
 
   const home = localePath(locale);
 
-  // Unbuilt Phase 1 pages still point to their home-page sections. Topics is a
-  // real route now, and all paths remain useful when the header is rendered on
-  // a nested page.
-  // Content, Research and Posters are all published output, so they sit
-  // together under one menu rather than spending three slots in the bar.
-  const publicationLinks: [string, string][] = [
-    [dict.nav.topics, localePath(locale, "topics")],
-    [dict.nav.research, localePath(locale, "research")],
-    [dict.nav.posters, localePath(locale, "posters")],
-  ];
-  // News is timely and first-party, so it gets its own slot rather than sitting
-  // inside the Publications menu with the academic output.
-  const navLinks: [string, string][] = [
-    [dict.nav.news, localePath(locale, "news")],
-    [dict.nav.events, localePath(locale, "events")],
-  ];
-  const aboutLinks: [string, string][] = [
-    [dict.nav.about, localePath(locale, "about")],
-    [dict.nav.contact, localePath(locale, "contact")],
+  const navLinks = [
+    [dict.nav.library, "topics"],
+    [dict.nav.research, "research"],
+    [dict.nav.posters, "posters"],
+    [dict.nav.events, "events"],
+    [dict.nav.news, "news"],
+    [dict.nav.about, "about"],
   ];
 
-  useEffect(() => {
-    document.body.classList.toggle("nav-open", menuOpen);
-    return () => document.body.classList.remove("nav-open");
-  }, [menuOpen]);
+  function currentPage(path: string) {
+    const href = localePath(locale, path);
+    if (pathname === href) return "page";
+    const library = localePath(locale, "library");
+    if (pathname?.startsWith(`${href}/`) ||
+      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`)))) return "location";
+  }
 
-  // Clicking anywhere else, or pressing Escape, dismisses an open menu — the
-  // same expectation any dropdown sets.
   useEffect(() => {
-    if (!openMenu) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (target instanceof Node && (target as Element).closest?.("[data-nav-menu]")) return;
-      setOpenMenu(null);
-    };
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpenMenu(null); };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [openMenu]);
+    const desktop = window.matchMedia("(width > 900px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMenuOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -197,14 +142,54 @@ export default function SiteHeader({
       <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
         {dict.nav.signIn}
       </Link>
-      <Link className="btn btn-primary header-cta header-signup" href={localePath(locale, "sign-up")}>
+      <Link className="btn btn-ghost header-cta header-signup" href={localePath(locale, "sign-up")}>
         {dict.nav.register}
       </Link>
     </>
   );
 
   return (
-    <header className="site-header">
+    <header
+      className="site-header"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && menuOpen && !event.defaultPrevented) {
+          setMenuOpen(false);
+          menuButton.current?.focus();
+        }
+      }}
+    >
+      <div className="header-utility">
+        <div className="header-utility-inner">
+          <Link className="header-location" href={localePath(locale, "contact")}>{dict.brand.location}</Link>
+          <div className="header-actions">
+            <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isDark}
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label={dict.header.switchColourMode}
+              title={dict.header.switchColourMode}
+            >
+              <span className="theme-toggle-track" aria-hidden="true">
+                <IconSun className="theme-toggle-glyph theme-toggle-glyph-sun" size={13} />
+                <IconMoon className="theme-toggle-glyph theme-toggle-glyph-moon" size={13} />
+                <span className="theme-toggle-knob">
+                  <IconSun className="theme-toggle-knob-icon theme-toggle-knob-sun" size={12} />
+                  <IconMoon className="theme-toggle-knob-icon theme-toggle-knob-moon" size={12} />
+                </span>
+              </span>
+            </button>
+
+            {accountAction}
+          </div>
+        </div>
+      </div>
       <div className="header-inner">
         <Link
           className="brand"
@@ -216,76 +201,34 @@ export default function SiteHeader({
         </Link>
 
         <nav className="primary-nav" aria-label={dict.header.mainNavigation}>
-          <NavMenu id="publications" label={dict.nav.publications} links={publicationLinks} menuClass="primary-nav-more" dropdownClass="primary-nav-dropdown" iconSize={15} openMenu={openMenu} setOpenMenu={setOpenMenu}/>
-          {navLinks.map(([label, href]) => (
-            <Link key={label} href={href}>
-              {label}
-            </Link>
+          {navLinks.map(([label, path]) => (
+            <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)}>{label}</Link>
           ))}
-          <NavMenu id="about" label={dict.nav.aboutMenu} links={aboutLinks} menuClass="primary-nav-more" dropdownClass="primary-nav-dropdown" iconSize={15} openMenu={openMenu} setOpenMenu={setOpenMenu}/>
         </nav>
-
-        <div className="header-actions">
-          <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
-
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isDark}
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={dict.header.switchColourMode}
-            title={dict.header.switchColourMode}
-          >
-            <span className="theme-toggle-track" aria-hidden="true">
-              <IconSun className="theme-toggle-glyph theme-toggle-glyph-sun" size={13} />
-              <IconMoon className="theme-toggle-glyph theme-toggle-glyph-moon" size={13} />
-              <span className="theme-toggle-knob">
-                <IconSun className="theme-toggle-knob-icon theme-toggle-knob-sun" size={12} />
-                <IconMoon className="theme-toggle-knob-icon theme-toggle-knob-moon" size={12} />
-              </span>
-            </span>
-          </button>
-
-          {accountAction}
-
-          <button
-            type="button"
-            className="icon-button menu-button"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-nav"
-            aria-label={menuOpen ? dict.nav.close : dict.nav.menu}
-          >
-            {menuOpen ? <IconClose /> : <IconMenu />}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="icon-button menu-button"
+          ref={menuButton}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
+          aria-label={menuOpen ? dict.nav.close : dict.nav.menu}
+        >
+          {menuOpen ? <IconClose /> : <IconMenu />}
+        </button>
       </div>
-
-      <div className="mobile-nav" id="mobile-nav" hidden={!menuOpen}>
-        <NavMenu id="mobile-publications" label={dict.nav.publications} links={publicationLinks} menuClass="mobile-nav-more" dropdownClass="mobile-nav-submenu" iconSize={16} openMenu={openMenu} setOpenMenu={setOpenMenu} onNavigate={() => setMenuOpen(false)}/>
-        {navLinks.map(([label, href]) => (
-          <Link key={label} href={href} onClick={() => setMenuOpen(false)}>
-            {label}
-          </Link>
+      <nav className="mobile-nav" id="mobile-nav" aria-label={dict.header.mainNavigation} hidden={!menuOpen}>
+        {[...navLinks, [dict.nav.contact, "contact"]].map(([label, path]) => (
+          <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)} onClick={() => setMenuOpen(false)}>{label}</Link>
         ))}
-        <NavMenu id="mobile-about" label={dict.nav.aboutMenu} links={aboutLinks} menuClass="mobile-nav-more" dropdownClass="mobile-nav-submenu" iconSize={16} openMenu={openMenu} setOpenMenu={setOpenMenu} onNavigate={() => setMenuOpen(false)}/>
-        <div className="mobile-language">
-          <span>{dict.nav.languageLabel}</span>
-          <LanguageSwitcher locale={locale} label={dict.nav.languageLabel} />
-        </div>
-        <div className="mobile-nav-actions">
-          {member ? (
-            <>
-              {isStaff && <Link className="btn btn-ghost" href={adminPath} onClick={() => setMenuOpen(false)}>{dict.header.admin}</Link>}
-              <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
-                <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-                <span>{dict.header.profile}</span>
-              </Link>
-            </>
-          ) : <><Link className="btn btn-ghost" href={localePath(locale, "sign-in")} onClick={() => setMenuOpen(false)}>{dict.nav.signIn}</Link><Link className="btn btn-primary header-signup" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link></>}
-        </div>
-      </div>
+        {(!member || isStaff) && (
+          <div className="mobile-nav-actions">
+            {member
+              ? <Link className="btn btn-outline" href={adminPath} onClick={() => setMenuOpen(false)}>{dict.header.admin}</Link>
+              : <Link className="btn btn-outline" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link>}
+          </div>
+        )}
+      </nav>
     </header>
   );
 }

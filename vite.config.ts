@@ -1,8 +1,25 @@
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
+
+function windowsFontUrls(): Plugin {
+  let cacheUrlPrefix: string;
+  return {
+    name: "sst:windows-font-urls",
+    enforce: "post",
+    configResolved({ root }) {
+      cacheUrlPrefix = JSON.stringify(`url(${root.replaceAll("\\", "/")}/.vinext/fonts/`).slice(1, -1);
+    },
+    transform(code) {
+      if (!code.includes("_selfHostedCSS") || !code.includes(cacheUrlPrefix)) return;
+      // Vinext compares a native Windows path with slash-normalized font CSS.
+      const assetsDir = this.environment.config.build.assetsDir || "assets";
+      return code.replaceAll(cacheUrlPrefix, `url(/${assetsDir}/_vinext_fonts/`);
+    },
+  };
+}
 
 const localBindingConfig = {
   // Production is the Worker `smart` (smart.ssteam.workers.dev). Without this
@@ -73,6 +90,7 @@ export default defineConfig(async () => {
     },
     plugins: [
       vinext(),
+      process.platform === "win32" && windowsFontUrls(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         config: localBindingConfig,

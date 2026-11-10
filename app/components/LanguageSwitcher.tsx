@@ -24,32 +24,38 @@ export default function LanguageSwitcher({
   const activeMeta = LOCALE_META[locale];
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  // The header renders this switcher twice (desktop bar and mobile nav), so the
-  // dropdown id must be per-instance or aria-controls resolves to the wrong menu.
+  const trigger = useRef<HTMLButtonElement>(null);
   const menuId = useId();
 
   useEffect(() => {
     function closeOnOutsidePress(event: PointerEvent) {
       if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
     }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
     document.addEventListener("pointerdown", closeOnOutsidePress);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePress);
   }, []);
 
   return (
-    <div className={`language-menu${open ? " is-open" : ""}`} ref={menuRef} translate="no">
+    <div
+      className={`language-menu${open ? " is-open" : ""}`}
+      ref={menuRef}
+      translate="no"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          setOpen(false);
+          trigger.current?.focus();
+        }
+      }}
+    >
       <button
         className="language-trigger"
+        ref={trigger}
         type="button"
         aria-label={`${label}: ${activeMeta.label}`}
-        aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((current) => !current)}
@@ -58,7 +64,7 @@ export default function LanguageSwitcher({
         <IconChevronDown className="language-trigger-chevron" size={15} />
       </button>
 
-      <div className="language-dropdown" id={menuId} role="menu" hidden={!open}>
+      <div className="language-dropdown" id={menuId} hidden={!open}>
         {LOCALES.map((code) => {
           const meta = LOCALE_META[code];
           const active = code === locale;
@@ -69,7 +75,6 @@ export default function LanguageSwitcher({
               className={active ? "is-active" : undefined}
               lang={meta.htmlLang}
               aria-current={active ? "page" : undefined}
-              role="menuitem"
               onClick={() => setOpen(false)}
             >
               <span>{meta.label}</span>

@@ -41,7 +41,7 @@ export const en = {
     admin: "Admin", profile: "Profile", openProfile: "Open {name}'s profile",
     mainNavigation: "Main", switchColourMode: "Switch colour mode",
   },
-  footer: { rights: "All rights reserved.", quickLinks: "Quick links", contactUs: "Contact us", blurb: "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.", privacy: "Privacy Policy", terms: "Terms of Use", hours: "Saturday – Thursday, 9:00 – 17:00", address: "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq" },
+  footer: { learning: "Learning", teamUpdates: "Team & updates", rights: "All rights reserved.", quickLinks: "Quick links", contactUs: "Contact us", blurb: "A dedicated academic hub for head & neck surgery education. Expert insights, better outcomes.", privacy: "Privacy Policy", terms: "Terms of Use", hours: "Saturday – Thursday, 9:00 – 17:00", address: "Majid Bag Main Street, Beside University of Sulaymaniyah Old Campus, Madam Mitterrand, Sulaymaniyah, Iraq" },
   social: { ariaLabel: "Smart Health Tower social media" },
   caseSummary: {
     presentation: "Presentation", imaging: "Imaging & workup", procedure: "Procedure",
@@ -52,6 +52,11 @@ export const en = {
     "neck-lymphatic": "Lymph", "skin-soft-tissue": "Skin",
   },
   home: {
+    heroTitle: "Thyroid and head\u00a0&\u00a0neck surgery, through real cases",
+    heroIntro: "Explore documented surgical cases, e-posters and peer-reviewed research from our team at Smart Health Tower.",
+    browseResearch: "Browse Research",
+    anatomyDescription: "Two thyroid lobes sit on either side of the upper trachea, below the larynx, and join across the front.",
+    updatesTitle: "News & events",
     // The proof under the headline. Figures supplied by the team on 2026-10-07;
     // the paper count matches Prof. Abdulwahid's Google Scholar profile (241 works).
     builtWith: "Led by Prof. Abdulwahid M. Salih",
@@ -63,7 +68,7 @@ export const en = {
     researchTitle: "Research from the department",
     researchIntro: "Published clinical research from the Smart Surgical Team.",
     exploreResearch: "Explore all research",
-    latestPublication: "Latest publication · {year}",
+    noUpcomingEvents: "No upcoming events are scheduled.",
     readResearch: "Read research",
     introductionTitle: "Meet Smart Surgical Team",
     introductionIntro: "A short tour of the clinic, the team and the care pathway behind every case we publish.",
@@ -254,6 +259,7 @@ export const en = {
     heroIntro: "Announcements, media coverage, event reports and milestones from Smart Surgical Team.",
     allCategories: "All news",
     filterLabel: "Filter news by category",
+    filteredCount: "Stories shown ({count})",
     unfiled: "News",
     readMore: "Read more",
     opensExternal: "Opens an external site",
@@ -296,6 +302,8 @@ export const en = {
     exploreResearch: "Read our research",
   },
   libraryIndex: {
+    allCases: "View all cases",
+    searchCases: "Search cases",
     title: "Case library",
     intro: "Every published case from the head and neck department, newest first.",
     countOne: "1 published case",

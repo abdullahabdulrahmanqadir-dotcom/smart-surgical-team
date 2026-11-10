@@ -6,7 +6,7 @@ import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 
 /** The key the reader's dismissal is remembered under, holding the item's id. */
-export const NEWS_DISMISS_KEY = "sst-news-dismissed";
+const NEWS_DISMISS_KEY = "sst-news-dismissed";
 
 /**
  * The pinned announcement across the top of the homepage.
@@ -40,7 +40,7 @@ export default function NewsBanner({ locale, item, t }: { locale: Locale; item: 
       {external
         ? <a className="news-banner-link" href={href} target="_blank" rel="noopener noreferrer">{label}</a>
         : <Link className="news-banner-link" href={href}>{label}</Link>}
-      <NewsBannerDismiss itemId={item.id} label={t.bannerDismiss}/>
+      <NewsBannerDismiss itemId={item.id} storageKey={NEWS_DISMISS_KEY} label={t.bannerDismiss} nextHeadingId="topics-heading"/>
     </aside>
     <script
       // Runs immediately after the element, so a banner the reader has already

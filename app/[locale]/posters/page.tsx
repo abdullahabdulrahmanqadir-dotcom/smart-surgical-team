@@ -48,17 +48,20 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
     <main id="main-content" className="posters-page">
       <header className="posters-intro">
         <h1>{t.heroTitle}</h1>
+        {archive.length > 0 && (
+          <a className="text-link" href="#poster-archive-title">{t.archiveTitle}<IconArrowRight size={16} /></a>
+        )}
       </header>
 
       {featured && <article className="poster-feature" aria-labelledby="featured-poster-title">
+        <div className="poster-details">
+          <h2 id="featured-poster-title" {...authoredTitleProps(featured.title)}>{featured.title}</h2>
+          <p className="poster-summary" {...authoredTitleProps(featured.summary)}>{featured.summary}</p>
+          <Link className="btn btn-primary btn-lg poster-open" href={localePath(active, `posters/${featured.slug}`)}>{t.viewDetails} <IconArrowRight size={18}/></Link>
+        </div>
         <Link className="poster-sheet" href={localePath(active, `posters/${featured.slug}`)} aria-label={`${t.viewDetails}: ${featured.title}`}>
           <img src={featured.imageUrl} alt={featured.imageAlt} width={1280} height={1280} fetchPriority="high"/>
         </Link>
-        <div className="poster-details">
-          <h2 id="featured-poster-title" {...authoredTitleProps(featured.title)}>{featured.title}</h2>
-          <p className="poster-summary">{featured.summary}</p>
-          <Link className="btn btn-primary btn-lg poster-open" href={localePath(active, `posters/${featured.slug}`)}>{t.viewDetails} <IconArrowRight size={18}/></Link>
-        </div>
       </article>}
 
       {archive.length > 0 && <section className="poster-archive" aria-labelledby="poster-archive-title">

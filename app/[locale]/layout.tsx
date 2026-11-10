@@ -9,6 +9,7 @@ import GoogleAnalytics from "../components/GoogleAnalytics";
 import JsonLd from "../components/JsonLd";
 import { organizationGraph } from "../lib/structured-data";
 import "../globals.css";
+import "./editorial-pages.css";
 
 // Type revised 2026-09-02. The display face was Newsreader, which is one of
 // the most-used serifs on the web right now and read as a default rather than
@@ -26,6 +27,7 @@ const literata = Literata({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 const inter = Inter({
@@ -40,6 +42,7 @@ const notoNaskh = Noto_Naskh_Arabic({
   subsets: ["arabic"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  fallback: ["Times New Roman", "serif"],
 });
 
 const plexArabic = IBM_Plex_Sans_Arabic({
