@@ -55,7 +55,7 @@ export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dic
           <Link href={localePath(locale, "contact")}>{dict.footer.contactUs}</Link>
           <p>
             <IconMail size={16} />
-            <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+            <a href={`mailto:${CONTACT_EMAIL}`} dir="ltr">{CONTACT_EMAIL}</a>
           </p>
           <p>
             <IconPin size={16} /> {dict.footer.address}

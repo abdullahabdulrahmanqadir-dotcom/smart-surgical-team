@@ -27,6 +27,7 @@ const literata = Literata({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 const inter = Inter({
@@ -41,6 +42,7 @@ const notoNaskh = Noto_Naskh_Arabic({
   subsets: ["arabic"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  fallback: ["Times New Roman", "serif"],
 });
 
 const plexArabic = IBM_Plex_Sans_Arabic({

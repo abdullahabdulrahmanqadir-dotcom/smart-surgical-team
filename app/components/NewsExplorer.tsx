@@ -6,9 +6,9 @@ import LazyImage from "./LazyImage";
 import { IconArrowRight } from "./icons";
 // From `news-data`, not `news`: this is a client component, and `news` pulls in
 // `next/cache`, which has no browser equivalent.
-import { categoryLabel, localizedText, newsDate, newsItemShape, type NewsCategory, type NewsItem } from "../lib/news-data";
+import { categoryLabel, localizedText, newsCoverImage, newsDate, newsItemShape, type NewsCategory, type NewsItem } from "../lib/news-data";
 import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
-import type { Dictionary } from "../lib/dictionaries";
+import { fill, type Dictionary } from "../lib/dictionaries";
 
 const ALL = "all";
 
@@ -31,6 +31,8 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
     () => category === ALL ? items : items.filter((item) => item.category?.slug === category),
     [category, items],
   );
+  const number = new Intl.NumberFormat(locale);
+
   function story(item: NewsItem) {
     const title = localizedText(locale, item.title, item.titleAr).value;
     const summary = localizedText(locale, item.summary, item.summaryAr).value;
@@ -46,7 +48,7 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
           {external ? <span className="news-card-external">{t.externalBadge}</span> : null}
         </span>
         <h2 {...authoredTitleProps(title)}>{title}</h2>
-        {summary ? <span className="news-card-summary">{summary}</span> : null}
+        {summary ? <span className="news-card-summary" {...authoredTitleProps(summary)}>{summary}</span> : null}
         <span className="news-card-action">
           {external ? t.opensExternal : t.readMore}
           <IconArrowRight size={16}/>
@@ -54,7 +56,7 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
       </div>
       {item.coverUrl && (
         <span className="news-entry-media">
-          <LazyImage src={item.coverUrl} alt={item.media[0]?.altText || ""} />
+          <LazyImage src={item.coverUrl} alt={newsCoverImage(item)?.altText || ""} />
         </span>
       )}
     </>;
@@ -83,7 +85,8 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
       >{categoryLabel(locale, entry)}</button>)}
     </div> : null}
 
-    <div aria-live="polite">
+    <p role="status" className="visually-hidden">{fill(t.filteredCount, { count: number.format(filtered.length) })}</p>
+    <div>
       {filtered.length ? <ul className="news-entry-list">
         {filtered.map((item) => <li key={item.id}>{story(item)}</li>)}
       </ul> : <div className="news-empty">

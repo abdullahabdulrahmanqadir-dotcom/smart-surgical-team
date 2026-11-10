@@ -22,7 +22,7 @@ colors:
   line-strong: "#c6bba8"
   text: "#40322a"
   text-muted: "#6d5f54"
-  text-soft: "#8b7d71"
+  text-soft: "#76685d"
 typography:
   display:
     fontFamily: "Literata, Georgia, 'Times New Roman', serif"
@@ -193,7 +193,7 @@ signal hues for state.
 - **Hairline** (`#ded5c6`) and **Rule** (`#c6bba8`): the 1px structure. Hairline
   divides; Rule outlines something interactive.
 - **Ink Brown** (`#40322a`) body text, **Muted Brown** (`#6d5f54`) secondary
-  prose, **Soft Brown** (`#8b7d71`) meta, timestamps, placeholders. Text is warm
+  prose, **Soft Brown** (`#76685d`) meta, timestamps, placeholders. Text is warm
   brown, never black — that is what keeps the paper feeling like paper.
 
 ### Named Rules

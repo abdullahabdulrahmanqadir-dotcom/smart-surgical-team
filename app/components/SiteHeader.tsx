@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { BrandMark, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -40,6 +41,8 @@ export default function SiteHeader({
   dict: Dictionary;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
   const [member, setMember] = useState<HeaderMember | null>(null);
   const [isStaff, setIsStaff] = useState(false);
   // The switch is positioned by CSS from <html data-theme>; this only mirrors
@@ -59,10 +62,20 @@ export default function SiteHeader({
     [dict.nav.about, "about"],
   ];
 
+  function currentPage(path: string) {
+    const href = localePath(locale, path);
+    if (pathname === href) return "page";
+    const library = localePath(locale, "library");
+    if (pathname?.startsWith(`${href}/`) ||
+      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`)))) return "location";
+  }
+
   useEffect(() => {
-    document.body.classList.toggle("nav-open", menuOpen);
-    return () => document.body.classList.remove("nav-open");
-  }, [menuOpen]);
+    const desktop = window.matchMedia("(width > 900px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMenuOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -129,14 +142,25 @@ export default function SiteHeader({
       <Link className="btn btn-ghost header-signin" href={localePath(locale, "sign-in")}>
         {dict.nav.signIn}
       </Link>
-      <Link className="btn btn-primary header-cta header-signup" href={localePath(locale, "sign-up")}>
+      <Link className="btn btn-ghost header-cta header-signup" href={localePath(locale, "sign-up")}>
         {dict.nav.register}
       </Link>
     </>
   );
 
   return (
-    <header className="site-header">
+    <header
+      className="site-header"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && menuOpen && !event.defaultPrevented) {
+          setMenuOpen(false);
+          menuButton.current?.focus();
+        }
+      }}
+    >
       <div className="header-utility">
         <div className="header-utility-inner">
           <Link className="header-location" href={localePath(locale, "contact")}>{dict.brand.location}</Link>
@@ -178,12 +202,13 @@ export default function SiteHeader({
 
         <nav className="primary-nav" aria-label={dict.header.mainNavigation}>
           {navLinks.map(([label, path]) => (
-            <Link key={path} href={localePath(locale, path)}>{label}</Link>
+            <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)}>{label}</Link>
           ))}
         </nav>
         <button
           type="button"
           className="icon-button menu-button"
+          ref={menuButton}
           onClick={() => setMenuOpen((open) => !open)}
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
@@ -194,19 +219,15 @@ export default function SiteHeader({
       </div>
       <nav className="mobile-nav" id="mobile-nav" aria-label={dict.header.mainNavigation} hidden={!menuOpen}>
         {[...navLinks, [dict.nav.contact, "contact"]].map(([label, path]) => (
-          <Link key={path} href={localePath(locale, path)} onClick={() => setMenuOpen(false)}>{label}</Link>
+          <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)} onClick={() => setMenuOpen(false)}>{label}</Link>
         ))}
-        <div className="mobile-nav-actions">
-          {member ? (
-            <>
-              {isStaff && <Link className="btn btn-ghost" href={adminPath} onClick={() => setMenuOpen(false)}>{dict.header.admin}</Link>}
-              <Link className="btn btn-ghost mobile-profile" href={profilePath} onClick={() => setMenuOpen(false)}>
-                <span className="header-profile-avatar" aria-hidden="true">{initials || <IconUser size={16} />}</span>
-                <span>{dict.header.profile}</span>
-              </Link>
-            </>
-          ) : <><Link className="btn btn-ghost" href={localePath(locale, "sign-in")} onClick={() => setMenuOpen(false)}>{dict.nav.signIn}</Link><Link className="btn btn-primary header-signup" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link></>}
-        </div>
+        {(!member || isStaff) && (
+          <div className="mobile-nav-actions">
+            {member
+              ? <Link className="btn btn-outline" href={adminPath} onClick={() => setMenuOpen(false)}>{dict.header.admin}</Link>
+              : <Link className="btn btn-outline" href={localePath(locale, "sign-up")} onClick={() => setMenuOpen(false)}>{dict.nav.register}</Link>}
+          </div>
+        )}
       </nav>
     </header>
   );

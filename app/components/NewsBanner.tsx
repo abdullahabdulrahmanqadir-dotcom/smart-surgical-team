@@ -40,7 +40,7 @@ export default function NewsBanner({ locale, item, t }: { locale: Locale; item: 
       {external
         ? <a className="news-banner-link" href={href} target="_blank" rel="noopener noreferrer">{label}</a>
         : <Link className="news-banner-link" href={href}>{label}</Link>}
-      <NewsBannerDismiss itemId={item.id} label={t.bannerDismiss}/>
+      <NewsBannerDismiss itemId={item.id} label={t.bannerDismiss} nextHeadingId="topics-heading"/>
     </aside>
     <script
       // Runs immediately after the element, so a banner the reader has already

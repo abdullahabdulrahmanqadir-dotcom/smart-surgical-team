@@ -24,9 +24,20 @@ export default function FilterSelect({
   const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const listId = useId();
   const optionId = (index: number) => `${listId}-option-${index}`;
+
+  useEffect(() => {
+    const list = listRef.current;
+    const option = list?.children[activeIndex];
+    if (!list || !option) return;
+    const menu = list.getBoundingClientRect();
+    const item = option.getBoundingClientRect();
+    if (item.top < menu.top) list.scrollTop += item.top - menu.top;
+    else if (item.bottom > menu.bottom) list.scrollTop += item.bottom - menu.bottom;
+  }, [activeIndex, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -104,7 +115,7 @@ export default function FilterSelect({
           <IconChevronDown size={16} />
         </button>
         {isOpen ? (
-          <ul className="content-select-menu" id={listId} role="listbox" aria-labelledby={labelId}>
+          <ul className="content-select-menu" ref={listRef} id={listId} role="listbox" aria-labelledby={labelId}>
             {options.map((option, index) => {
               const isSelected = index === selectedIndex;
               const isActive = index === activeIndex;
@@ -115,7 +126,7 @@ export default function FilterSelect({
                   role="option"
                   aria-selected={isSelected}
                   onMouseDown={(event) => event.preventDefault()}
-                  onMouseEnter={() => setActiveIndex(index)}
+                  onPointerMove={() => setActiveIndex(index)}
                   onClick={() => choose(index)}
                   key={option.value}
                 >

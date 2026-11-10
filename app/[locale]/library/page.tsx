@@ -83,11 +83,10 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
       <SiteHeader locale={active} dict={dict} />
       <main id="main-content" className="library-index">
         <header className="library-index-head">
-          <h1>{t.title}</h1>
-          <p>{t.intro}</p>
-          <p className="library-index-count">
-            {items.length === 1 ? t.countOne : fill(t.countMany, { count: items.length })}
-          </p>
+          <div>
+            <h1>{t.title}</h1>
+            <p>{t.intro}</p>
+          </div>
           <Link className="text-link" href={localePath(active, "topics")}>
             {t.browseByTopic}
             <IconArrowRight size={16} />
@@ -95,7 +94,9 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
         </header>
 
         {items.length ? (
-          <CaseLibraryExplorer entries={items} topics={filterTopics} t={t} labels={dict.topics} />
+          <CaseLibraryExplorer entries={items} topics={filterTopics}
+            totalLabel={items.length === 1 ? t.countOne : fill(t.countMany, { count: new Intl.NumberFormat(active).format(items.length) })}
+            t={t} labels={dict.topics} />
         ) : (
           <div className="events-empty">
             <h2>{t.empty}</h2>

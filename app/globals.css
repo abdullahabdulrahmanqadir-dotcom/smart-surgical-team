@@ -56,7 +56,7 @@
 
   --text: var(--brand-brown);
   --text-muted: #6d5f54;
-  --text-soft: #8b7d71;
+  --text-soft: #76685d;
 
   /* Dark media fills for thumbnails and player art */
   /* Sits behind the featured event's photograph while it loads. The
@@ -79,7 +79,7 @@
 
   --content: 1280px;
   --gutter: clamp(1.25rem, 3vw, 2.5rem);
-  --header-h: 106px;
+  --header-h: 110px;
 }
 
 [data-theme="dark"] {
@@ -534,8 +534,10 @@ input {
 }
 
 .header-utility {
-  background: var(--primary-soft);
-  border-block-end: 1px solid var(--line);
+  --utility-ink: #e8f5ef;
+  --utility-hover: #cdebe5;
+  background: var(--brand-teal-deep);
+  color: var(--utility-ink);
 }
 
 .header-utility-inner {
@@ -544,25 +546,40 @@ input {
   justify-content: space-between;
   gap: 1rem;
   max-width: var(--content);
-  min-height: 42px;
+  min-height: 44px;
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
 
 .header-location {
-  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--utility-ink);
   font-size: var(--step--1);
 }
 
 .header-location:hover { text-decoration: underline; }
-.header-utility .theme-toggle { min-height: 42px; }
-.header-utility .header-signup { background: var(--primary); box-shadow: none; }
-.header-utility .header-signup:hover { background: var(--primary-strong); }
+.header-utility :is(.theme-toggle, .language-trigger) { min-height: 44px; }
+.header-utility :is(.btn, .language-trigger) { color: var(--utility-ink); }
+.header-utility :is(.btn, .language-trigger):hover,
+.header-utility .language-menu.is-open .language-trigger {
+  color: var(--utility-hover);
+  background: rgb(255 255 255 / 10%);
+}
+.header-utility :is(.header-location, .btn, .language-trigger, .header-profile):focus-visible,
+.header-utility .theme-toggle:focus-visible .theme-toggle-track { outline-color: var(--utility-hover); }
+.header-utility .header-signup { font-weight: 650; }
+.header-utility .theme-toggle-track {
+  background: rgb(255 255 255 / 8%);
+  border-color: rgb(255 255 255 / 48%);
+}
+.header-utility .theme-toggle-glyph { color: var(--utility-ink); }
 
 .header-inner {
   max-width: var(--content);
   margin: 0 auto;
-  height: calc(var(--header-h) - 42px);
+  min-height: calc(var(--header-h) - 44px);
   padding: 0 var(--gutter);
   display: flex;
   align-items: center;
@@ -596,19 +613,31 @@ input {
 .primary-nav {
   display: flex;
   align-items: center;
-  gap: 1.75rem;
+  gap: clamp(1.1rem, 2.2vw, 2rem);
   margin-inline-start: auto;
 }
 
 .primary-nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
   transition: color 0.18s;
 }
 
-.primary-nav a:hover {
+.primary-nav a:hover,
+.site-header nav a[aria-current] {
   color: var(--primary);
+}
+
+.primary-nav a[aria-current]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 3px;
+  border-block-end: 2px solid currentColor;
 }
 
 .primary-nav-more { position:relative; }
@@ -751,18 +780,32 @@ input {
 }
 
 .mobile-nav {
+  position: absolute;
+  inset: 100% 0 auto;
   display: none;
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem var(--gutter) 1.25rem;
   border-top: 1px solid var(--line);
   background: var(--bg);
+  box-shadow: var(--shadow-lg);
 }
 
 .mobile-nav > a {
-  padding: 0.7rem 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0.6rem .75rem;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.mobile-nav > a[aria-current] {
+  background: var(--primary-soft);
+  text-decoration: underline;
+  text-underline-offset: .25em;
 }
 
 .mobile-nav-more summary { display:flex; min-height:44px; align-items:center; justify-content:space-between; color:var(--text-muted); font-weight:600; cursor:pointer; list-style:none; }
@@ -773,10 +816,9 @@ input {
 .mobile-nav-submenu a { min-height:42px; padding:.65rem .75rem; color:var(--text-muted); font-weight:550; }
 
 .mobile-nav-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
+  margin-block-start: .5rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--line);
 }
 
 .mobile-language {
@@ -785,6 +827,7 @@ input {
 
 .mobile-nav-actions .btn {
   justify-content: center;
+  min-height: 44px;
 }
 
 .mobile-nav-actions .btn-ghost {
@@ -825,7 +868,8 @@ input {
 .header-profile:hover .header-profile-avatar { box-shadow: 0 0 0 2px var(--primary-soft); }
 .header-profile-avatar { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; background: var(--surface-2); color: var(--brand-brown); font-size: .62rem; font-weight: 800; letter-spacing: 0; }
 .header-profile-avatar svg { width: .95rem; height: .95rem; }
-.header-profile .header-profile-avatar svg { width: 1.15rem; height: 1.15rem; }.mobile-profile { grid-column: 1 / -1; }.header-signup { background: var(--brand-copper); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-copper) 28%, transparent); }.header-signup:hover { background: #b96e38; }
+.header-profile .header-profile-avatar svg { width: 1.15rem; height: 1.15rem; }
+.mobile-profile { grid-column: 1 / -1; }
 
 /* ============================================================
    Hero
@@ -1650,7 +1694,8 @@ html:has(.image-lightbox)::before { display: none; }
 .content-map.is-focused .content-map-veil { opacity: 1; transition-delay: 150ms; }
 
 /* Clicking the focused view pulls the camera back out. */
-.content-map-reset { position: absolute; z-index: 2; inset: 0; border: 0; background: none; cursor: zoom-out; }
+.content-map-reset { position: absolute; z-index: 2; inset: 0; display: grid; justify-items: center; align-items: end; padding: .5rem; border: 0; background: none; cursor: zoom-out; }
+.content-map-reset span { padding: .4rem .65rem; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--primary); font-size: var(--step--2); font-weight: 600; }
 .content-map-reset:focus-visible { box-shadow: inset 0 0 0 3px var(--primary-ring); border-radius: var(--radius-lg); }
 
 /* Callouts sit outside the camera so they stay legible at a fixed size, and
@@ -1659,7 +1704,7 @@ html:has(.image-lightbox)::before { display: none; }
    therefore be small and accurate while the tag carries the touch target. */
 .content-map-callouts { position: absolute; z-index: 3; inset: 0; opacity: 1; transition: opacity 260ms ease; }
 .content-map.is-focused .content-map-callouts { opacity: 0; pointer-events: none; }
-.content-map-callout { position: absolute; height: 0; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; animation: content-map-callout-float 5.6s cubic-bezier(.37, 0, .63, 1) infinite; animation-delay: calc(var(--float-order) * -1.4s); will-change: transform; }
+.content-map-callout { position: absolute; height: 0; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
 /* left/top are pinned explicitly: without them the dot falls back to its static
    position, which sits at the opposite edge under RTL and shifts every marker
    off its structure. */
@@ -1672,7 +1717,6 @@ html:has(.image-lightbox)::before { display: none; }
 /* The dot pins to whichever end of the leader sits on the anatomy. */
 .content-map-callout--right .content-map-dot { left: 0; }
 .content-map-callout--right .content-map-tag { left: 100%; transform: translate(-50%, -50%); }
-.content-map-callout--right { transform-origin: left center; --float-tilt: .7deg; }
 .content-map-callout--left .content-map-dot { left: 100%; }
 .content-map-callout--left .content-map-tag {
   left: auto;
@@ -1680,18 +1724,10 @@ html:has(.image-lightbox)::before { display: none; }
   /* Bring the pill in slightly, without covering the dot or leader. */
   transform: translate(1rem, -50%);
 }
-.content-map-callout--left { transform-origin: right center; --float-tilt: -.7deg; }
 .content-map-callout:hover .content-map-tag, .content-map-callout:focus-visible .content-map-tag { border-color: var(--primary); background: var(--primary); color: var(--surface); }
 .content-map-callout:hover .content-map-dot, .content-map-callout:focus-visible .content-map-dot { transform: translate(-50%, -50%) scale(1.35); }
-.content-map-callout:hover, .content-map-callout:focus-visible { animation-play-state: paused; }
 .content-map-callout:focus-visible { outline: none; }
 .content-map-callout:focus-visible .content-map-tag { box-shadow: 0 0 0 3px var(--primary-ring); }
-/* The dot, leader, and title move as one lightweight layer. This avoids the
-   detached-line effect while a small pivot makes the leader breathe naturally. */
-@keyframes content-map-callout-float {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-  50% { transform: translate3d(0, -.38rem, 0) rotate(var(--float-tilt)); }
-}
 
 /* Shown in place of the case library until a region is chosen. */
 .content-prompt { padding: clamp(1.5rem, 4vw, 3rem) 0; border-top: 1px solid var(--line); }
@@ -1786,9 +1822,6 @@ html:has(.image-lightbox)::before { display: none; }
 .content-case-meta { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: auto; padding-top: 1rem; color: var(--text-soft); font-size: .75rem; }
 .content-case-meta span { display: inline-flex; align-items: center; gap: .3rem; }
 .content-case-meta svg { color: var(--primary); }
-.content-case-card:nth-child(3n + 2) .content-case-topic { color: var(--brand-olive); }
-.content-case-card:nth-child(3n) .content-case-topic { color: var(--brand-rose); }
-.content-case-card:nth-child(4n) .content-case-topic { color: #9c721d; }
 .content-empty { display: flex; gap: .85rem; align-items: flex-start; padding: 1.5rem; border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); color: var(--text-muted); }
 .content-empty svg { flex: none; color: var(--primary); }
 .content-empty h3 { color: var(--text); font-size: 1rem; }
@@ -1802,7 +1835,10 @@ html:has(.image-lightbox)::before { display: none; }
 
 @media (prefers-reduced-motion: reduce) { .content-filter-summary, .content-select-menu { animation: none; } .content-select .content-control-field::before, .content-select .content-control-field > svg, .content-select-option { transition: none; } }
 
-@media (max-width: 520px) { .footer-navigation { grid-template-columns: 1fr; gap: 1.75rem; } }
+@media (max-width: 520px) {
+  .footer-navigation { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 1rem; }
+  .footer-navigation .footer-col:last-child { grid-column: 1 / -1; }
+}
 
 .topic-index-grid {
   display: grid;
@@ -2932,8 +2968,8 @@ html:has(.image-lightbox)::before { display: none; }
   border-color: var(--primary);
 }
 
-.footer-socials { margin-top: 1.35rem; }
-.footer-socials a { display: inline-flex; width: auto; min-height: 36px; gap: .5rem; padding: 0 .8rem; border-radius: 999px; font-size: .8rem; font-weight: 700; text-decoration: none; }
+.footer-socials { flex-wrap: wrap; margin-top: .8rem; }
+.footer-socials a { display: inline-flex; width: auto; min-height: 44px; gap: .5rem; padding: 0 .8rem; border-radius: 999px; font-size: .8rem; font-weight: 700; text-decoration: none; }
 
 
 .footer-col h3 {
@@ -2951,6 +2987,8 @@ html:has(.image-lightbox)::before { display: none; }
 
 .footer-col a:hover {
   color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: .2em;
 }
 
 .footer-col p {
@@ -2982,9 +3020,7 @@ html:has(.image-lightbox)::before { display: none; }
   color: var(--text-soft);
 }
 
-.footer-legal a {
-  margin-left: 1.5rem;
-}
+.footer-legal { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
 
 .footer-legal a:hover {
   color: var(--primary);
@@ -3087,14 +3123,16 @@ html:has(.image-lightbox)::before { display: none; }
 }
 
 @media (max-width: 900px) {
-  body.nav-open { overflow: hidden; }
-
   .primary-nav {
     display: none;
   }
 
+  .header-utility :is(.header-admin, .header-signup) { display: none; }
+
   .menu-button {
     display: grid;
+    min-width: 44px;
+    min-height: 44px;
     margin-inline-start: auto;
   }
 
@@ -3159,15 +3197,7 @@ html:has(.image-lightbox)::before { display: none; }
   }
 }
 
-/* At narrow phone widths, keeping both account destinations in the header
-   forces the menu button beyond the viewport. Admin remains available in the
-   opened mobile menu, so reserve the compact bar for the profile and menu. */
 @media (max-width: 500px) {
-  .brand-name,
-  .header-admin {
-    display: none;
-  }
-
   .header-actions .icon-button {
     width: 42px;
     height: 42px;
@@ -3176,7 +3206,7 @@ html:has(.image-lightbox)::before { display: none; }
 }
 
 @media (max-width: 620px) {
-  :root { --header-h: 96px; }
+  :root { --header-h: 102px; }
 
   .header-cta,
   .header-location {
@@ -3186,6 +3216,10 @@ html:has(.image-lightbox)::before { display: none; }
   .header-inner .brand-name {
     display: flex;
   }
+
+  .header-inner .brand-mark { width: 42px; height: 42px; }
+  .header-utility-inner { gap: 0; }
+  .header-actions { flex-wrap: wrap; gap: .125rem .375rem; }
 
   .mobile-language > span {
     color: var(--text-soft);
@@ -3299,9 +3333,6 @@ html:has(.image-lightbox)::before { display: none; }
 
   .footer-navigation { grid-column: auto; }
 
-  .footer-legal a {
-    margin: 0 1.25rem 0 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

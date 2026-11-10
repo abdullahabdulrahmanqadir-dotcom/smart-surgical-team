@@ -53,7 +53,7 @@ test("server-renders the English home page", async () => {
 
   const html = await response.text();
   assert.match(html, /<html[^>]+lang="en"[^>]*dir="ltr"/i);
-  assert.match(html, /<h1 id="home-title">Thyroid and head &amp; neck surgery, through real cases<\/h1>/);
+  assert.match(html, /<h1 id="home-title">Thyroid and head\s&amp;\sneck surgery, through real cases<\/h1>/);
   assert.match(html, /Explore the Library/);
   assert.match(html, /Browse by Topic/);
   // Was /Introducing the clinic/ — that was the section's uppercase kicker,
@@ -265,8 +265,8 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     assert.doesNotMatch(html, /class="content-case-grid"/);
     assert.doesNotMatch(html, /class="content-topic-option is-active/, `${locale} preselects no topic`);
 
-    // Every region stays reachable without client JS having run, each labelled
-    // and with a leader running out to one side or the other.
+    // The overview renders four callouts. Keep the short visible labels
+    // readable on phones and preserve the full topic names for assistive tech.
     assert.equal(
       (html.match(/class="content-map-callout content-map-callout--(?:left|right)"/g) ?? []).length,
       4,
@@ -274,15 +274,24 @@ test("bare topic index opens on the whole head and neck, with no topic chosen", 
     );
     const labels = locale === "ar"
       ? [
-          "الغدة الدرقية وجارات الدرقية",
-          "الغدد اللعابية",
-          "جراحة العنق والجهاز اللمفاوي",
-          "الجلد والأنسجة الرخوة",
+          ["الغدة الدرقية", "الغدة الدرقية وجارات الدرقية"],
+          ["الغدد اللعابية", "الغدد اللعابية"],
+          ["الجهاز اللمفاوي", "جراحة العنق والجهاز اللمفاوي"],
+          ["الجلد", "الجلد والأنسجة الرخوة"],
         ]
-      : ["Thyroid &amp; Parathyroid", "Salivary Glands", "Neck &amp; Lymphatic Surgery", "Skin &amp; Soft Tissue"];
-    for (const label of labels) {
+      : [
+          ["Thyroid", "Thyroid &amp; Parathyroid"],
+          ["Salivary", "Salivary Glands"],
+          ["Lymph", "Neck &amp; Lymphatic Surgery"],
+          ["Skin", "Skin &amp; Soft Tissue"],
+        ];
+    const callouts = visible.match(/<button class="content-map-callout [^"]+"[^>]*>[\s\S]*?<\/button>/g) ?? [];
+    for (const [label, fullLabel] of labels) {
+      const accessibleName = fullLabel.startsWith(label) ? fullLabel : `${label} · ${fullLabel}`;
       assert.ok(
-        html.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`),
+        callouts.some((callout) =>
+          callout.includes(`aria-label="${accessibleName}"`) &&
+          callout.includes(`<span class="content-map-tag" aria-hidden="true">${label}</span>`)),
         `${locale} labels ${label}`,
       );
     }

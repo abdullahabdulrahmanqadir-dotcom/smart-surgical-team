@@ -11,7 +11,7 @@ import { NEWS_DISMISS_KEY } from "./NewsBanner";
  * would mean either an effect reading `localStorage` on mount — which flashes —
  * or a hydration mismatch between the shared HTML and this reader's storage.
  */
-export default function NewsBannerDismiss({ itemId, label }: { itemId: string; label: string }) {
+export default function NewsBannerDismiss({ itemId, label, nextHeadingId }: { itemId: string; label: string; nextHeadingId: string }) {
   return <button
     type="button"
     className="news-banner-dismiss"
@@ -19,6 +19,7 @@ export default function NewsBannerDismiss({ itemId, label }: { itemId: string; l
     onClick={(event) => {
       const banner = event.currentTarget.closest<HTMLElement>("[data-news-banner]");
       if (banner) banner.dataset.dismissed = "1";
+      document.getElementById(nextHeadingId)?.focus({ preventScroll: true });
       // A private window or blocked site data simply means this reader is asked
       // again next time; the banner still closes now.
       try { window.localStorage.setItem(NEWS_DISMISS_KEY, itemId); } catch { /* storage unavailable */ }

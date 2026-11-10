@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useRef, useState, type ReactNode } from "react";
 import { fill, type Dictionary } from "../lib/dictionaries";
 import FilterSelect, { type FilterOption } from "./FilterSelect";
 import { IconSearch } from "./icons";
@@ -15,16 +15,19 @@ type CaseEntry = {
 export default function CaseLibraryExplorer({
   entries,
   topics,
+  totalLabel,
   t,
   labels,
 }: {
   entries: CaseEntry[];
   topics: FilterOption[];
+  totalLabel: string;
   t: Dictionary["libraryIndex"];
   labels: Dictionary["topics"];
 }) {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("all");
+  const search = useRef<HTMLInputElement>(null);
   const needle = query.trim().toLocaleLowerCase();
   const filtered = entries.filter((entry) =>
     (topic === "all" || entry.topicSlugs.includes(topic)) && entry.searchText.includes(needle),
@@ -34,6 +37,7 @@ export default function CaseLibraryExplorer({
   function clearFilters() {
     setQuery("");
     setTopic("all");
+    search.current?.focus();
   }
 
   return <>
@@ -43,18 +47,20 @@ export default function CaseLibraryExplorer({
           <span className="content-control-label">{t.searchCases}</span>
           <span className="content-control-field">
             <IconSearch size={18} aria-hidden="true" />
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+            <input ref={search} type="search" dir="auto" value={query} onChange={(event) => setQuery(event.target.value)} />
           </span>
         </label>
         <FilterSelect label={labels.surgicalTopics} value={topic} onChange={setTopic}
           options={[{ value: "all", label: labels.backToTopics }, ...topics]} />
       </div>
-      {hasFilters && (
-        <div className="content-filter-summary">
-          <p role="status">{fill(labels.filteredResults, { count: filtered.length, total: entries.length })}</p>
+      <div className="content-filter-summary">
+        <p role="status">{hasFilters
+          ? fill(labels.filteredResults, { count: filtered.length, total: entries.length })
+          : totalLabel}</p>
+        {hasFilters && (
           <button type="button" className="content-clear-filters" onClick={clearFilters}>{labels.clearAll}</button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
     {filtered.length ? (
       <div className="content-case-grid">

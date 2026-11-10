@@ -1,7 +1,7 @@
 export default function ThyroidPlate({ label }: { label: string }) {
   return (
     <figure className="editorial-plate">
-      <svg viewBox="13 8 364 268" role="img" aria-label={label} width="364" height="268">
+      <svg viewBox="13 8 364 268" aria-hidden="true" width="364" height="268">
         <defs>
           <radialGradient id="sst-paper"><stop stopColor="currentColor" stopOpacity=".14"/><stop offset="1" stopColor="currentColor" stopOpacity="0"/></radialGradient>
           <linearGradient id="sst-thyroid" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -23,6 +23,7 @@ export default function ThyroidPlate({ label }: { label: string }) {
           <path opacity=".55" stroke="var(--thyroid-ink)" d="M140 155c-13 24-12 47-2 62m112-62c13 24 12 47 2 62"/>
         </g>
       </svg>
+      <figcaption>{label}</figcaption>
     </figure>
   );
 }
