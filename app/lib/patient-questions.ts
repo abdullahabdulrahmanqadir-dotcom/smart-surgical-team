@@ -22,6 +22,8 @@ export const QUESTION_LIMITS = {
   emailMax: 254,
   questionMin: 10,
   questionMax: 3000,
+  answerMax: 6000,
+  noteMax: 2000,
 } as const;
 
 /**

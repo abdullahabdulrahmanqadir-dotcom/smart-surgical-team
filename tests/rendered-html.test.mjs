@@ -646,3 +646,10 @@ test("the questions API refuses what it should before touching the database", as
   assert.equal(badToken.status, 400);
   assert.deepEqual(await badToken.json(), { status: "invalid" });
 });
+
+test("the patient-question inbox refuses anyone without a staff session", async () => {
+  for (const init of [{ method: "GET" }, { method: "POST", body: "{}" }, { method: "DELETE" }]) {
+    const response = await fetchPath("/api/admin/questions?id=00000000-0000-0000-0000-000000000000", { "content-type": "application/json" }, init);
+    assert.equal(response.status, 401, `${init.method} without a token`);
+  }
+});

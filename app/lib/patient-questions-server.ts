@@ -148,22 +148,50 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
 }
 
+/** Escaped text with its line breaks kept, for answers written over several lines. */
+function textHtml(value: string): string {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+/** Splits free text on blank lines, so each paragraph gets its own spacing. */
+function paragraphsOf(value: string): string[] {
+  return value.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+}
+
+type Layout = {
+  paragraphs: string[];
+  /** The patient's own words, shown quoted above the answer. */
+  quote?: { label: string; text: string };
+  /** Shown after the quote, as written by the team. */
+  answer?: string;
+  action?: { label: string; href: string };
+  notes?: string[];
+};
+
 /**
  * One plain, table-free layout for every message. Mail clients strip most CSS,
  * so it relies on inline styles and a single link button, and every email has
  * a text part that says the same thing.
  */
-function layout(locale: Locale, paragraphs: string[], action?: { label: string; href: string }, notes: string[] = []): string {
+function layout(locale: Locale, { paragraphs, quote, answer, action, notes = [] }: Layout): string {
   const dir = locale === "ar" ? "rtl" : "ltr";
   const font = locale === "ar" ? "'Noto Naskh Arabic', Tahoma, Arial, sans-serif" : "Inter, 'Segoe UI', Arial, sans-serif";
-  const body = paragraphs.map((text) => `<p style="margin:0 0 16px">${escapeHtml(text)}</p>`).join("");
+  const side = locale === "ar" ? "right" : "left";
+  const body = paragraphs.map((text) => `<p style="margin:0 0 16px">${textHtml(text)}</p>`).join("");
+  const quoted = quote
+    ? `<p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#5b6566">${escapeHtml(quote.label)}</p>`
+      + `<div dir="auto" style="margin:0 0 20px;padding:10px 14px;border-${side}:3px solid #d9d2c5;background:#fbf9f4;color:#5b6566;font-size:15px">${paragraphsOf(quote.text).map((text) => `<p style="margin:0 0 8px">${textHtml(text)}</p>`).join("")}</div>`
+    : "";
+  const answered = answer
+    ? `<div dir="auto">${paragraphsOf(answer).map((text) => `<p style="margin:0 0 16px">${textHtml(text)}</p>`).join("")}</div>`
+    : "";
   const button = action
     ? `<p style="margin:24px 0"><a href="${escapeHtml(action.href)}" style="display:inline-block;background:#146c6a;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:6px;font-weight:600">${escapeHtml(action.label)}</a></p>`
     : "";
-  const small = notes.map((text) => `<p style="margin:0 0 12px;font-size:14px;color:#5b6566">${escapeHtml(text)}</p>`).join("");
+  const small = notes.map((text) => `<p style="margin:0 0 12px;font-size:14px;color:#5b6566">${textHtml(text)}</p>`).join("");
   return `<!doctype html><html lang="${locale}" dir="${dir}"><body style="margin:0;background:#fbf9f4;padding:24px">`
     + `<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;padding:28px;font-family:${font};font-size:16px;line-height:1.6;color:#40322a">`
-    + `<p style="margin:0 0 20px;font-weight:700;color:#146c6a">Smart Surgical Team</p>${body}${button}${small}`
+    + `<p style="margin:0 0 20px;font-weight:700;color:#146c6a">Smart Surgical Team</p>${body}${quoted}${answered}${button}${small}`
     + `<p style="margin:24px 0 0;font-size:13px;color:#5b6566">Smart Health Tower · Sulaymaniyah</p></div></body></html>`;
 }
 
@@ -194,7 +222,7 @@ export function confirmEmail(locale: Locale, name: string, link: string): Omit<E
   const after = [copy.expiry, copy.emergency];
   return {
     subject: copy.subject,
-    html: layout(locale, lines, { label: copy.button, href: link }, after),
+    html: layout(locale, { paragraphs: lines, action: { label: copy.button, href: link }, notes: after }),
     text: [...lines, "", `${copy.button}: ${link}`, "", ...after].join("\n"),
   };
 }
@@ -204,7 +232,40 @@ export function teamAlertEmail(adminLink: string): Omit<Email, "to"> {
   const lines = ["A new patient question has arrived on the website.", "Open Admin → Questions to read and answer it."];
   return {
     subject: "New patient question — open Admin",
-    html: layout("en", lines, { label: "Open Admin", href: adminLink }),
+    html: layout("en", { paragraphs: lines, action: { label: "Open Admin", href: adminLink } }),
     text: [...lines, "", adminLink].join("\n"),
+  };
+}
+
+const ANSWER_COPY = {
+  en: {
+    subject: "Our answer to your question — Smart Surgical Team",
+    greeting: (name: string) => `Hello ${name},`,
+    intro: "Thank you for your question. Here is our answer.",
+    quoteLabel: "Your question",
+    disclaimer: "This is general information, not a diagnosis or a treatment plan. For advice about your own case, please book a visit with the clinic.",
+    emergency: "If you have an emergency, go to the nearest emergency department.",
+    reply: "You can reply to this email if anything is unclear.",
+  },
+  ar: {
+    subject: "إجابتنا عن سؤالك — Smart Surgical Team",
+    greeting: (name: string) => `مرحباً ${name}،`,
+    intro: "شكراً لسؤالك. إليك إجابتنا.",
+    quoteLabel: "سؤالك",
+    disclaimer: "هذه معلومات عامة، وليست تشخيصاً أو خطة علاج. للحصول على استشارة بشأن حالتك الخاصة، يرجى حجز موعد في العيادة.",
+    emergency: "إذا كانت لديك حالة طارئة، فتوجّه إلى أقرب قسم طوارئ.",
+    reply: "يمكنك الردّ على هذه الرسالة إذا كان أي شيء غير واضح.",
+  },
+} as const;
+
+/** The team's answer, quoting the patient's question back to them. */
+export function answerEmail(locale: Locale, name: string, question: string, answer: string): Omit<Email, "to"> {
+  const copy = ANSWER_COPY[locale];
+  const lines = [copy.greeting(name), copy.intro];
+  const notes = [copy.disclaimer, copy.emergency, copy.reply];
+  return {
+    subject: copy.subject,
+    html: layout(locale, { paragraphs: lines, quote: { label: copy.quoteLabel, text: question }, answer, notes }),
+    text: [...lines, "", `${copy.quoteLabel}:`, question, "", answer, "", ...notes].join("\n"),
   };
 }

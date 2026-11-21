@@ -182,3 +182,47 @@ test("emails escape the patient's name and the team alert carries no question", 
   const alert = teamAlertEmail("https://ssthyroid.com/en/admin");
   assert.ok(!/question:|tired/i.test(alert.text));
 });
+
+// ---------------------------------------------------------------------------
+// Phase 2: the Admin inbox
+// ---------------------------------------------------------------------------
+
+const { answerEmail } = await import("../app/lib/patient-questions-server.ts");
+const { READY_REPLIES, readyReplyText, whatsappOpening } = await import("../app/lib/patient-question-replies.ts");
+const { canAnswerQuestions } = await import("../app/lib/admin-server.ts");
+
+test("only the Owner and Contributors may open the inbox", () => {
+  assert.equal(canAnswerQuestions("owner"), true);
+  assert.equal(canAnswerQuestions("contributor"), true);
+  assert.equal(canAnswerQuestions("content_manager"), false);
+  assert.equal(canAnswerQuestions("editor"), false);
+});
+
+test("the answer email quotes the question, keeps line breaks and escapes everything", () => {
+  const message = answerEmail("en", "Shilan", "Is <this> normal?", "First paragraph.\nSecond line.\n\nNew paragraph & more.");
+  assert.ok(message.html.includes("Is &lt;this&gt; normal?"));
+  assert.ok(message.html.includes("First paragraph.<br>Second line."));
+  assert.ok(message.html.includes("New paragraph &amp; more."));
+  assert.ok(/general information, not a diagnosis/.test(message.html));
+  assert.ok(message.text.includes("Is <this> normal?"));
+  const arabic = answerEmail("ar", "شيلان", "سؤال", "جواب");
+  assert.ok(arabic.html.includes('dir="rtl"'));
+  assert.ok(arabic.html.includes("border-right:3px"));
+});
+
+test("every ready-made reply exists in both languages and fills its booking line", () => {
+  for (const reply of READY_REPLIES) {
+    for (const locale of ["en", "ar"]) {
+      const text = readyReplyText(reply, locale, "https://ssthyroid.com");
+      assert.ok(text.length > 20, `${reply.id}/${locale}`);
+      assert.ok(!text.includes("{"), `${reply.id}/${locale} left a placeholder`);
+    }
+  }
+  const visit = READY_REPLIES.find((reply) => reply.id === "visit");
+  assert.ok(readyReplyText(visit, "ar", "https://ssthyroid.com").includes("https://ssthyroid.com/ar/contact"));
+});
+
+test("the WhatsApp opener asks the patient to confirm before any answer", () => {
+  assert.match(whatsappOpening("en", "Shilan"), /Did you send us a question/);
+  assert.match(whatsappOpening("ar", "شيلان"), /هل أرسلت إلينا سؤالاً/);
+});

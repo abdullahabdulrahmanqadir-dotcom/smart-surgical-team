@@ -1,7 +1,8 @@
 # Patient questions — plan (simple version)
 
-Status: **Phase 1 built on branch `feature/patient-questions`, not deployed,
-not linked anywhere.** Plan written 2026-11-21; Phase 1 built the same day.
+Status: **Phases 1 and 2 built on branch `feature/patient-questions`, not
+deployed, not linked anywhere.** Plan written 2026-11-21; both phases built the
+same day. Next: the internal end-to-end test, then Phase 3 (launch).
 
 ## What it is
 
@@ -35,7 +36,7 @@ public. No account needed.
    privately, and:
    - emails the patient a **confirm link** if they gave an email;
    - emails the team **"New question — open Admin"** (no name, no question text).
-3. **Team** opens Admin → **Questions** (Phase 2), reads, writes the answer (or
+3. **Team** opens Admin → **Patient questions**, reads, writes the answer (or
    picks a ready-made reply), then:
    - **Email:** "Send" — only allowed once the email is confirmed;
    - **WhatsApp:** "Copy answer" + "Open chat". The team's first message asks
@@ -90,7 +91,38 @@ validation messages and focus, fail-closed 503, confirm page states. **Not
 verified:** a real end-to-end send (needs the migration, the secrets and a
 Turnstile pass) and the success screen — both belong to the Phase 2 internal test.
 
-## Before Phase 2 can be tested end to end
+## What Phase 2 built
+
+| Piece | File |
+|---|---|
+| `canAnswerQuestions()` — Owner + Contributors, gates **reading** too | `app/lib/admin-server.ts` |
+| `/api/admin/questions` — GET (purges rows past `delete_after` first), POST `save` / `send-email` / `mark-whatsapp` / `set-status`, DELETE | `app/api/admin/questions/route.ts` |
+| Answer email (EN/AR): quotes the question, keeps line breaks, adds the "general information, not a diagnosis" notice; reply-to is the team address | `answerEmail()` in `app/lib/patient-questions-server.ts` |
+| Ready-made replies (EN + AR, **draft text for the team to approve**) and the WhatsApp opening message | `app/lib/patient-question-replies.ts` |
+| Inbox screen: filters (Waiting / Overdue / Answered / Closed / Spam / All) with counts, search, reading pane, per-question drafts, email and WhatsApp panels, internal note, close / spam / reopen, two-click delete | `app/components/AdminQuestions.tsx`, `admin-questions.css` |
+| "Patient questions" tab (hidden from other roles) and a "waiting" card first on the Overview | `app/components/AdminWorkspace.tsx`, `app/api/admin/[resource]/route.ts` |
+
+Rules the screen and API enforce:
+- **Email** can only be sent to a **confirmed** address. If Resend fails, nothing
+  is marked answered. If the email went out but recording failed, the screen
+  says not to resend.
+- **WhatsApp:** open the chat with a pre-written "Did you send us a question?"
+  message, wait for a yes, copy the answer, send it from the team phone, then
+  "Mark answered on WhatsApp", which stores exactly what was sent.
+- Answering resets retention to 6 months from the answer; spam is 30 days;
+  reopening clears the answered stamp but keeps the draft.
+- Waiting questions are listed oldest first. Overdue means more than
+  3 working days (Saturday–Thursday) without an answer.
+
+Verified 2026-11-21: `npm test` 156/156, `tsc` clean. Clicked through on the
+built site against a **local mock** of the two admin endpoints with fake
+questions: overview card → inbox, ready reply insert, send by email, WhatsApp
+link text (Arabic), mark answered on WhatsApp, disabled email when there is no
+or no confirmed address, and the layout at 1180 px. **Not verified:** the real
+database, real Resend delivery, and a real Contributor account. Those are what
+the internal test below is for.
+
+## Before the internal test (Phase 2 sign-off)
 
 1. Apply the migration (never `db push`):
    `npx supabase db query --linked -f supabase/migrations/0026_patient_questions.sql`
@@ -105,11 +137,10 @@ Turnstile pass) and the success screen — both belong to the Phase 2 internal t
 
 0. ~~Decisions + design interview.~~ Done 2026-11-21.
 1. ~~Database, form, server routes, emails. Built but not linked.~~ Done 2026-11-21.
-2. **Admin Questions tab** (Owner + Contributors): list with filters (new,
-   overdue, answered), answer box, ready-made replies, Send-email (confirmed
-   addresses only), Copy + Open-WhatsApp, mark closed or spam, delete; expired
-   rows deleted when the inbox opens. Then a full internal test: ask → confirm →
-   answer by email and by WhatsApp.
+2. ~~Admin Questions tab.~~ Built 2026-11-21. **Still to do:** the full internal
+   test once the setup above is in place: ask → confirm → answer by email, and
+   ask → answer by WhatsApp. Signed in as a Contributor *and* as an Editor (the
+   Editor must not see the tab, and the API must answer 403).
 3. **Launch:** privacy and terms text, remove `noindex`, add to the sitemap,
    links in the header/footer, contact page and topic pages. Push only with your yes.
 4. **Later:** a public FAQ written by the team from recurring questions.
@@ -123,4 +154,6 @@ Turnstile pass) and the success screen — both belong to the Phase 2 internal t
 5. Does Smart Health Tower have a policy on staff answering patients online?
 6. **The Arabic form and email text should be read by a native speaker** before
    launch.
-7. Ready-made replies (EN + AR): the team writes or approves the text.
+7. Ready-made replies and the WhatsApp opening message (EN + AR) are drafts in
+   `app/lib/patient-question-replies.ts`; the clinical team must approve them.
+8. The four secrets are runtime Worker secrets on the `smart` Worker (`npx wrangler secret put …`), not build variables: none is `NEXT_PUBLIC_`, so no build setting is needed.
