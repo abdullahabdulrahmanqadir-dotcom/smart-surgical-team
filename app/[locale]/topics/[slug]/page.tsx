@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
 import ScrollMotion from "../../../components/ScrollMotion";
 import TopicsExplorer from "../../../components/TopicsExplorer";
+import { IconArrowRight } from "../../../components/icons";
 import { fill, getDictionary } from "../../../lib/dictionaries";
 import { getTopicContent } from "../../../lib/content";
-import { LOCALES, isLocale, type Locale } from "../../../lib/i18n";
+import { LOCALES, isLocale, localePath, type Locale } from "../../../lib/i18n";
 import { getPublicTopicGroup, localizeTopicGroups, PUBLIC_TOPIC_GROUPS } from "../../../lib/topics";
 import { getPublicTopicTree, topicSlugsFor } from "../../../lib/topic-tree";
 import { pageMetadata } from "../../../lib/seo";
@@ -63,7 +65,6 @@ export default async function TopicDetailPage({
   // The subtopics come from the database, so a subtopic added in the admin
   // filters and lists here without a code release.
   const groups = localizeTopicGroups(await getPublicTopicTree(), dict.taxonomy);
-  const localizedGroup = groups.find((candidate) => candidate.slug === group.slug) ?? group;
   const items = await getTopicContent(topicSlugsFor(groups.find((candidate) => candidate.slug === group.slug) ?? group));
 
   return (
@@ -76,10 +77,13 @@ export default async function TopicDetailPage({
       <ScrollMotion />
 
       <main id="main-content">
-        <section className="section section-topic-index" aria-labelledby="topic-detail-heading">
-          <h1 className="visually-hidden" id="topic-detail-heading">
-            {localizedGroup.name}
-          </h1>
+        <section className="section section-topic-index editorial-topic-index" aria-labelledby="topic-index-heading">
+          <div className="topic-index-heading">
+            <h1 id="topic-index-heading">{dict.topics.title}</h1>
+            <Link className="text-link" href={localePath(active, "library")}>
+              {dict.libraryIndex.allCases}<IconArrowRight size={16} />
+            </Link>
+          </div>
           <TopicsExplorer
             groups={groups}
             locale={active}

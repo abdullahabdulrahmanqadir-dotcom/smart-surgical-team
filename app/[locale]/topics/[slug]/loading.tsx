@@ -9,7 +9,7 @@
 export default function LoadingTopics() {
   return (
     <LocalizedLoadingStatus labels={labels}>
-      <section className="section section-topic-index">
+      <section className="section section-topic-index editorial-topic-index">
         <div className="content-browser">
           <div className="content-browser-hero">
             <div className="content-browser-hero-copy">

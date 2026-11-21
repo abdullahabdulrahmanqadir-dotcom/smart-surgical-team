@@ -35,7 +35,6 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       <header className="about-statement">
         <div>
           <h1>{dict.about.pageTitle}</h1>
-          <a className="text-link" href="#team-directory">{dict.nav.team}</a>
         </div>
         <div className="about-mission">
           <h2>{dict.about.missionTitle}</h2>
@@ -48,10 +47,17 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         {teamGroups.map((group, index) => <section className={`team-group team-group-${index + 1}`} key={group.title} aria-labelledby={`group-${index}`}>
           <div className="team-group-head"><div><h3 id={`group-${index}`} {...authoredTitleProps(group.title)}>{group.title}</h3>{group.intro && <p>{group.intro}</p>}</div></div>
           <div className="team-profile-grid">
-            {group.members.map((member) => <article className="team-profile" key={member.name}>
-              <div className="team-portrait"><img src={member.portrait} alt={fill(dict.about.portraitOf, { name: member.name })} /></div>
-              <div className="team-profile-copy"><p className="team-role">{member.role}</p><h4 {...authoredTitleProps(member.name)}>{(() => { const page = profileForMember(member.name); return page ? <Link className="team-profile-link" href={localePath(active, `about/${page.slug}`)}>{member.name}</Link> : member.name; })()}</h4><p className="team-credentials">{member.credentials}</p></div>
-            </article>)}
+            {group.members.map((member) => {
+              const profile = profileForMember(member.name);
+              const content = <>
+                <div className="team-portrait"><img src={member.portrait} alt={fill(dict.about.portraitOf, { name: member.name })} /></div>
+                <div className="team-profile-copy"><p className="team-role">{member.role}</p><h4 {...authoredTitleProps(member.name)}>{member.name}</h4><p className="team-credentials">{member.credentials}</p></div>
+              </>;
+
+              return <article className="team-profile" key={member.name}>
+                {profile ? <Link className="team-profile-card-link" href={localePath(active, `about/${profile.slug}`)} aria-label={member.name}>{content}</Link> : content}
+              </article>;
+            })}
           </div>
         </section>)}
       </section>
