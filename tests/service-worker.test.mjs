@@ -58,7 +58,7 @@ test("the edge cache and the device cache agree on what a public document is", (
   // reverse — and either way it silently behaves unlike the rest of the site.
   assert.equal(publicDocumentRule(source), publicDocumentRule(workerCache));
   // Every public section belongs to the rule, news included.
-  for (const section of ["about", "contact", "events", "library", "news", "posters", "privacy", "research", "terms", "topics"]) {
+  for (const section of ["about", "ask", "contact", "events", "library", "news", "posters", "privacy", "research", "terms", "topics"]) {
     assert.ok(publicDocumentRule(source).includes(section), `PUBLIC_DOCUMENT should cover ${section}`);
   }
 });
