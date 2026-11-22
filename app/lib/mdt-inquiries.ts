@@ -176,18 +176,20 @@ export const MDT_CASE_AREAS = ["thyroid", "parathyroid", "breast", "headNeck"] a
 export type MdtCaseArea = (typeof MDT_CASE_AREAS)[number];
 
 /**
- * DRAFT — every list here must be confirmed by the team before launch
- * (spec, open items 1–4). `schedule` stays null until they give it: the page
- * then says the details are shared on reply rather than show an unchecked
- * day or time.
+ * Only what the site already states elsewhere (About page, llms.txt): the
+ * thyroid / head & neck surgeons plus the radiology, pathology and
+ * endocrinology contributors, and the topics the team operates on. Breast
+ * surgery, oncology and nuclear medicine stay out until the team confirms
+ * they sit on the MDT. `schedule` stays null until the team gives it: the
+ * page then says the details are shared on reply.
  */
 export const MDT_FACTS: {
   specialties: readonly MdtSpecialty[];
   caseAreas: readonly MdtCaseArea[];
   schedule: { en: string; ar: string } | null;
 } = {
-  specialties: MDT_SPECIALTIES,
-  caseAreas: MDT_CASE_AREAS,
+  specialties: ["endocrineSurgery", "headNeckSurgery", "endocrinology", "radiology", "pathology"],
+  caseAreas: ["thyroid", "parathyroid", "headNeck"],
   schedule: null,
 };
 

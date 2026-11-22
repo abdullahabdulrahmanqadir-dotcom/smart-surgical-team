@@ -18,9 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const dict = getDictionary(active);
   return {
     ...pageMetadata({ locale: active, path: "mdt", title: dict.seo.mdtTitle, description: dict.seo.mdtDescription }),
-    // Built but not launched (phase 1 of the MDT spec): kept out of search
-    // until the team confirms the facts and it is linked from the site.
-    robots: { index: false, follow: true },
   };
 }
 
@@ -80,7 +77,7 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
           </header>
 
           {/* A ruled fact sheet, like the contact page's details list. The
-              lists are drafts (MDT_FACTS) until the team confirms them. */}
+              lists come from MDT_FACTS (confirmed facts only). */}
           <dl className="mdt-facts" aria-label={t.factsLabel}>
             <div>
               <dt>{t.factSpecialties}</dt>

@@ -27,6 +27,7 @@ Specialist contributors: radiology (Dr. Aras J. Qaradaxy), pathology (Dr. Ari M.
 - [Topics](https://ssthyroid.com/en/topics): thyroid, parathyroid, salivary gland, neck, lymphatic, skin and soft-tissue surgery
 - [Events](https://ssthyroid.com/en/events): including the Middle East Thyroid Summit, hosted in Sulaymaniyah
 - [News](https://ssthyroid.com/en/news): announcements and media coverage
+- [Our MDT](https://ssthyroid.com/en/mdt): how outside doctors, teams and institutes can ask to present a case, attend or collaborate with the team's multidisciplinary meeting
 - [Contact and directions](https://ssthyroid.com/en/contact): address, hours, and a form to send a general question to the surgeons (answered by email or WhatsApp; not for emergencies)
 
 Arabic versions are at the same paths under /ar/.
