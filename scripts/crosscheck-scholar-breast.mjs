@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 // Run with: node scripts/crosscheck-scholar-breast.mjs
 
 const ROOT = "scratch/scholar-breast";
-const MAILTO = "sst-metadata-check (mailto:info@smartsurgicalteam.com)";
+const MAILTO = "sst-metadata-check (mailto:info@ssthyroid.com)";
 const papers = fs.readdirSync(ROOT).filter((e) => fs.statSync(path.join(ROOT, e)).isDirectory())
   .map((e) => JSON.parse(fs.readFileSync(path.join(ROOT, e, "data.json"), "utf8")))
   .sort((a, b) => a.order - b.order);

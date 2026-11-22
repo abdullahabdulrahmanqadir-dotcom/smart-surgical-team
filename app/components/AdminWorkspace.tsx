@@ -3,12 +3,16 @@
 import { FormEvent, MouseEvent as ReactMouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
-import { IconArrowRight, IconCheck, IconFile, IconLayers, IconPlus, IconSearch } from "./icons";
+import AdminInbox, { type InboxTab } from "./AdminInbox";
+import { IconArrowRight, IconCheck, IconFile, IconLayers, IconMail, IconPlus, IconSearch } from "./icons";
 
 // The sections the sidebar offers. Contributors and People & roles were retired
 // from the workspace: roles are changed directly in Supabase, and the two topic
 // taxonomies are now edited inline from the editors that use them.
-type Section = "overview" | "content" | "posters" | "events" | "research" | "news";
+// "questions" is the Inbox (patient questions + MDT inquiries): shown to the
+// Owner and Contributors only, and self-contained (each list loads and writes
+// its own data).
+type Section = "overview" | "content" | "posters" | "events" | "research" | "news" | "questions";
 // The taxonomies are still read and written through the same admin API; they
 // simply no longer have a screen of their own. News categories behave the same
 // way: they are managed from inside the news editor that files items under them.
@@ -76,7 +80,11 @@ const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "research", label: "Research", icon: IconFile },
   { id: "news", label: "News", icon: IconFile },
   { id: "events", label: "Events & webinars", icon: IconPlus },
+  { id: "questions", label: "Inbox", icon: IconMail },
 ];
+// Mirrors canAnswerQuestions() in app/lib/admin-server.ts. Hiding the tab is a
+// convenience; the API refuses every other role on its own.
+const QUESTION_ROLES = ["owner", "contributor"];
 
 // The stored session is restored asynchronously after the page loads, so the
 // first request has to wait for it. Sending an empty bearer token instead is
@@ -518,6 +526,7 @@ function RichEditor({ value, onChange, placeholder = "Write the supporting detai
 
 export default function AdminWorkspace() {
   const [active, setActive] = useState<Section>("overview");
+  const [inboxTab, setInboxTab] = useState<InboxTab>("questions");
   const [identity, setIdentity] = useState<RecordItem | null>(null);
   const [items, setItems] = useState<RecordItem[]>([]);
   const [topics, setTopics] = useState<RecordItem[]>([]);
@@ -581,6 +590,7 @@ export default function AdminWorkspace() {
     const current = () => loadToken.current === token;
     setLoading(true); setNotice(""); setNoticeTone("ok");
     try {
+      if (resource === "questions") { setItems([]); return; }
       if (resource === "overview" && !(await accessToken())) { if (current()) { setAccess("signed_out"); setAccessMessage("Sign in with your staff account to open the workspace."); } return; }
       const result = await request(resource);
       if (!current()) return;
@@ -778,13 +788,19 @@ export default function AdminWorkspace() {
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We could not verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
   const canCreate = ["content", "posters", "research", "events", "news"].includes(active);
+  const visibleNav = nav.filter((item) => item.id !== "questions" || QUESTION_ROLES.includes(String(identity?.role ?? "")));
   const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : active === "news" ? "news item" : "event";
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">Content operations</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} contributors={contributors} caseSectionsStorable={caseSectionsStorable} taxonomy={taxonomy} loadRelatedOptions={loadRelatedOptions} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} newsFilters={newsFilters} setNewsFilters={setNewsFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">{active === "questions" ? "Patients & partners" : "Content operations"}</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive} openInbox={(tab) => { setInboxTab(tab); setActive("questions"); }}/> : active === "questions" ? <AdminInbox authHeaders={authHeaders} tab={inboxTab} setTab={setInboxTab} initialCounts={{ questions: typeof metrics.questionsWaiting === "number" ? metrics.questionsWaiting : undefined, mdt: typeof metrics.mdtWaiting === "number" ? metrics.mdtWaiting : undefined }}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} contributors={contributors} caseSectionsStorable={caseSectionsStorable} taxonomy={taxonomy} loadRelatedOptions={loadRelatedOptions} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} newsFilters={newsFilters} setNewsFilters={setNewsFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
-function Overview({ metrics, setActive }: { metrics: RecordItem; setActive: (section: Section) => void }) {
+function Overview({ metrics, setActive, openInbox }: { metrics: RecordItem; setActive: (section: Section) => void; openInbox: (tab: InboxTab) => void }) {
   const cards: { key: string; label: string; section: Section }[] = [{ key: "published", label: "Published items", section: "content" }, { key: "drafts", label: "Drafts & unpublishing", section: "content" }, { key: "events", label: "Published events", section: "events" }, { key: "research", label: "Research publications", section: "research" }, { key: "news", label: "Published news", section: "news" }];
-  return <div className="admin-overview"><section className="admin-welcome"><div><span className="admin-kicker">Control room</span><h2>Keep the platform current, carefully.</h2><p>Publish case articles, update the team, and keep events and learning material accurate from one place.</p></div><button className="btn btn-primary" type="button" onClick={() => setActive("content")}>Create a case article <IconArrowRight size={17}/></button></section><div className="admin-metric-grid">{cards.map((card) => <button type="button" onClick={() => setActive(card.section)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div><section className="admin-safety"><h2>Clinical publishing reminder</h2><p>Only publish material that has been de-identified, consented, and approved by the team. Articles are public unless you select Site users only in the content editor.</p></section></div>;
+  // Present only for the Owner and Contributors, and placed first in their own
+  // row: someone waiting for a reply matters more than a content count.
+  const waiting: { key: string; label: string; tab: InboxTab }[] = [];
+  if (typeof metrics.questionsWaiting === "number") waiting.push({ key: "questionsWaiting", label: "Patient questions waiting", tab: "questions" });
+  if (typeof metrics.mdtWaiting === "number") waiting.push({ key: "mdtWaiting", label: "MDT inquiries waiting", tab: "mdt" });
+  return <div className="admin-overview">{waiting.length > 0 && <div className="admin-metric-grid is-waiting-row">{waiting.map((card) => <button type="button" className={Number(metrics[card.key] ?? 0) > 0 ? "is-waiting" : ""} onClick={() => openInbox(card.tab)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div>}<section className="admin-welcome"><div><span className="admin-kicker">Control room</span><h2>Keep the platform current, carefully.</h2><p>Publish case articles, update the team, and keep events and learning material accurate from one place.</p></div><button className="btn btn-primary" type="button" onClick={() => setActive("content")}>Create a case article <IconArrowRight size={17}/></button></section><div className="admin-metric-grid is-content-row">{cards.map((card) => <button type="button" onClick={() => setActive(card.section)} key={card.key}><strong>{String(metrics[card.key] ?? 0)}</strong><span>{card.label}</span><IconArrowRight size={16}/></button>)}</div><section className="admin-safety"><h2>Clinical publishing reminder</h2><p>Only publish material that has been de-identified, consented, and approved by the team. Articles are public unless you select Site users only in the content editor.</p></section></div>;
 }
 
 function List({ section, items, search, setSearch, topics, researchTopics, newsCategories, filters, setFilters, researchFilters, setResearchFilters, newsFilters, setNewsFilters, onEdit, onDelete }: { section: Section; items: RecordItem[]; search: string; setSearch: (value: string) => void; topics: RecordItem[]; researchTopics: RecordItem[]; newsCategories: RecordItem[]; filters: ContentFilters; setFilters: (filters: ContentFilters) => void; researchFilters: ResearchFilters; setResearchFilters: (filters: ResearchFilters) => void; newsFilters: NewsFilters; setNewsFilters: (filters: NewsFilters) => void; onEdit: (item: RecordItem) => void; onDelete: (item: RecordItem) => void }) {

@@ -1,0 +1,89 @@
+/* /:locale/mdt. Builds on ask.css (shell, intro, form card, guide panel);
+   only what is specific to this page lives here. Editorial vocabulary taken
+   from /contact: display headings, hairline-ruled lists, uppercase labels on
+   the tracking token. No literal letter-spacing (see the RTL tracking rule). */
+
+/* --- Hero --------------------------------------------------------------- */
+
+.mdt-page .ask-intro h1 { text-wrap: balance; }
+.mdt-cta { min-height: 44px; margin-block-start: 1.1rem; }
+[dir="rtl"] .mdt-cta svg { transform: scaleX(-1); }
+
+/* --- Fact sheet --------------------------------------------------------- */
+
+.mdt-facts {
+  max-width: 56rem;
+  margin: clamp(2.25rem, 5vw, 3.5rem) 0 0;
+  border-block-start: 1px solid var(--line-strong);
+}
+.mdt-facts > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 13rem) minmax(0, 1fr);
+  gap: .35rem 2rem;
+  padding-block: 1.15rem;
+  border-block-end: 1px solid var(--line);
+}
+.mdt-facts dt {
+  padding-block-start: .2rem;
+  color: var(--accent);
+  font-size: var(--step--2);
+  font-weight: 750;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.mdt-facts dd { margin: 0; color: var(--text); font-size: var(--step-0); line-height: 1.75; }
+
+/* --- Ways to take part -------------------------------------------------- */
+
+.mdt-ways { margin-block-start: clamp(2.75rem, 6vw, 4.5rem); }
+.mdt-ways h2 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 500; line-height: 1.2; }
+.mdt-ways > p { max-width: 60ch; margin-block-start: .5rem; color: var(--text-muted); line-height: 1.65; }
+.mdt-ways ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(1.25rem, 2.5vw, 2rem);
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.mdt-ways li { padding-block-start: 1.1rem; border-block-start: 2px solid var(--primary); }
+.mdt-ways h3 { margin: 0; font-family: var(--editorial-display); font-size: var(--step-1); font-weight: 500; line-height: 1.3; }
+.mdt-ways li p { margin-block-start: .45rem; color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
+
+/* --- Form and guide ----------------------------------------------------- */
+
+.mdt-form-layout { margin-block-start: clamp(2.75rem, 6vw, 4.5rem); scroll-margin-block-start: calc(var(--header-h) + 1rem); }
+
+/* A note between peers, not an alarm: /ask keeps the rose-filled box for
+   its real emergency notice. */
+.mdt-page .ask-emergency {
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--brand-rose);
+  background: var(--surface);
+}
+.mdt-page .ask-emergency h2 { color: var(--text); font-family: var(--editorial-display); font-size: var(--step-1); font-weight: 500; line-height: 1.35; }
+.mdt-page .ask-emergency p { color: var(--text-muted); }
+
+.mdt-patient .text-link { display: inline-flex; align-items: center; gap: .3rem; }
+[dir="rtl"] .mdt-patient .text-link svg { transform: scaleX(-1); }
+
+/* --- Small screens ------------------------------------------------------ */
+
+@media (max-width: 1000px) {
+  .mdt-ways ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* On phones the notice stays before the form, and the rest of the guide
+   (what happens next, privacy, patients) follows it. */
+@media (max-width: 900px) {
+  .mdt-form-layout { grid-template-areas: none; }
+  .mdt-form-layout .ask-guide { display: contents; }
+  .mdt-form-layout > .ask-card { grid-area: auto; order: 2; }
+  .mdt-form-layout .ask-emergency { order: 1; }
+  .mdt-form-layout .ask-facts { order: 3; }
+}
+
+@media (max-width: 560px) {
+  .mdt-facts > div { grid-template-columns: minmax(0, 1fr); }
+  .mdt-ways ul { grid-template-columns: minmax(0, 1fr); }
+}

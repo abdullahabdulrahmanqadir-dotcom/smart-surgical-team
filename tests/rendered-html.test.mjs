@@ -377,7 +377,7 @@ test("events hub and its two initial records are available in every locale", asy
     const detail = await fetchPath(`/${locale}/events/second-middle-east-thyroid-summit`);
     assert.equal(detail.status, 200);
     const detailHtml = await detail.text();
-    assert.match(detailHtml, locale === "ar" ? /التسجيل عبر موقع القمة/ : /Register on MET site/);
+    assert.match(detailHtml, locale === "ar" ? /التسجيل في هذه الفعالية/ : /Register for this event/);
     assert.match(detailHtml, locale === "ar" ? /جلسات علمية بقيادة الخبراء/ : /Expert-led scientific panels/);
     assert.match(detailHtml, locale === "ar" ? /محاكاة اجتماعات فريق الأورام/ : /Tumour board simulations/);
     assert.match(detailHtml, /mets\.smarthealth\.group\/register/);
@@ -596,4 +596,133 @@ test("the Arabic site spells Smart Health Tower one way", async () => {
   const html = await (await fetchPath("/ar")).text();
   assert.doesNotMatch(html, /برج الصحة|برج سمارت/);
   assert.match(html, /Smart Health Tower/);
+});
+
+test("the question form lives on the contact page in both languages", async () => {
+  for (const [locale, dir, heading] of [["en", "ltr", "Ask our team"], ["ar", "rtl", "اسأل فريقنا"]]) {
+    const response = await fetchPath(`/${locale}/contact`);
+    assert.equal(response.status, 200, `/${locale}/contact`);
+    const html = await response.text();
+    assert.match(html, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.match(html, /<section id="ask" class="contact-ask-section"/);
+    assert.ok(html.includes(heading), `${locale} heading`);
+    // The emergency notice comes before the form in the DOM.
+    assert.ok(html.indexOf('class="ask-emergency"') < html.indexOf('name="phone"'), `${locale} notice first`);
+    // The emergency notice and the form are both server-rendered.
+    assert.match(html, /class="ask-emergency"/);
+    assert.match(html, /name="phone"/);
+    assert.match(html, /name="replyVia"[^>]*value="whatsapp"/);
+    assert.match(html, /name="consent"/);
+    // No unchecked number is shown while ASK_CONTACT is still empty.
+    assert.doesNotMatch(html, /href="tel:/);
+  }
+});
+
+test("the old ask URL redirects permanently to the form on the contact page", async () => {
+  for (const locale of ["en", "ar"]) {
+    const response = await fetchPath(`/${locale}/ask`);
+    assert.ok([301, 308].includes(response.status), `/${locale}/ask status ${response.status}`);
+    assert.equal(new URL(response.headers.get("location"), "http://localhost").pathname, `/${locale}/contact`);
+    assert.match(response.headers.get("location"), /#ask$/);
+    // The details card jumps down to the form on the same page.
+    const html = await (await fetchPath(`/${locale}/contact`)).text();
+    assert.match(html, /class="contact-ask"/, `${locale} ask row`);
+    assert.match(html, /href="#ask"/, `${locale} ask jump link`);
+  }
+});
+
+test("the confirm page never confirms on load and is not indexed", async () => {
+  const response = await fetchPath("/en/ask/confirm");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /<meta name="robots" content="noindex, nofollow"/);
+  assert.match(html, /class="ask-card ask-confirm/);
+});
+
+test("the questions API refuses what it should before touching the database", async () => {
+  const post = (body) => fetchPath("/api/questions", { "content-type": "application/json" }, { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+
+  const malformed = await post("{not json");
+  assert.equal(malformed.status, 400);
+
+  // A filled honeypot is told it worked; nothing is validated or stored.
+  const trapped = await post({ website: "http://spam.example" });
+  assert.equal(trapped.status, 200);
+  assert.deepEqual(await trapped.json(), { ok: true, emailConfirmation: false });
+
+  const invalid = await post({ name: "", phone: "12", replyVia: "email", question: "hi", consent: false });
+  assert.equal(invalid.status, 422);
+  const body = await invalid.json();
+  assert.equal(body.code, "invalid");
+  assert.deepEqual(Object.keys(body.errors).sort(), ["consent", "email", "name", "phone", "question"]);
+  assert.equal(invalid.headers.get("cache-control"), "no-store");
+
+  const badToken = await fetchPath("/api/questions/confirm", { "content-type": "application/json" }, { method: "POST", body: JSON.stringify({ token: "short" }) });
+  assert.equal(badToken.status, 400);
+  assert.deepEqual(await badToken.json(), { status: "invalid" });
+});
+
+test("the patient-question inbox refuses anyone without a staff session", async () => {
+  for (const init of [{ method: "GET" }, { method: "POST", body: "{}" }, { method: "DELETE" }]) {
+    const response = await fetchPath("/api/admin/questions?id=00000000-0000-0000-0000-000000000000", { "content-type": "application/json" }, init);
+    assert.equal(response.status, 401, `${init.method} without a token`);
+  }
+});
+
+test("the MDT page renders in both languages, open to search engines", async () => {
+  for (const [locale, dir, heading] of [["en", "ltr", "Multidisciplinary team meeting"], ["ar", "rtl", "اجتماع الفريق متعدد التخصصات"]]) {
+    const response = await fetchPath(`/${locale}/mdt`);
+    assert.equal(response.status, 200, `/${locale}/mdt`);
+    const html = await response.text();
+    assert.match(html, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.ok(html.includes(heading), `${locale} heading`);
+    assert.doesNotMatch(html, /<meta name="robots" content="noindex/);
+    // The "no patient details" notice and the whole form are server-rendered.
+    assert.match(html, /id="mdt-notice-title"/);
+    // The fact sheet and the jump link to the form are server-rendered too.
+    assert.match(html, /class="mdt-facts"/);
+    assert.match(html, /href="#mdt-form"/);
+    for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent", "website"]) {
+      assert.match(html, new RegExp(`name="${field}"`), `${locale} field ${field}`);
+    }
+    // Patients are pointed to the form on /contact, which points doctors back here.
+    assert.match(html, new RegExp(`href="/${locale}/contact#ask"`));
+    const contact = await (await fetchPath(`/${locale}/contact`)).text();
+    assert.match(contact, new RegExp(`href="/${locale}/mdt"`), `${locale} contact → mdt`);
+  }
+});
+
+test("the MDT API traps bots silently and refuses junk before touching the database", async () => {
+  const post = (body) => fetchPath("/api/mdt", { "content-type": "application/json" }, { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+
+  assert.equal((await post("{not json")).status, 400);
+  assert.equal((await post("[]")).status, 400);
+
+  // Honeypot and fill-time trap: told it worked, nothing validated or stored.
+  for (const trap of [{ website: "http://spam.example", elapsedMs: 9000 }, { elapsedMs: 400 }, {}]) {
+    const response = await post(trap);
+    assert.equal(response.status, 200, JSON.stringify(trap));
+    assert.deepEqual(await response.json(), { ok: true });
+  }
+
+  const invalid = await post({ elapsedMs: 9000, name: "", role: "ceo", email: "nope", message: "hi", noPatientData: false, consent: true });
+  assert.equal(invalid.status, 422);
+  assert.equal(invalid.headers.get("cache-control"), "no-store");
+  const body = await invalid.json();
+  assert.equal(body.code, "invalid");
+  assert.deepEqual(Object.keys(body.errors).sort(), ["country", "email", "institution", "interest", "message", "name", "noPatientData", "role"]);
+
+  const spammy = await post({
+    elapsedMs: 9000, name: "A", role: "other", institution: "Clinic", country: "Iraq", email: "a@b.example", interest: "other",
+    message: "cheap https://1.example https://2.example https://3.example", noPatientData: true, consent: true,
+  });
+  assert.equal(spammy.status, 422);
+  assert.deepEqual((await spammy.json()).errors, { message: "tooManyLinks" });
+});
+
+test("the MDT inbox refuses anyone without a staff session", async () => {
+  for (const init of [{ method: "GET" }, { method: "POST", body: "{}" }, { method: "DELETE" }]) {
+    const response = await fetchPath("/api/admin/mdt?id=00000000-0000-0000-0000-000000000000", { "content-type": "application/json" }, init);
+    assert.equal(response.status, 401, `${init.method} without a token`);
+  }
 });

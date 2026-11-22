@@ -31,6 +31,15 @@ const DELETABLE: Record<StaffRole, AdminResource[]> = {
   contributor: [],
 };
 
+// Patient questions are health enquiries, not content: only the Owner and the
+// surgeons (Contributors) may read or answer them. Unlike every other section
+// this gates reading too — Content managers and Editors never see the inbox.
+const QUESTION_ROLES: readonly StaffRole[] = ["owner", "contributor"];
+
+export function canAnswerQuestions(role: StaffRole) {
+  return QUESTION_ROLES.includes(role);
+}
+
 export function canWrite(role: StaffRole, resource: AdminResource) {
   return WRITABLE[role].includes(resource);
 }

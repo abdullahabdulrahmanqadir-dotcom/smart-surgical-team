@@ -1,0 +1,121 @@
+/* Admin → Questions. Uses the workspace's own palette (the literal admin
+   colours in globals.css) so the inbox reads as part of the same tool. */
+
+.aq { padding-top: 24px; }
+.aq-privacy { max-width: 820px; margin: 0 0 18px; padding: 14px 18px; border-inline-start: 3px solid #c9824b; background: #fffaf5; color: #665746; font-size: 13.5px; line-height: 1.6; }
+
+.aq-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.aq-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.aq-filters button { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 12px; border: 1px solid #cbdad7; border-radius: 99px; background: #fff; color: #335b58; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.aq-filters button span { min-width: 20px; padding: 1px 6px; border-radius: 99px; background: #e8efed; color: #4f6b69; font-size: 11px; text-align: center; }
+.aq-filters button:hover { border-color: #167a78; }
+.aq-filters button.is-active { border-color: #167a78; background: #167a78; color: #fff; }
+.aq-filters button.is-active span { background: rgba(255,255,255,.22); color: #fff; }
+.aq-filters button.is-alert:not(.is-active) span { background: #f6dcd8; color: #8c3b31; }
+.aq-search { display: flex; align-items: center; gap: 8px; width: min(320px, 100%); min-height: 40px; padding: 0 12px; border: 1px solid #cbdad7; border-radius: 8px; background: #fff; color: #4f6b69; }
+.aq-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #173c3b; font: inherit; font-size: 14px; }
+.aq-search:focus-within { border-color: #167a78; box-shadow: 0 0 0 3px rgba(22,122,120,.14); }
+
+.aq-layout { display: grid; grid-template-columns: minmax(260px, 360px) minmax(0, 1fr); gap: 16px; align-items: start; }
+
+.aq-list { display: grid; max-height: calc(100vh - 220px); margin: 0; padding: 0; overflow: auto; list-style: none; border: 1px solid #d6e1de; border-radius: 11px; background: #fff; }
+.aq-list li + li { border-top: 1px solid #e4ecea; }
+.aq-empty { padding: 30px 18px; color: #687f7d; font-size: 13.5px; text-align: center; }
+.aq-row { display: grid; gap: 6px; width: 100%; padding: 14px 16px; border: 0; border-inline-start: 3px solid transparent; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.aq-row:hover { background: #f6faf9; }
+.aq-row.is-selected { border-inline-start-color: #167a78; background: #eef6f4; }
+.aq-row:focus-visible { outline: 2px solid #167a78; outline-offset: -2px; }
+.aq-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aq-row-head b { overflow: hidden; color: #153f3d; font-size: 14.5px; text-overflow: ellipsis; white-space: nowrap; }
+.aq-row-channel { display: inline-flex; flex: none; color: #167a78; }
+.aq-row-text { display: -webkit-box; overflow: hidden; color: #536b69; font-size: 13px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.aq-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 9px; color: #758a88; font-size: 11.5px; }
+
+.admin-status.is-q-new { background: #fff1dc; color: #936226; }
+.admin-status.is-q-answered { background: #dff0ea; color: #14615b; }
+.admin-status.is-q-closed { background: #e8efed; color: #5b7270; }
+.admin-status.is-q-spam { background: #f1e8e5; color: #805c55; }
+.admin-status.is-q-overdue { background: #f6dcd8; color: #8c3b31; }
+.admin-status.is-q-contacted { background: #dff0ea; color: #14615b; }
+.admin-status.is-q-wrong_form { background: #ece7f3; color: #5d4f7a; }
+
+.aq-detail { min-height: 420px; padding: clamp(18px, 2.5vw, 28px); border: 1px solid #d6e1de; border-radius: 11px; background: #fff; }
+.aq-placeholder { display: grid; place-items: center; gap: 8px; min-height: 360px; color: #6c8280; text-align: center; }
+.aq-placeholder p { margin: 0; }
+.aq-detail-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e4ecea; }
+.aq-detail-head h2 { margin: 0; color: #103f3e; font-family: var(--font-display), Georgia, serif; font-size: 26px; font-weight: 500; }
+.aq-detail-head h2:focus { outline: none; }
+.aq-detail-head p { margin: 4px 0 0; color: #687f7d; font-size: 13px; }
+.aq-detail .admin-notice { margin: 14px 0 0; }
+
+.aq-contact { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 20px; margin: 16px 0 0; }
+.aq-contact dt { color: #687f7d; font-size: 11.5px; font-weight: 700; }
+.aq-contact dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 3px 0 0; color: #173c3b; font-size: 14px; word-break: break-word; }
+.aq-contact dd a { color: #173c3b; font-weight: inherit; white-space: nowrap; text-decoration: underline; text-decoration-color: #b9cfcb; text-underline-offset: 3px; }
+.aq-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 99px; background: #fff1dc; color: #936226; font-size: 11px; font-weight: 700; }
+.aq-badge.is-ok { background: #dff0ea; color: #14615b; }
+.aq-muted { color: #6c8280; font-size: 12.5px; font-weight: 400; }
+
+.aq-question, .aq-answered { margin-top: 20px; }
+.aq-question h3, .aq-answered h3, .aq-channel h3 { margin: 0 0 8px; font-family: var(--font-body-stack); color: #335b58; font-size: 13px; font-weight: 700; }
+.aq-question p { margin: 0; padding: 14px 16px; border-radius: 9px; background: #f6faf8; color: #173c3b; font-size: 15px; line-height: 1.65; white-space: pre-wrap; }
+.aq-answer-text { margin: 10px 0 0; padding: 14px 16px; border: 1px solid #d6e1de; border-radius: 9px; color: #173c3b; font-size: 14.5px; line-height: 1.65; white-space: pre-wrap; }
+.aq-note { margin: 10px 0 0; color: #536b69; font-size: 13px; }
+
+.aq-compose { display: grid; gap: 8px; margin-top: 22px; }
+.aq-compose-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.aq-compose-head label, .aq-note-field { color: #335b58; font-size: 13px; font-weight: 700; }
+.aq-replies { display: flex; flex-wrap: wrap; gap: 6px; }
+.aq-replies button { padding: 5px 10px; border: 1px solid #cbdad7; border-radius: 99px; background: transparent; color: #17605d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.aq-replies button:hover { border-color: #167a78; background: #f6faf9; }
+.aq-compose textarea, .aq-note-input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #cbdad7; border-radius: 8px; outline: none; background: #fff; color: #173c3b; font: inherit; font-size: 14.5px; line-height: 1.6; resize: vertical; }
+.aq-compose textarea { min-height: 170px; }
+.aq-compose textarea:focus, .aq-note-input:focus { border-color: #167a78; box-shadow: 0 0 0 3px rgba(22,122,120,.14); }
+
+.aq-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 16px; }
+.aq-channel { display: grid; align-content: start; gap: 10px; padding: 16px; border: 1px solid #d6e1de; border-radius: 10px; background: #fbfdfc; }
+.aq-channel.is-preferred { border-color: #9cc6c1; background: #f2f9f7; }
+.aq-channel h3 { display: flex; align-items: center; gap: 7px; margin: 0; color: #173c3b; font-size: 14px; }
+.aq-channel h3 svg { color: #167a78; }
+.aq-channel h3 small { font-family: var(--font-body-stack); padding: 1px 7px; border-radius: 99px; background: #dff0ea; color: #14615b; font-size: 10.5px; font-weight: 700; }
+.aq-channel p { margin: 0; }
+.aq-channel .btn { justify-self: start; }
+.aq-channel .btn:disabled { border-color: #e1e9e7; background: #e8efed; color: #8aa09e; box-shadow: none; opacity: 1; cursor: not-allowed; }
+.aq-steps { display: grid; gap: 6px; margin: 0; padding-inline-start: 1.2rem; color: #536b69; font-size: 13px; line-height: 1.5; }
+
+.aq-note-field { display: block; margin-top: 18px; margin-bottom: 6px; }
+
+.aq-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 18px; }
+.aq-link { padding: 0; border: 0; background: transparent; color: #167a78; font: inherit; font-size: 13px; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.aq-link:disabled { color: #9aaba9; cursor: not-allowed; text-decoration: none; }
+.aq-danger { margin-top: 26px; padding-top: 14px; border-top: 1px solid #e4ecea; }
+.aq-link.is-danger { color: #a04c42; }
+.aq-link.is-danger.is-confirming { padding: 4px 9px; border-radius: 6px; background: #f6dcd8; text-decoration: none; }
+
+/* The sidebar takes 262px, so the list and the reading pane only sit side by
+   side on a wide screen; below that the list stacks above the question. */
+@media (max-width: 1280px) {
+  .aq-layout { grid-template-columns: minmax(0, 1fr); }
+  .aq-list { max-height: 340px; }
+}
+
+/* Inbox: one tab per form (patient questions, MDT inquiries). */
+.ainbox-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 20px; border-bottom: 1px solid #d6e1de; }
+.ainbox-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; margin-bottom: -1px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #4f6b69; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.ainbox-tabs button:hover { color: #167a78; }
+.ainbox-tabs button[aria-selected="true"] { border-bottom-color: #167a78; color: #153f3d; }
+.ainbox-tabs button:focus-visible { outline: 2px solid #167a78; outline-offset: -2px; }
+.ainbox-tabs button span { min-width: 20px; padding: 1px 7px; border-radius: 99px; background: #e8efed; color: #4f6b69; font-size: 11px; text-align: center; }
+.ainbox-tabs button span.is-waiting { background: #fff1dc; color: #936226; }
+.ainbox-panel .aq { padding-top: 18px; }
+
+/* One quiet line under the tabs instead of a boxed note on every visit. */
+.aq-lede { max-width: 820px; margin: 0 0 16px; color: #687f7d; font-size: 13.5px; line-height: 1.6; }
+
+/* Overview: waiting counts sit apart from content counts and are marked
+   when something is actually waiting. */
+.admin-metric-grid.is-waiting-row { margin: 0 0 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1180px) { .admin-metric-grid.is-content-row { grid-template-columns: repeat(5, minmax(0, 1fr)); } .admin-metric-grid.is-content-row button { min-height: 116px; } }
+@media (max-width: 590px) { .admin-metric-grid.is-waiting-row { grid-template-columns: 1fr; } }
+.admin-metric-grid button.is-waiting { border-color: #e9c48f; background: #fffaf4; }
+.admin-metric-grid button.is-waiting strong { color: #936226; }

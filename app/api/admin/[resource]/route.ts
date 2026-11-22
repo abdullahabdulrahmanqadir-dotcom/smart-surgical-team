@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { revalidateTag } from "next/cache";
-import { apiError, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
+import { apiError, canAnswerQuestions, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
 import { CACHE_TAGS, type PublicCacheTag } from "../../../lib/cache-tags";
 import { isPaletteName } from "../../../lib/research-palettes";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
@@ -154,7 +154,18 @@ export async function GET(request: Request, context: RouteContext) {
       // count reads as 0 and the rest of the overview still renders.
       client.from("news_items").select("id", { count: "exact", head: true }).eq("status", "published"),
     ]);
-    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, research: research.count ?? 0, news: news.count ?? 0 } });
+    // Only the roles that may open the inbox learn how full it is. Before
+    // migration 0026 the read errors and the card is simply left out.
+    const waiting = canAnswerQuestions(identity.role)
+      ? await client.from("patient_questions").select("id", { count: "exact", head: true }).eq("status", "new")
+      : null;
+    const questionsWaiting = waiting && !waiting.error ? { questionsWaiting: waiting.count ?? 0 } : {};
+    // Same rule for MDT inquiries; before migration 0027 the card is left out.
+    const mdt = canAnswerQuestions(identity.role)
+      ? await client.from("mdt_inquiries").select("id", { count: "exact", head: true }).eq("status", "new")
+      : null;
+    const mdtWaiting = mdt && !mdt.error ? { mdtWaiting: mdt.count ?? 0 } : {};
+    return Response.json({ identity, metrics: { published: content.count ?? 0, drafts: drafts.count ?? 0, events: events.count ?? 0, contributors: contributors.count ?? 0, members: members.count ?? 0, research: research.count ?? 0, news: news.count ?? 0, ...questionsWaiting, ...mdtWaiting } });
   }
 
   if (resource === "content") {

@@ -1,0 +1,213 @@
+/* The question form on /:locale/contact (#ask), /:locale/ask/confirm and the
+   shared pieces /:locale/mdt reuses.
+   Uses the site's tokens and the shared form-field styles from globals.css;
+   only what is specific to this page lives here. No literal letter-spacing
+   (see the RTL tracking rule). */
+
+.ask-page { padding-block: var(--editorial-section-space) clamp(3rem, 7vw, 6rem); background: var(--bg); }
+.ask-shell { box-sizing: border-box; width: 100%; max-width: var(--content); margin-inline: auto; padding-inline: var(--gutter); }
+
+.ask-intro { max-width: 46rem; }
+.ask-intro h1 { margin: 0; font-family: var(--editorial-display); font-size: clamp(2rem, 4.3vw, 3.5rem); font-weight: 500; line-height: 1.15; }
+[dir="rtl"] .ask-intro h1 { line-height: 1.35; }
+.ask-intro p { max-width: 60ch; margin-block-start: .6rem; color: var(--text-muted); font-size: var(--step-1); line-height: 1.65; }
+
+/* The guide comes first in the DOM (read before the form); on wide screens the
+   form takes the leading column and the guide sits beside it. */
+.ask-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 1fr);
+  grid-template-areas: "form guide";
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+  margin-block-start: clamp(1.5rem, 4vw, 2.75rem);
+}
+.ask-layout > .ask-card { grid-area: form; }
+.ask-guide { grid-area: guide; display: grid; gap: 1rem; position: sticky; top: calc(var(--header-h) + 1.25rem); }
+
+/* --- Guide panel -------------------------------------------------------- */
+
+/* Alert ink mixes the rose with the theme's own text colour, so it darkens on
+   the light theme and lightens on the dark one; the shared plum mix used by
+   .form-message is near-invisible on the dark surface. */
+.ask-page, .contact-ask-section { --ask-alert-ink: color-mix(in srgb, var(--brand-rose) 55%, var(--text)); }
+
+.ask-emergency {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .8rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--brand-rose) 48%, var(--line));
+  border-radius: var(--radius-lg);
+  background: var(--accent-rose-soft);
+  color: var(--text);
+}
+.ask-emergency > svg { margin-block-start: .15rem; color: var(--brand-rose); }
+.ask-emergency :is(h2, h3) { margin: 0; color: var(--ask-alert-ink); font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
+.ask-emergency p { margin-block-start: .3rem; font-size: var(--step--1); line-height: 1.55; }
+.ask-emergency-call a { color: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+
+.ask-scope,
+.ask-facts {
+  margin: 0;
+  padding: 1.2rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.ask-scope { display: grid; gap: 1.1rem; }
+.ask-scope :is(h2, h3) { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
+.ask-scope p { margin-block-start: .35rem; padding-inline-start: calc(1.6rem + .55rem); color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
+.ask-scope-mark { display: grid; flex: none; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; }
+.ask-scope-mark.is-yes { background: var(--primary-soft); color: var(--primary); }
+.ask-scope-mark.is-no { background: var(--bg-muted); color: var(--text-muted); }
+
+.ask-facts { display: grid; gap: 1rem; }
+.ask-facts > div + div { padding-block-start: 1rem; border-block-start: 1px solid var(--line); }
+.ask-facts dt { display: flex; align-items: center; gap: .5rem; font-size: var(--step--1); font-weight: 750; }
+.ask-facts dt svg { flex: none; color: var(--primary); }
+.ask-facts dd { margin: .3rem 0 0; padding-inline-start: calc(18px + .5rem); color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
+.ask-facts dd a[href^="tel:"] { color: var(--text); font-weight: 700; }
+.ask-facts .text-link { display: inline-flex; align-items: center; gap: .3rem; }
+[dir="rtl"] .ask-facts .text-link svg { transform: scaleX(-1); }
+
+/* --- Form card ---------------------------------------------------------- */
+
+.ask-card {
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.ask-card-title { margin: 0 0 1.25rem; font-family: var(--editorial-display); font-size: var(--step-3); font-weight: 500; line-height: 1.3; }
+
+.ask-form { display: grid; gap: 1.2rem; }
+/* Start-aligned so a field with a two-line hint does not stretch its
+   neighbour and push the two inputs out of line. */
+.ask-form-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; align-items: start; }
+.ask-form .form-field label,
+.ask-reply legend { font-size: var(--step--1); font-weight: 700; }
+.ask-form .form-field small { font-size: var(--step--2); line-height: 1.5; }
+/* Specific enough to beat the shared `.form-field label span` (copper). */
+.ask-form .form-field label .ask-optional { color: var(--text-soft); font-weight: 500; }
+.ask-form .form-field label span[aria-hidden="true"],
+.ask-reply legend span[aria-hidden="true"] { color: var(--accent); }
+
+.field-control.is-invalid,
+.ask-consent.is-invalid { border-color: color-mix(in srgb, var(--brand-rose) 70%, var(--line)); }
+.field-control.is-invalid:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-rose) 25%, transparent); }
+.ask-field-error { margin: 0; color: var(--ask-alert-ink); font-size: var(--step--2); font-weight: 600; line-height: 1.5; }
+
+.field-control.is-textarea { align-items: stretch; }
+.field-control.is-textarea textarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: .8rem .9rem;
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.ask-counter { color: var(--text-soft); font-size: var(--step--2); font-variant-numeric: tabular-nums; }
+.ask-counter.is-near { color: var(--accent); font-weight: 700; }
+
+/* Reply channel: two selectable cards backed by real radio buttons. */
+.ask-reply { margin: 0; padding: 0; border: 0; }
+.ask-reply legend { margin-block-end: .5rem; padding: 0; }
+.ask-reply-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.ask-reply-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-height: 64px;
+  padding: .75rem .9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.ask-reply-option:hover { border-color: var(--primary); }
+.ask-reply-option.is-selected { border-color: var(--primary); background: var(--primary-soft); }
+.ask-reply-option input { position: absolute; opacity: 0; pointer-events: none; }
+.ask-reply-option:has(input:focus-visible) { box-shadow: 0 0 0 3px var(--primary-ring); }
+.ask-reply-icon { display: grid; flex: none; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--bg-muted); color: var(--primary); }
+.ask-reply-option.is-selected .ask-reply-icon { background: var(--primary); color: var(--on-primary); }
+.ask-reply-text { display: grid; gap: .1rem; min-width: 0; }
+.ask-reply-text strong { font-size: var(--step--1); }
+.ask-reply-text small { color: var(--text-muted); font-size: var(--step--2); line-height: 1.4; }
+
+.ask-consent-field { display: grid; gap: .4rem; }
+.ask-consent {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .7rem;
+  align-items: start;
+  padding: .85rem .95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  font-size: var(--step--1);
+  line-height: 1.55;
+  cursor: pointer;
+}
+.ask-consent input { width: 1.15rem; height: 1.15rem; margin: .15rem 0 0; accent-color: var(--primary); cursor: pointer; }
+
+:is(.ask-page, .contact-ask-section) .form-message.is-error { color: var(--ask-alert-ink); }
+
+.ask-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.ask-submit { justify-content: center; width: 100%; min-height: 50px; }
+.ask-submit:disabled { opacity: .7; cursor: wait; }
+[dir="rtl"] .ask-submit svg { transform: scaleX(-1); }
+
+/* --- Sent and confirm states -------------------------------------------- */
+
+.ask-sent,
+.ask-confirm { display: grid; justify-items: start; gap: .85rem; }
+.ask-sent :is(h2, h3),
+.ask-confirm h1 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 500; line-height: 1.25; }
+.ask-sent :is(h2, h3):focus,
+.ask-confirm h1:focus { outline: none; }
+.ask-sent p,
+.ask-confirm p { max-width: 58ch; margin: 0; line-height: 1.65; }
+.ask-muted { color: var(--text-muted); font-size: var(--step--1); }
+.ask-sent-mark { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; border-radius: 50%; background: var(--primary-soft); color: var(--primary); }
+.ask-confirm .ask-submit { width: auto; padding-inline: 1.6rem; }
+.ask-page-confirm .ask-shell { max-width: calc(40rem + 2 * var(--gutter)); }
+.ask-page-confirm .ask-confirm { margin-block-start: clamp(1rem, 4vw, 3rem); }
+
+/* --- Small screens ------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .ask-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "guide" "form"; }
+  .ask-guide { position: static; }
+}
+
+@media (max-width: 560px) {
+  .ask-form-pair,
+  .ask-reply-options { grid-template-columns: minmax(0, 1fr); }
+  .ask-card { border-radius: var(--radius-lg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-reply-option { transition: none; }
+}
+
+/* --- The form section on /:locale/contact ------------------------------- */
+
+.contact-ask-section {
+  margin-block-start: clamp(2.5rem, 6vw, 4.5rem);
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+.contact-ask-head { max-width: 46rem; }
+.contact-ask-head h2 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.7rem, 3.4vw, 2.6rem); font-weight: 500; line-height: 1.2; }
+[dir="rtl"] .contact-ask-head h2 { line-height: 1.4; }
+.contact-ask-head p { max-width: 60ch; margin-block-start: .5rem; color: var(--text-muted); font-size: var(--step-1); line-height: 1.65; }
+.contact-ask-section .ask-layout { margin-block-start: clamp(1.25rem, 3vw, 2rem); }

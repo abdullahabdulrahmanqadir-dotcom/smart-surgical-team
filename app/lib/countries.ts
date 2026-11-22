@@ -281,3 +281,10 @@ export function countryOptions(locale: string, currentValue = ""): CountryOption
   if (stored && !options.some((option) => option.value === stored)) options.unshift({ value: stored, label: stored });
   return options;
 }
+
+const ENGLISH_NAMES = new Set(COUNTRIES.map(([, english]) => english));
+
+/** True for a value the Country select can produce (the English name). */
+export function isKnownCountry(value: string): boolean {
+  return ENGLISH_NAMES.has(value);
+}
