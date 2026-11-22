@@ -102,7 +102,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
                     <p>{t.emergencyBody}</p>
                     {ASK_CONTACT.emergencyNumber && (
                       <p className="ask-emergency-call">
-                        <a href={`tel:${ASK_CONTACT.emergencyNumber}`} dir="ltr">{fill(t.emergencyCall, { number: ASK_CONTACT.emergencyNumber })}</a>
+                        <a href={`tel:${ASK_CONTACT.emergencyNumber}`}>{fill(t.emergencyCall, { number: ASK_CONTACT.emergencyNumber })}</a>
                       </p>
                     )}
                   </div>

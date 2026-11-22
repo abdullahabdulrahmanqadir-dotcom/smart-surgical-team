@@ -9,7 +9,7 @@
 import { config, emailLayout, type Email } from "./inbox-server";
 
 export function mdtTeamAlertAddress(): string {
-  return config("MDT_TEAM_EMAIL") || config("QUESTIONS_TEAM_EMAIL");
+  return config("MDT_TEAM_EMAIL") || config("QUESTIONS_ALERT_EMAILS") || config("QUESTIONS_TEAM_EMAIL");
 }
 
 /**

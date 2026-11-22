@@ -613,8 +613,8 @@ test("the question form lives on the contact page in both languages", async () =
     assert.match(html, /name="phone"/);
     assert.match(html, /name="replyVia"[^>]*value="whatsapp"/);
     assert.match(html, /name="consent"/);
-    // No unchecked number is shown while ASK_CONTACT is still empty.
-    assert.doesNotMatch(html, /href="tel:/);
+    // The emergency number (122, given by the owner 2026-11-22) is shown as a tel: link.
+    assert.match(html, /href="tel:122"/);
   }
 });
 

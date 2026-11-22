@@ -89,6 +89,7 @@ export function siteOrigin(request: Request): string {
 // Email
 // ---------------------------------------------------------------------------
 
+/** `to` may hold several addresses separated by commas (team alerts only; patient and sender addresses are validated without commas). */
 export type Email = { to: string; subject: string; html: string; text: string };
 
 /** Sends through Resend. Returns false (and logs) instead of throwing. */
@@ -104,7 +105,7 @@ export async function sendResendEmail(email: Email & { replyTo?: string }): Prom
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
         from: config("QUESTIONS_FROM_EMAIL") || DEFAULT_FROM,
-        to: [email.to],
+        to: email.to.split(",").map((address) => address.trim()).filter(Boolean),
         subject: email.subject,
         html: email.html,
         text: email.text,
