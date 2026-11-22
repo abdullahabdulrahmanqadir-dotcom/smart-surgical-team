@@ -7,8 +7,10 @@
  * Configuration specific to patient questions (see inbox-server.ts for the
  * shared secrets):
  *
- *   QUESTIONS_TEAM_EMAIL   Receives the "new question" alert and is the
- *                          reply-to on every patient email.
+ *   QUESTIONS_TEAM_EMAIL   Reply-to on every patient email, and the alert
+ *                          address when QUESTIONS_ALERT_EMAILS is unset.
+ *   QUESTIONS_ALERT_EMAILS Optional comma-separated list that receives the
+ *                          "new question" and "new MDT inquiry" alerts.
  */
 import type { Locale } from "./i18n";
 import { config, emailLayout as layout, sendResendEmail, sha256Hex, type Email } from "./inbox-server";
@@ -45,7 +47,7 @@ export function sendEmail(email: Email): Promise<boolean> {
 }
 
 export function teamAlertAddress(): string {
-  return config("QUESTIONS_TEAM_EMAIL");
+  return config("QUESTIONS_ALERT_EMAILS") || config("QUESTIONS_TEAM_EMAIL");
 }
 
 const CONFIRM_COPY = {

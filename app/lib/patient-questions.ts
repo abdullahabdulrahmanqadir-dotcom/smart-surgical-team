@@ -32,7 +32,7 @@ export const QUESTION_LIMITS = {
  * show a number nobody has checked. Write them in E.164.
  */
 export const ASK_CONTACT: { emergencyNumber: string | null; bookingPhone: string | null } = {
-  emergencyNumber: null,
+  emergencyNumber: "122",
   bookingPhone: null,
 };
 
