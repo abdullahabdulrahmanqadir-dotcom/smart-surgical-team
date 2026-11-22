@@ -33,6 +33,7 @@ function fieldMessage(t: AskCopy, field: QuestionField, error: QuestionFieldErro
     case "question":
       if (error === "tooShort") return t.questionTooShort;
       if (error === "tooLong") return fill(t.questionTooLong, { max: String(QUESTION_LIMITS.questionMax) });
+      if (error === "tooManyLinks") return fill(t.questionTooManyLinks, { max: String(QUESTION_LIMITS.linksMax) });
       return t.questionRequired;
     case "consent": return t.consentRequired;
   }

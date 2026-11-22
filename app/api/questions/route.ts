@@ -1,4 +1,5 @@
 import { isLocale, type Locale } from "../../lib/i18n";
+import { refuseForeignRequest, requestHostname } from "../../lib/inbox-server";
 import { validateQuestion } from "../../lib/patient-questions";
 import {
   clientIp,
@@ -27,8 +28,17 @@ import { getSupabaseServerClient } from "../../../lib/supabase/server";
 const MAX_BODY_BYTES = 16_384;
 const LIMITS = {
   perPhonePerDay: 3,
+  /** Stops anyone using the confirm email to flood a stranger's inbox. */
+  perEmailPerDay: 3,
   perIpPerHour: 5,
   perIpPerDay: 10,
+  /**
+   * Whole-site ceilings, far above real traffic. A flood from many IPs and
+   * phones still stops here, before it fills the inbox or spends the Resend
+   * quota the sign-up emails also depend on.
+   */
+  allPerHour: 30,
+  allPerDay: 200,
 };
 
 type ErrorCode = "invalid" | "bot" | "rate" | "unavailable" | "server";
@@ -44,6 +54,8 @@ function succeed(emailConfirmation: boolean) {
 }
 
 export async function POST(request: Request) {
+  const foreign = refuseForeignRequest(request);
+  if (foreign) return fail("invalid", foreign);
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return fail("invalid", 413);
 
   let body: Record<string, unknown>;
@@ -69,7 +81,7 @@ export async function POST(request: Request) {
   const locale: Locale = typeof body.locale === "string" && isLocale(body.locale) ? body.locale : "en";
 
   const ip = clientIp(request);
-  const bot = await verifyTurnstile(body.turnstileToken, ip);
+  const bot = await verifyTurnstile(body.turnstileToken, ip, requestHostname(request));
   if (bot === "unconfigured") {
     console.error("[questions] TURNSTILE_SECRET_KEY is missing while a site key is built in; refusing questions.");
     return fail("unavailable", 503);
@@ -90,8 +102,11 @@ export async function POST(request: Request) {
   const dayAgo = new Date(now - 86_400_000).toISOString();
   const table = () => client.from("patient_questions");
 
-  const [byPhone, ipHour, ipDay, duplicate] = await Promise.all([
+  const [byPhone, byEmail, allHour, allDay, ipHour, ipDay, duplicate] = await Promise.all([
     table().select("id", { count: "exact", head: true }).eq("phone", input.phone).gte("created_at", dayAgo),
+    input.email ? table().select("id", { count: "exact", head: true }).eq("email", input.email).gte("created_at", dayAgo) : null,
+    table().select("id", { count: "exact", head: true }).gte("created_at", hourAgo),
+    table().select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", hourAgo) : null,
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", dayAgo) : null,
     // A double-click or a resubmit after a dropped response: same phone, same
@@ -99,13 +114,18 @@ export async function POST(request: Request) {
     table().select("id, email_token_hash").eq("phone", input.phone).eq("question", input.question).gte("created_at", dayAgo).limit(1),
   ]);
 
-  const readError = byPhone.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
+  const readError = byPhone.error ?? byEmail?.error ?? allHour.error ?? allDay.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
   if (readError) {
     console.error("[questions] rate-limit read failed:", readError.message);
     return fail("server", 500);
   }
   if (duplicate.data?.length) return succeed(Boolean(input.email && duplicate.data[0].email_token_hash));
+  if ((allHour.count ?? 0) >= LIMITS.allPerHour || (allDay.count ?? 0) >= LIMITS.allPerDay) {
+    console.warn("[questions] site-wide limit reached; refusing new questions for now.");
+    return fail("rate", 429);
+  }
   if ((byPhone.count ?? 0) >= LIMITS.perPhonePerDay
+    || (byEmail?.count ?? 0) >= LIMITS.perEmailPerDay
     || (ipHour?.count ?? 0) >= LIMITS.perIpPerHour
     || (ipDay?.count ?? 0) >= LIMITS.perIpPerDay) {
     return fail("rate", 429);

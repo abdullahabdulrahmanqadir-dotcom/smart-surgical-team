@@ -7,7 +7,9 @@
  * directly. Spec: docs/superpowers/specs/2026-11-22-mdt-front-door-design.md.
  */
 import { isKnownCountry } from "./countries";
-import { cleanQuestionText, normaliseEmail, normalisePhone } from "./patient-questions";
+import { cleanQuestionText, countLinks, normaliseEmail, normalisePhone, stripInvisible } from "./patient-questions";
+
+export { countLinks };
 
 export const MDT_ROLES = [
   "surgeon",
@@ -57,12 +59,7 @@ function str(value: unknown): string {
 }
 
 function cleanLine(raw: string): string {
-  return raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-/** Counts web links: http(s)://… and bare www.… */
-export function countLinks(text: string): number {
-  return (text.match(/\bhttps?:\/\/|\bwww\./gi) ?? []).length;
+  return stripInvisible(raw).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 /** True when the submission came too fast, or not from the form at all. */

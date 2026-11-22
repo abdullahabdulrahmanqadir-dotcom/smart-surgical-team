@@ -31,7 +31,7 @@ export type TurnstileOutcome = "passed" | "failed" | "skipped" | "unconfigured";
  * Verifies a Turnstile token with Cloudflare. Supabase does this for the auth
  * forms; these routes are ours, so they need their own siteverify call.
  */
-export async function verifyTurnstile(token: unknown, ip: string | null): Promise<TurnstileOutcome> {
+export async function verifyTurnstile(token: unknown, ip: string | null, expectedHostname?: string): Promise<TurnstileOutcome> {
   const secret = config("TURNSTILE_SECRET_KEY");
   const siteKeyBuiltIn = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
   if (!secret) return siteKeyBuiltIn ? "unconfigured" : "skipped";
@@ -42,8 +42,12 @@ export async function verifyTurnstile(token: unknown, ip: string | null): Promis
   try {
     const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body });
     if (!response.ok) return "failed";
-    const result = await response.json() as { success?: boolean };
-    return result.success === true ? "passed" : "failed";
+    const result = await response.json() as { success?: boolean; hostname?: string };
+    if (result.success !== true) return "failed";
+    // A token solved on another host (the widget also allows localhost, where
+    // anyone can run it) is not accepted on the live site.
+    if (expectedHostname && !isLocalHost(expectedHostname) && result.hostname !== expectedHostname) return "failed";
+    return "passed";
   } catch {
     return "failed";
   }
@@ -73,6 +77,35 @@ export async function hashIp(ip: string | null): Promise<string | null> {
   if (!ip || !secret) return null;
   const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return hex(await crypto.subtle.sign("HMAC", key, encoder.encode(ip)));
+}
+
+function isLocalHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]" || hostname.endsWith(".localhost");
+}
+
+export function requestHostname(request: Request): string {
+  return new URL(request.url).hostname;
+}
+
+/**
+ * Refuses what a browser on another site could send: a cross-site Origin or
+ * Sec-Fetch-Site, or a body that is not JSON (a plain HTML form cannot send
+ * application/json without a CORS preflight, which these routes never grant).
+ * Returns the HTTP status to answer with, or null when the request may go on.
+ */
+export function refuseForeignRequest(request: Request): 403 | 415 | null {
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") return 403;
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      if (new URL(origin).host !== new URL(request.url).host) return 403;
+    } catch {
+      return 403;
+    }
+  }
+  if (!(request.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return 415;
+  return null;
 }
 
 export function clientIp(request: Request): string | null {

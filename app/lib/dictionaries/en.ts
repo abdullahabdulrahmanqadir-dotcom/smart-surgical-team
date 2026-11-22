@@ -208,6 +208,7 @@ export const en = {
     questionRequired: "Please write your question.",
     questionTooShort: "Please tell us a little more.",
     questionTooLong: "Please shorten your question to {max} characters.",
+    questionTooManyLinks: "Please include no more than {max} links.",
     consentRequired: "Please tick this box so we can store your question.",
     fixErrors: "Please check the highlighted fields.",
     errorBot: "We couldn't confirm you're not a robot. Please try again.",

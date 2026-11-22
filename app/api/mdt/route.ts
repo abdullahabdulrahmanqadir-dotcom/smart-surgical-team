@@ -1,5 +1,5 @@
 import { isLocale, type Locale } from "../../lib/i18n";
-import { clientIp, hashIp, sendResendEmail, siteOrigin, verifyTurnstile } from "../../lib/inbox-server";
+import { clientIp, hashIp, refuseForeignRequest, requestHostname, sendResendEmail, siteOrigin, verifyTurnstile } from "../../lib/inbox-server";
 import { isTooFast, validateMdtInquiry } from "../../lib/mdt-inquiries";
 import { mdtTeamAlertAddress, mdtTeamAlertEmail } from "../../lib/mdt-inquiries-server";
 import { getSupabaseServerClient } from "../../../lib/supabase/server";
@@ -19,6 +19,9 @@ const LIMITS = {
   perEmailPerDay: 3,
   perIpPerHour: 5,
   perIpPerDay: 10,
+  /** Whole-site ceilings, far above real traffic (see /api/questions). */
+  allPerHour: 10,
+  allPerDay: 50,
 };
 
 type ErrorCode = "invalid" | "bot" | "rate" | "unavailable" | "server";
@@ -34,6 +37,8 @@ function succeed() {
 }
 
 export async function POST(request: Request) {
+  const foreign = refuseForeignRequest(request);
+  if (foreign) return fail("invalid", foreign);
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return fail("invalid", 413);
 
   let body: Record<string, unknown>;
@@ -58,7 +63,7 @@ export async function POST(request: Request) {
   const locale: Locale = typeof body.locale === "string" && isLocale(body.locale) ? body.locale : "en";
 
   const ip = clientIp(request);
-  const bot = await verifyTurnstile(body.turnstileToken, ip);
+  const bot = await verifyTurnstile(body.turnstileToken, ip, requestHostname(request));
   if (bot === "unconfigured") {
     console.error("[mdt] TURNSTILE_SECRET_KEY is missing while a site key is built in; refusing inquiries.");
     return fail("unavailable", 503);
@@ -79,20 +84,26 @@ export async function POST(request: Request) {
   const dayAgo = new Date(now - 86_400_000).toISOString();
   const table = () => client.from("mdt_inquiries");
 
-  const [byEmail, ipHour, ipDay, duplicate] = await Promise.all([
+  const [byEmail, allHour, allDay, ipHour, ipDay, duplicate] = await Promise.all([
     table().select("id", { count: "exact", head: true }).eq("email", input.email).gte("created_at", dayAgo),
+    table().select("id", { count: "exact", head: true }).gte("created_at", hourAgo),
+    table().select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", hourAgo) : null,
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", dayAgo) : null,
     // A double-click or a resubmit after a dropped response.
     table().select("id").eq("email", input.email).eq("message", input.message).gte("created_at", dayAgo).limit(1),
   ]);
 
-  const readError = byEmail.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
+  const readError = byEmail.error ?? allHour.error ?? allDay.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
   if (readError) {
     console.error("[mdt] rate-limit read failed:", readError.message);
     return fail("server", 500);
   }
   if (duplicate.data?.length) return succeed();
+  if ((allHour.count ?? 0) >= LIMITS.allPerHour || (allDay.count ?? 0) >= LIMITS.allPerDay) {
+    console.warn("[mdt] site-wide limit reached; refusing new inquiries for now.");
+    return fail("rate", 429);
+  }
   if ((byEmail.count ?? 0) >= LIMITS.perEmailPerDay
     || (ipHour?.count ?? 0) >= LIMITS.perIpPerHour
     || (ipDay?.count ?? 0) >= LIMITS.perIpPerDay) {
