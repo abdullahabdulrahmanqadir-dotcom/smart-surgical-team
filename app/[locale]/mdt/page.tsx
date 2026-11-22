@@ -133,7 +133,7 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
                   <dt><IconUser size={18} />{t.patientTitle}</dt>
                   <dd>
                     {t.patientBody}{" "}
-                    <Link className="text-link" href={localePath(active, "ask")}>{t.patientLink}<IconArrowRight size={15} /></Link>
+                    <Link className="text-link" href={`${localePath(active, "contact")}#ask`}>{t.patientLink}<IconArrowRight size={15} /></Link>
                   </dd>
                 </div>
               </dl>

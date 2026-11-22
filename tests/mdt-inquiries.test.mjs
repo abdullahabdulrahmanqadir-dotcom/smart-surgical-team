@@ -159,14 +159,14 @@ test("the reply link opens the team's mail app in the sender's language", () => 
   assert.equal(en.to, "sara@example.org");
   assert.equal(en.subject, "Your MDT inquiry — Smart Surgical Team");
   assert.match(en.body, /^Dear Dr\. Sara,/);
-  assert.doesNotMatch(en.body, /\/ask/);
+  assert.doesNotMatch(en.body, /#ask/);
 
   const ar = decode(mdtReplyMailto({ email: "a@example.org", name: "د. آرام", locale: "ar", status: "new" }, "https://ssthyroid.com"));
   assert.match(ar.subject, /الاجتماع متعدد التخصصات/);
 
-  // A patient who used the wrong form is pointed to /ask in their language.
+  // A patient who used the wrong form is pointed to the question form on /contact.
   const wrong = decode(mdtReplyMailto({ email: "p@example.org", name: "P", locale: "ar", status: "wrong_form" }, "https://ssthyroid.com"));
-  assert.match(wrong.body, /https:\/\/ssthyroid\.com\/ar\/ask/);
+  assert.match(wrong.body, /https:\/\/ssthyroid\.com\/ar\/contact#ask/);
 
   // Characters that would break a mailto (& ? #) stay inside their parameter.
   const tricky = decode(mdtReplyMailto({ email: "x@example.org", name: "A & B?#", locale: "en", status: "new" }, "https://x.example"));

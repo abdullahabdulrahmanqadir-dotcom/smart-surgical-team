@@ -598,14 +598,16 @@ test("the Arabic site spells Smart Health Tower one way", async () => {
   assert.match(html, /Smart Health Tower/);
 });
 
-test("the ask page renders in both languages, kept out of search until launch", async () => {
+test("the question form lives on the contact page in both languages", async () => {
   for (const [locale, dir, heading] of [["en", "ltr", "Ask our team"], ["ar", "rtl", "اسأل فريقنا"]]) {
-    const response = await fetchPath(`/${locale}/ask`);
-    assert.equal(response.status, 200, `/${locale}/ask`);
+    const response = await fetchPath(`/${locale}/contact`);
+    assert.equal(response.status, 200, `/${locale}/contact`);
     const html = await response.text();
     assert.match(html, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.match(html, /<section id="ask" class="contact-ask-section"/);
     assert.ok(html.includes(heading), `${locale} heading`);
-    assert.match(html, /<meta name="robots" content="noindex, follow"/);
+    // The emergency notice comes before the form in the DOM.
+    assert.ok(html.indexOf('class="ask-emergency"') < html.indexOf('name="phone"'), `${locale} notice first`);
     // The emergency notice and the form are both server-rendered.
     assert.match(html, /class="ask-emergency"/);
     assert.match(html, /name="phone"/);
@@ -616,11 +618,16 @@ test("the ask page renders in both languages, kept out of search until launch", 
   }
 });
 
-test("the contact page links to the ask form in the visitor's language", async () => {
-  for (const [locale, label] of [["en", "Ask our team"], ["ar", "اسأل فريقنا"]]) {
+test("the old ask URL redirects permanently to the form on the contact page", async () => {
+  for (const locale of ["en", "ar"]) {
+    const response = await fetchPath(`/${locale}/ask`);
+    assert.ok([301, 308].includes(response.status), `/${locale}/ask status ${response.status}`);
+    assert.equal(new URL(response.headers.get("location"), "http://localhost").pathname, `/${locale}/contact`);
+    assert.match(response.headers.get("location"), /#ask$/);
+    // The details card jumps down to the form on the same page.
     const html = await (await fetchPath(`/${locale}/contact`)).text();
     assert.match(html, /class="contact-ask"/, `${locale} ask row`);
-    assert.match(html, new RegExp(`href="/${locale}/ask"[^>]*>${label}`), `${locale} ask link`);
+    assert.match(html, /href="#ask"/, `${locale} ask jump link`);
   }
 });
 
@@ -678,10 +685,10 @@ test("the MDT page renders in both languages, kept out of search until launch", 
     for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent", "website"]) {
       assert.match(html, new RegExp(`name="${field}"`), `${locale} field ${field}`);
     }
-    // Patients are pointed to /ask, and /ask points doctors back here.
-    assert.match(html, new RegExp(`href="/${locale}/ask"`));
-    const ask = await (await fetchPath(`/${locale}/ask`)).text();
-    assert.match(ask, new RegExp(`href="/${locale}/mdt"`), `${locale} ask → mdt`);
+    // Patients are pointed to the form on /contact, which points doctors back here.
+    assert.match(html, new RegExp(`href="/${locale}/contact#ask"`));
+    const contact = await (await fetchPath(`/${locale}/contact`)).text();
+    assert.match(contact, new RegExp(`href="/${locale}/mdt"`), `${locale} contact → mdt`);
   }
 });
 

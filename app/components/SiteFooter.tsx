@@ -9,7 +9,7 @@ import {
   IconPin,
 } from "./icons";
 
-const CONTACT_EMAIL = "info@smartsurgicalteam.com";
+const CONTACT_EMAIL = "info@ssthyroid.com";
 
 export default function SiteFooter({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const home = localePath(locale);

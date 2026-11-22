@@ -227,14 +227,14 @@ const REPLY_COPY = {
 /**
  * A mailto: link that opens the team's own mail app with the subject and a
  * greeting filled in, in the language the inquiry was sent in. A patient who
- * used the wrong form gets a reply pointing to /ask instead.
+ * used the wrong form gets a reply pointing to the question form on /contact.
  */
 export function mdtReplyMailto(
   row: { email: string; name: string; locale: "en" | "ar"; status: MdtStatus },
   origin: string,
 ): string {
   const copy = REPLY_COPY[row.locale];
-  const middle = row.status === "wrong_form" ? copy.wrongForm(`${origin}/${row.locale}/ask`) : copy.body;
+  const middle = row.status === "wrong_form" ? copy.wrongForm(`${origin}/${row.locale}/contact#ask`) : copy.body;
   const body = [copy.greeting(row.name), "", middle, "", "", copy.signOff].join("\n");
   return `mailto:${encodeURIComponent(row.email).replace(/%40/g, "@")}?subject=${encodeURIComponent(copy.subject)}&body=${encodeURIComponent(body)}`;
 }

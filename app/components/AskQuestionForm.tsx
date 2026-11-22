@@ -160,7 +160,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
     return (
       <section className="ask-card ask-sent" aria-labelledby={fieldId("sent")}>
         <span className="ask-sent-mark" aria-hidden="true"><IconCheck size={26} /></span>
-        <h2 id={fieldId("sent")} ref={sentHeading} tabIndex={-1}>{t.sentTitle}</h2>
+        <h3 id={fieldId("sent")} ref={sentHeading} tabIndex={-1}>{t.sentTitle}</h3>
         <p>{followUp}</p>
         <p className="ask-muted">{fill(t.sentReply, { days: String(REPLY_WITHIN_WORKING_DAYS) })}</p>
         <button
@@ -182,7 +182,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
 
   return (
     <section className="ask-card" aria-labelledby={fieldId("title")}>
-      <h2 id={fieldId("title")} className="ask-card-title">{t.formTitle}</h2>
+      <h3 id={fieldId("title")} className="ask-card-title">{t.formTitle}</h3>
       <form ref={formRef} className="ask-form" noValidate onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor={fieldId("name")}>{t.name} <span aria-hidden="true">*</span></label>

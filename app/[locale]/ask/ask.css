@@ -1,4 +1,5 @@
-/* /:locale/ask and /:locale/ask/confirm.
+/* The question form on /:locale/contact (#ask), /:locale/ask/confirm and the
+   shared pieces /:locale/mdt reuses.
    Uses the site's tokens and the shared form-field styles from globals.css;
    only what is specific to this page lives here. No literal letter-spacing
    (see the RTL tracking rule). */
@@ -29,7 +30,7 @@
 /* Alert ink mixes the rose with the theme's own text colour, so it darkens on
    the light theme and lightens on the dark one; the shared plum mix used by
    .form-message is near-invisible on the dark surface. */
-.ask-page { --ask-alert-ink: color-mix(in srgb, var(--brand-rose) 55%, var(--text)); }
+.ask-page, .contact-ask-section { --ask-alert-ink: color-mix(in srgb, var(--brand-rose) 55%, var(--text)); }
 
 .ask-emergency {
   display: grid;
@@ -42,7 +43,7 @@
   color: var(--text);
 }
 .ask-emergency > svg { margin-block-start: .15rem; color: var(--brand-rose); }
-.ask-emergency h2 { margin: 0; color: var(--ask-alert-ink); font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
+.ask-emergency :is(h2, h3) { margin: 0; color: var(--ask-alert-ink); font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
 .ask-emergency p { margin-block-start: .3rem; font-size: var(--step--1); line-height: 1.55; }
 .ask-emergency-call a { color: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
 
@@ -55,7 +56,7 @@
   background: var(--surface);
 }
 .ask-scope { display: grid; gap: 1.1rem; }
-.ask-scope h2 { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
+.ask-scope :is(h2, h3) { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: var(--step-0); font-weight: 750; line-height: 1.4; }
 .ask-scope p { margin-block-start: .35rem; padding-inline-start: calc(1.6rem + .55rem); color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
 .ask-scope-mark { display: grid; flex: none; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; }
 .ask-scope-mark.is-yes { background: var(--primary-soft); color: var(--primary); }
@@ -158,7 +159,7 @@
 }
 .ask-consent input { width: 1.15rem; height: 1.15rem; margin: .15rem 0 0; accent-color: var(--primary); cursor: pointer; }
 
-.ask-page .form-message.is-error { color: var(--ask-alert-ink); }
+:is(.ask-page, .contact-ask-section) .form-message.is-error { color: var(--ask-alert-ink); }
 
 .ask-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -170,9 +171,9 @@
 
 .ask-sent,
 .ask-confirm { display: grid; justify-items: start; gap: .85rem; }
-.ask-sent h2,
+.ask-sent :is(h2, h3),
 .ask-confirm h1 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 500; line-height: 1.25; }
-.ask-sent h2:focus,
+.ask-sent :is(h2, h3):focus,
 .ask-confirm h1:focus { outline: none; }
 .ask-sent p,
 .ask-confirm p { max-width: 58ch; margin: 0; line-height: 1.65; }
@@ -198,3 +199,15 @@
 @media (prefers-reduced-motion: reduce) {
   .ask-reply-option { transition: none; }
 }
+
+/* --- The form section on /:locale/contact ------------------------------- */
+
+.contact-ask-section {
+  margin-block-start: clamp(2.5rem, 6vw, 4.5rem);
+  scroll-margin-top: calc(var(--header-h) + 1rem);
+}
+.contact-ask-head { max-width: 46rem; }
+.contact-ask-head h2 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.7rem, 3.4vw, 2.6rem); font-weight: 500; line-height: 1.2; }
+[dir="rtl"] .contact-ask-head h2 { line-height: 1.4; }
+.contact-ask-head p { max-width: 60ch; margin-block-start: .5rem; color: var(--text-muted); font-size: var(--step-1); line-height: 1.65; }
+.contact-ask-section .ask-layout { margin-block-start: clamp(1.25rem, 3vw, 2rem); }

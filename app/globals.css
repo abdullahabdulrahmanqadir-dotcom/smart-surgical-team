@@ -650,6 +650,21 @@ input {
 .primary-nav-dropdown a { min-height:40px; padding:.6rem .7rem; border-radius:var(--radius-sm); color:var(--text); font-weight:600; }
 .primary-nav-dropdown a:hover,.primary-nav-dropdown a:focus-visible { background:var(--primary-soft); color:var(--primary-strong); outline:none; }
 
+/* Contact menu: one trigger for Contact, Ask and MDT. */
+.primary-nav-trigger { position:relative; display:inline-flex; min-height:44px; align-items:center; gap:.3rem; padding:0; border:0; background:none; color:var(--text-muted); font:inherit; font-size:.9rem; font-weight:600; cursor:pointer; transition:color .18s; }
+.primary-nav-trigger:hover,.primary-nav-trigger[aria-expanded="true"],.primary-nav-trigger[data-current] { color:var(--primary); }
+.primary-nav-trigger[data-current]::after { content:""; position:absolute; inset:auto 0 3px; border-block-end:2px solid currentColor; }
+.primary-nav-trigger svg { transition:transform .18s ease; }
+.primary-nav-trigger[aria-expanded="true"] svg { transform:rotate(180deg); }
+.primary-nav-dropdown[hidden] { display:none; }
+.primary-nav-contact { min-width:17rem; }
+.primary-nav .primary-nav-contact a { display:grid; gap:.15rem; min-height:0; padding:.65rem .75rem; }
+.primary-nav .primary-nav-contact a::after { content:none; }
+.primary-nav .primary-nav-contact a[aria-current] { background:var(--primary-soft); }
+.primary-nav-dropdown-label { color:var(--text); font-size:.92rem; font-weight:650; }
+.primary-nav-dropdown-hint { color:var(--text-soft); font-size:.8rem; font-weight:450; line-height:1.35; }
+.primary-nav-contact a:hover .primary-nav-dropdown-label,.primary-nav-contact a:focus-visible .primary-nav-dropdown-label { color:var(--primary-strong); }
+
 .header-actions {
   display: flex;
   align-items: center;

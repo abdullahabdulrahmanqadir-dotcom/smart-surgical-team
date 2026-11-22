@@ -3,7 +3,7 @@ import type { Dictionary } from "./index";
 // Modern Standard Arabic, clinical/academic register. The brand remains Latin.
 export const ar: Dictionary = {
   brand: { name: "Smart Surgical Team", short: "SST", tagline: "أفضل جرّاحي الغدة الدرقية في العراق", location: "Smart Health Tower · السليمانية، كردستان" },
-  nav: { home: "الرئيسية", about: "من نحن", publications: "المنشورات", aboutMenu: "حول", topics: "المحتوى", library: "المكتبة", webinars: "الندوات الإلكترونية", events: "الفعاليات", news: "الأخبار", research: "البحوث", posters: "الملصقات", team: "فريقنا", contact: "اتصل بنا", signIn: "تسجيل الدخول", register: "إنشاء حساب", skipToContent: "تخطي إلى المحتوى", languageLabel: "اللغة", menu: "القائمة", close: "إغلاق" },
+  nav: { home: "الرئيسية", about: "من نحن", publications: "المنشورات", aboutMenu: "حول", topics: "المحتوى", library: "المكتبة", webinars: "الندوات الإلكترونية", events: "الفعاليات", news: "الأخبار", research: "البحوث", posters: "الملصقات", team: "فريقنا", contact: "اتصل بنا", contactMenu: "تواصل معنا", contactUs: "اتصل بنا", contactUsHint: "العنوان وساعات العمل وأسئلة لجرّاحينا", mdt: "اجتماع الفريق متعدد التخصصات", signIn: "تسجيل الدخول", register: "إنشاء حساب", skipToContent: "تخطي إلى المحتوى", languageLabel: "اللغة", menu: "القائمة", close: "إغلاق" },
   cta: { exploreLibrary: "تصفّح المكتبة", viewAll: "عرض الكل", learnMore: "اعرف المزيد" },
   topics: {
     kicker: "المواضيع", title: "تصفّح حسب الموضوع", intro: "أربعة مسارات جراحية متخصّصة لدراسة منهجية في جراحة الرأس والعنق.",

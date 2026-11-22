@@ -124,6 +124,49 @@ the internal test below is for.
 
 ## Before the internal test (Phase 2 sign-off)
 
+**2026-11-22 status:** step 1 is **done** — 0026 and 0027 applied with the CLI
+(now on the right account). Verified separately through PostgREST: both tables
+exist, RLS on, 0 policies, `anon`/`authenticated` get `42501 permission denied`,
+service role can insert. Local end-to-end run against the **real database**
+(dev server with Cloudflare's always-pass Turnstile test keys): /ask WhatsApp
+path → success screen and row saved (phone normalised to E.164, 6-month
+retention); email path → token stored, Arabic confirm page → "confirmed", then
+replay = `already`, unknown = 404, malformed = 400; honeypot and duplicate store
+nothing; invalid = 422; no bot token = 400; 4th send from one phone = 429; IP
+stored only as an HMAC. /mdt the same, plus the fill-time trap (no/short
+`elapsedMs` is silently dropped); 4th from one email = 429; 24-month retention.
+Admin endpoints answer 401 without a valid session. Test rows deleted.
+`npm test` 174/174. **Not yet verified:** real Turnstile, real Resend delivery
+(team alert, confirm email, answer email) and the Admin inbox signed in as a
+Contributor and an Editor — those wait on step 2 and on staff logins.
+
+**2026-11-22, later — step 2 mostly done, Admin verified.**
+- Worker secrets set with `wrangler versions secret put` (a new, **undeployed**
+  version; the live version `5194c262` is untouched, and the next deploy
+  inherits them): `TURNSTILE_SECRET_KEY` (pulled from the "SST auth" widget via
+  the Cloudflare API, never displayed; siteverify confirms it is valid),
+  `QUESTIONS_IP_SECRET` (random), `QUESTIONS_TEAM_EMAIL=info@ssthyroid.com`
+  (the address the contact page already publishes; Hostinger MX — change it if
+  the team wants another inbox). The same three are in `.env.local` for local dev.
+- **Still missing: `RESEND_API_KEY`.** Without it nothing emails (no team alert,
+  no confirm email, no answer email); questions still save and Admin flags the
+  missing alert. Create a key at resend.com/api-keys (sending access,
+  ssthyroid.com) and run `npx wrangler versions secret put RESEND_API_KEY --name smart`
+  (also add it to `.env.local` to test locally).
+- Admin test against the real database with throwaway accounts (created by the
+  service role, sessions via admin magic link, deleted afterwards): **18/18**.
+  Contributor reads both inboxes, saves a draft, marks answered on WhatsApp
+  (row stamped with who/when/how, retention reset to 6 months), reopens, marks
+  an MDT inquiry contacted, deletes; send-email is refused without a confirmed
+  address. Editor gets 403 on every GET/POST/DELETE of both inboxes, the
+  Overview carries no counts, and the refused writes changed nothing. In the
+  UI, the Contributor sees the Inbox tab and the waiting cards; the Editor sees
+  neither.
+- The real Turnstile widget renders on localhost (the widget allows
+  `localhost`, `smart.ssteam.workers.dev`, `ssthyroid.com`) and asks for the
+  checkbox, which a person has to tick — so one real submission by a person
+  remains, ideally after the Resend key so the emails are checked too.
+
 1. Apply the migration (never `db push`):
    `npx supabase db query --linked -f supabase/migrations/0026_patient_questions.sql`
    then `0027_mdt_inquiries.sql` (MDT table + `team_alerted_at` on this table;
@@ -134,6 +177,22 @@ the internal test below is for.
    Optional: `QUESTIONS_FROM_EMAIL` (defaults to `no-reply@ssthyroid.com`).
 3. Fill `ASK_CONTACT` in `app/lib/patient-questions.ts` with the emergency and
    booking numbers. Until then the page leaves those lines out.
+
+## 2026-11-22 — form merged into the contact page
+
+On the user's request /contact and /ask are now **one page**: details strip
+(email, hours, tower) → "Ask our team" section (`#ask`: emergency notice and
+guide first in the DOM, form beside it on wide screens) → map. `/:locale/ask`
+answers **308 → `/:locale/contact#ask`**; `/:locale/ask/confirm` stays where it
+is because emailed links point there. The header Contact menu has two items
+(Contact us, MDT meeting); the MDT page and the MDT "wrong form" reply link to
+`/contact#ask`. MDT stays its own page (user's choice).
+
+**Launch consequence:** /contact is a live, indexed page, so the form has no
+`noindex` holdback any more — whenever this branch ships, the form is public.
+Everything under "Before the internal test" and "Still open" must be finished
+before that deploy. New Arabic header hint "العنوان وساعات العمل وأسئلة لجرّاحينا"
+(built from existing phrases) joins the native-speaker review.
 
 ## Phases (stop and review after each)
 
@@ -151,7 +210,7 @@ the internal test below is for.
 ## Still open
 
 1. Emergency number to show (Sulaymaniyah).
-2. Team email address for the alert and the reply-to.
+2. ~~Team email address~~ — set to `info@ssthyroid.com` on 2026-11-22 (change if the team prefers another inbox).
 3. Team WhatsApp number (a dedicated WhatsApp Business number).
 4. Clinic booking phone.
 5. Does Smart Health Tower have a policy on staff answering patients online?
