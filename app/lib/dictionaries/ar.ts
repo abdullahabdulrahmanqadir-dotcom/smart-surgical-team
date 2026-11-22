@@ -203,6 +203,7 @@ export const ar: Dictionary = {
     questionRequired: "يرجى كتابة سؤالك.",
     questionTooShort: "يرجى إضافة مزيد من التفاصيل.",
     questionTooLong: "يرجى اختصار سؤالك إلى {max} حرف.",
+    questionTooManyLinks: "يرجى ألّا تتجاوز الروابط {max}.",
     consentRequired: "يرجى تحديد هذا المربع لنتمكن من حفظ سؤالك.",
     fixErrors: "يرجى مراجعة الحقول المحدّدة.",
     errorBot: "تعذّر التحقق من أنك لست روبوتاً. يرجى المحاولة مرة أخرى.",

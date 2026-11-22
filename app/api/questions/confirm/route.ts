@@ -1,3 +1,4 @@
+import { refuseForeignRequest } from "../../../lib/inbox-server";
 import { isWellFormedToken, sha256Hex } from "../../../lib/patient-questions-server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
@@ -20,6 +21,8 @@ function respond(status: ConfirmStatus, httpStatus = 200) {
 }
 
 export async function POST(request: Request) {
+  const foreign = refuseForeignRequest(request);
+  if (foreign) return respond("invalid", foreign);
   let token: unknown;
   try {
     token = (await request.json() as { token?: unknown }).token;

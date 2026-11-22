@@ -22,6 +22,8 @@ export const QUESTION_LIMITS = {
   emailMax: 254,
   questionMin: 10,
   questionMax: 3000,
+  /** More links than this in one question is how link spam looks. */
+  linksMax: 2,
   answerMax: 6000,
   noteMax: 2000,
 } as const;
@@ -96,9 +98,27 @@ export function normaliseEmail(raw: string): string | null {
   return `${value.slice(0, at)}@${value.slice(at + 1).toLowerCase()}`;
 }
 
+/**
+ * Invisible characters that can disguise text in the Admin inbox or in email:
+ * zero-width space, BOM, line/paragraph separators, and the bidi embedding,
+ * override and isolate controls (U+202A–202E, U+2066–2069) used for
+ * "reversed text" spoofing. ZWNJ/ZWJ (U+200C/D) and the LRM/RLM marks stay:
+ * Kurdish, Persian and Arabic text needs them.
+ */
+const INVISIBLE = /[\u200B\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/g;
+
+export function stripInvisible(raw: string): string {
+  return raw.replace(INVISIBLE, "");
+}
+
+/** Counts web links: http(s)://… and bare www.… */
+export function countLinks(text: string): number {
+  return (text.match(/\bhttps?:\/\/|\bwww\./gi) ?? []).length;
+}
+
 /** Collapses runs of blank lines and strips control characters; keeps line breaks. */
 export function cleanQuestionText(raw: string): string {
-  return raw
+  return stripInvisible(raw)
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
     .replace(/\n{3,}/g, "\n\n")
@@ -106,7 +126,7 @@ export function cleanQuestionText(raw: string): string {
 }
 
 function cleanLine(raw: string): string {
-  return raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  return stripInvisible(raw).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +134,7 @@ function cleanLine(raw: string): string {
 // ---------------------------------------------------------------------------
 
 export type QuestionField = "name" | "phone" | "email" | "replyVia" | "topic" | "question" | "consent";
-export type QuestionFieldError = "required" | "invalid" | "tooShort" | "tooLong" | "emailNeeded";
+export type QuestionFieldError = "required" | "invalid" | "tooShort" | "tooLong" | "tooManyLinks" | "emailNeeded";
 
 export type QuestionInput = {
   name: string;
@@ -166,6 +186,7 @@ export function validateQuestion(raw: Record<string, unknown>): QuestionValidati
   if (!question) errors.question = "required";
   else if (question.length < QUESTION_LIMITS.questionMin) errors.question = "tooShort";
   else if (question.length > QUESTION_LIMITS.questionMax) errors.question = "tooLong";
+  else if (countLinks(question) > QUESTION_LIMITS.linksMax) errors.question = "tooManyLinks";
 
   if (raw.consent !== true) errors.consent = "required";
 
