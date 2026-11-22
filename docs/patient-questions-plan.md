@@ -142,7 +142,8 @@ the internal test below is for.
    ask → answer by WhatsApp. Signed in as a Contributor *and* as an Editor (the
    Editor must not see the tab, and the API must answer 403).
 3. **Launch:** privacy and terms text, remove `noindex`, add to the sitemap,
-   links in the header/footer, contact page and topic pages. Push only with your yes.
+   links in the header/footer and topic pages. (Contact page link added
+   2026-11-22: a "Questions" row in the details card, EN + AR, tested.) Push only with your yes.
 4. **Later:** a public FAQ written by the team from recurring questions.
 
 ## Still open

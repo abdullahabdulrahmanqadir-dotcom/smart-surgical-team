@@ -616,6 +616,14 @@ test("the ask page renders in both languages, kept out of search until launch", 
   }
 });
 
+test("the contact page links to the ask form in the visitor's language", async () => {
+  for (const [locale, label] of [["en", "Ask our team"], ["ar", "اسأل فريقنا"]]) {
+    const html = await (await fetchPath(`/${locale}/contact`)).text();
+    assert.match(html, /class="contact-ask"/, `${locale} ask row`);
+    assert.match(html, new RegExp(`href="/${locale}/ask"[^>]*>${label}`), `${locale} ask link`);
+  }
+});
+
 test("the confirm page never confirms on load and is not indexed", async () => {
   const response = await fetchPath("/en/ask/confirm");
   assert.equal(response.status, 200);

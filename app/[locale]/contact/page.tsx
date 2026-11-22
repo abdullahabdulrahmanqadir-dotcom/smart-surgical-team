@@ -3,9 +3,9 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
 import SocialLinks from "../../components/SocialLinks";
-import { IconArrowRight, IconClock, IconMail } from "../../components/icons";
+import { IconArrowRight, IconClock, IconMail, IconWhatsApp } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
-import { isLocale, type Locale } from "../../lib/i18n";
+import { isLocale, localePath, type Locale } from "../../lib/i18n";
 import { pageMetadata } from "../../lib/seo";
 import { notFound } from "next/navigation";
 
@@ -54,6 +54,17 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <dl>
                 <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${dict.contact.emailAddress}`} dir="ltr">{dict.contact.emailAddress}</a></dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
+                {/* Questions go through /ask so they land in the private Admin inbox
+                    rather than an unattended mailbox. */}
+                <div className="contact-ask">
+                  <dt><IconWhatsApp size={19} /> {dict.contact.askLabel}</dt>
+                  <dd>
+                    <p>{dict.contact.askBody}</p>
+                    <a className="btn btn-primary contact-ask-link" href={localePath(active, "ask")}>
+                      {dict.contact.askLink}<IconArrowRight size={17} />
+                    </a>
+                  </dd>
+                </div>
               </dl>
               <div className="contact-social-section">
                 <p>{dict.contact.followTower}</p>
