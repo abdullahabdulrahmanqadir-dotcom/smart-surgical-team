@@ -126,6 +126,8 @@ the internal test below is for.
 
 1. Apply the migration (never `db push`):
    `npx supabase db query --linked -f supabase/migrations/0026_patient_questions.sql`
+   then `0027_mdt_inquiries.sql` (MDT table + `team_alerted_at` on this table;
+   see the MDT spec). Optional secret: `MDT_TEAM_EMAIL`.
 2. Add Worker secrets: `TURNSTILE_SECRET_KEY` (same widget as the auth forms;
    Supabase holds a copy), `QUESTIONS_IP_SECRET` (any long random string),
    `RESEND_API_KEY` (a key of the site's own), `QUESTIONS_TEAM_EMAIL`.

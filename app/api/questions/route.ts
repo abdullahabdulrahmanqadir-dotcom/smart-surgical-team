@@ -112,7 +112,7 @@ export async function POST(request: Request) {
   }
 
   const token = input.email ? await createEmailToken() : null;
-  const { error: insertError } = await table().insert({
+  const { data: inserted, error: insertError } = await table().insert({
     name: input.name,
     phone: input.phone,
     email: input.email,
@@ -124,9 +124,9 @@ export async function POST(request: Request) {
     email_token_hash: token?.hash ?? null,
     email_token_expires_at: token?.expiresAt.toISOString() ?? null,
     ip_hash: ipHash,
-  });
-  if (insertError) {
-    console.error("[questions] insert failed:", insertError.message);
+  }).select("id").single();
+  if (insertError || !inserted) {
+    console.error("[questions] insert failed:", insertError?.message ?? "no row returned");
     return fail("server", 500);
   }
 
@@ -137,12 +137,18 @@ export async function POST(request: Request) {
   // The question is already saved, so a failed email never fails the request:
   // the team still sees it in Admin, and the patient is told only what is true
   // about the confirmation email.
-  const [confirmSent] = await Promise.all([
+  const [confirmSent, alerted] = await Promise.all([
     input.email && token
       ? sendEmail({ to: input.email, ...confirmEmail(locale, input.name, `${origin}/${locale}/ask/confirm#${token.token}`) })
       : Promise.resolve(false),
     teamAddress ? sendEmail({ to: teamAddress, ...teamAlertEmail(`${origin}/en/admin`) }) : Promise.resolve(false),
   ]);
+
+  // Recorded so Admin can flag a question whose alert never went out.
+  if (alerted) {
+    const { error } = await table().update({ team_alerted_at: new Date().toISOString() }).eq("id", inserted.id);
+    if (error) console.error("[questions] could not record the team alert:", error.message);
+  }
 
   return succeed(confirmSent);
 }

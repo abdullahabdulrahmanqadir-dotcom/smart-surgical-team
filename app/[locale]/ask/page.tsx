@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import AskQuestionForm from "../../components/AskQuestionForm";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import { IconAlert, IconArrowRight, IconCheck, IconClock, IconClose, IconPhone, IconShield } from "../../components/icons";
+import { IconAlert, IconArrowRight, IconCheck, IconClock, IconClose, IconPhone, IconShield, IconUsers } from "../../components/icons";
 import { fill, getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
 import { ASK_CONTACT, REPLY_WITHIN_WORKING_DAYS } from "../../lib/patient-questions";
@@ -92,6 +92,13 @@ export default async function AskPage({ params }: { params: Promise<{ locale: st
                 <div>
                   <dt><IconShield size={18} />{t.privacyTitle}</dt>
                   <dd>{t.privacyBody} <Link className="text-link" href={localePath(active, "privacy")}>{t.privacyLink}</Link></dd>
+                </div>
+                <div className="ask-doctor">
+                  <dt><IconUsers size={18} />{t.doctorTitle}</dt>
+                  <dd>
+                    {t.doctorBody}{" "}
+                    <Link className="text-link" href={localePath(active, "mdt")}>{t.doctorLink}<IconArrowRight size={15} /></Link>
+                  </dd>
                 </div>
               </dl>
             </aside>

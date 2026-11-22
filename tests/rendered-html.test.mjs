@@ -661,3 +661,51 @@ test("the patient-question inbox refuses anyone without a staff session", async 
     assert.equal(response.status, 401, `${init.method} without a token`);
   }
 });
+
+test("the MDT page renders in both languages, kept out of search until launch", async () => {
+  for (const [locale, dir, heading] of [["en", "ltr", "Multidisciplinary Team Meetings"], ["ar", "rtl", "اجتماعات الفريق متعدد التخصصات"]]) {
+    const response = await fetchPath(`/${locale}/mdt`);
+    assert.equal(response.status, 200, `/${locale}/mdt`);
+    const html = await response.text();
+    assert.match(html, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.ok(html.includes(heading), `${locale} heading`);
+    assert.match(html, /<meta name="robots" content="noindex, follow"/);
+    // The "no patient details" notice and the whole form are server-rendered.
+    assert.match(html, /id="mdt-notice-title"/);
+    for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent", "website"]) {
+      assert.match(html, new RegExp(`name="${field}"`), `${locale} field ${field}`);
+    }
+    // Patients are pointed to /ask, and /ask points doctors back here.
+    assert.match(html, new RegExp(`href="/${locale}/ask"`));
+    const ask = await (await fetchPath(`/${locale}/ask`)).text();
+    assert.match(ask, new RegExp(`href="/${locale}/mdt"`), `${locale} ask → mdt`);
+  }
+});
+
+test("the MDT API traps bots silently and refuses junk before touching the database", async () => {
+  const post = (body) => fetchPath("/api/mdt", { "content-type": "application/json" }, { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+
+  assert.equal((await post("{not json")).status, 400);
+  assert.equal((await post("[]")).status, 400);
+
+  // Honeypot and fill-time trap: told it worked, nothing validated or stored.
+  for (const trap of [{ website: "http://spam.example", elapsedMs: 9000 }, { elapsedMs: 400 }, {}]) {
+    const response = await post(trap);
+    assert.equal(response.status, 200, JSON.stringify(trap));
+    assert.deepEqual(await response.json(), { ok: true });
+  }
+
+  const invalid = await post({ elapsedMs: 9000, name: "", role: "ceo", email: "nope", message: "hi", noPatientData: false, consent: true });
+  assert.equal(invalid.status, 422);
+  assert.equal(invalid.headers.get("cache-control"), "no-store");
+  const body = await invalid.json();
+  assert.equal(body.code, "invalid");
+  assert.deepEqual(Object.keys(body.errors).sort(), ["country", "email", "institution", "interest", "message", "name", "noPatientData", "role"]);
+
+  const spammy = await post({
+    elapsedMs: 9000, name: "A", role: "other", institution: "Clinic", country: "Iraq", email: "a@b.example", interest: "other",
+    message: "cheap https://1.example https://2.example https://3.example", noPatientData: true, consent: true,
+  });
+  assert.equal(spammy.status, 422);
+  assert.deepEqual((await spammy.json()).errors, { message: "tooManyLinks" });
+});
