@@ -663,7 +663,7 @@ test("the patient-question inbox refuses anyone without a staff session", async 
 });
 
 test("the MDT page renders in both languages, kept out of search until launch", async () => {
-  for (const [locale, dir, heading] of [["en", "ltr", "Multidisciplinary Team Meetings"], ["ar", "rtl", "اجتماعات الفريق متعدد التخصصات"]]) {
+  for (const [locale, dir, heading] of [["en", "ltr", "Multidisciplinary team meeting"], ["ar", "rtl", "اجتماع الفريق متعدد التخصصات"]]) {
     const response = await fetchPath(`/${locale}/mdt`);
     assert.equal(response.status, 200, `/${locale}/mdt`);
     const html = await response.text();
@@ -672,6 +672,9 @@ test("the MDT page renders in both languages, kept out of search until launch", 
     assert.match(html, /<meta name="robots" content="noindex, follow"/);
     // The "no patient details" notice and the whole form are server-rendered.
     assert.match(html, /id="mdt-notice-title"/);
+    // The fact sheet and the jump link to the form are server-rendered too.
+    assert.match(html, /class="mdt-facts"/);
+    assert.match(html, /href="#mdt-form"/);
     for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent", "website"]) {
       assert.match(html, new RegExp(`name="${field}"`), `${locale} field ${field}`);
     }

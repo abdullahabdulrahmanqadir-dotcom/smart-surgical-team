@@ -211,17 +211,16 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
 
   return (
     <div className="aq">
-      <p className="aq-privacy">
-        Patients&apos; health questions. Only the Owner and Contributors can open this inbox. Answers are general
-        information; anything about a patient&apos;s own case gets a &ldquo;please book a visit&rdquo; reply.
+      <p className="aq-lede">
+        General information only; anything about a patient&apos;s own case gets a &ldquo;please book a visit&rdquo; reply.
         We aim to reply within {REPLY_WITHIN_WORKING_DAYS} working days.
       </p>
 
       {loadError && <p className="admin-notice is-warning" role="alert"><b aria-hidden="true">!</b>{loadError}</p>}
       {alertFailures > 0 && (
-        <p className="admin-notice is-warning" role="status">
+        <p className="admin-notice is-warning" role="status" title="Check RESEND_API_KEY and QUESTIONS_TEAM_EMAIL on the Worker.">
           <b aria-hidden="true">!</b>
-          {alertFailures === 1 ? "1 question arrived" : `${alertFailures} questions arrived`} without the team alert email being sent. Check RESEND_API_KEY and QUESTIONS_TEAM_EMAIL on the Worker.
+          Email alerts aren&apos;t being sent: {alertFailures === 1 ? "1 question arrived" : `${alertFailures} questions arrived`} without one.
         </p>
       )}
 
@@ -233,7 +232,7 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
               className={`${filter === id ? "is-active" : ""}${id === "overdue" && counts.overdue > 0 ? " is-alert" : ""}`}
               onClick={() => setFilter(id)}
             >
-              {label}<span>{counts[id]}</span>
+              {label}{counts[id] > 0 && <span>{counts[id]}</span>}
             </button>
           ))}
         </div>

@@ -177,3 +177,27 @@ Verified: `npm test` 174/174, tsc + lint clean; clicked through against a local 
 6. **Retention** — proposed: 24 months after last action (these are
    professional contacts that may become partnerships); spam 30 days.
 7. Team alert address for MDT (same as patient questions, or an MDT secretary?).
+
+## Design review (2026-11-22)
+
+An independent review (fresh reviewer, screenshots + source) plus our own pass.
+
+**Applied:**
+- Hero: kicker "For doctors and institutes", sentence-case title, shorter intro, a "Send an inquiry" button that jumps to the form.
+- The three chip cards became a ruled fact sheet (Specialties / Cases / Schedule), the same style as the contact page's details list.
+- "Ways to take part": larger heading, no 01–04 numbering (they are choices, not steps), serif item titles.
+- The patient-data notice is a calm note with a rose side rule, no longer an alarm box (`/ask` keeps its emergency box). The warning is said once in the notice and once in the tick-box, not four times.
+- Form: removed the name/institution icons, "Send an inquiry" title, "How would you like to take part?".
+- On phones: notice → form → the rest of the guide (the form starts about 750px higher).
+- Bugs: misaligned two-column fields (`align-items: start`), copper "(optional)", and Arabic phone/email/select padding (`globals.css`, logical padding; affects every form, LTR unchanged).
+- Arabic: brand names kept on one line (non-breaking spaces).
+- Admin: waiting counts in their own amber row above the banner, five content counts on one row; a one-line note instead of a boxed one; plain-English alert banner; zero counts hidden; no meaningless row icon; sans-serif section labels; clearer disabled button; solid quick-reply chips.
+
+**Needs the owner's approval (site-wide):**
+1. Required-field asterisks are copper everywhere; proposal: muted text colour.
+2. The primary button's aqua glow is strong in dark mode; proposal: a plain shadow.
+3. Icons inside every text input on other forms; proposal: only where they help (email, phone, search, country).
+4. The cool green-grey dark-mode footer under the warm page; proposal: base it on `--bg-muted`.
+5. Admin `.admin-status` uses a literal `letter-spacing: .04em` (pre-existing).
+
+**Left out on purpose:** a reply time on /mdt — only if the team commits to one.

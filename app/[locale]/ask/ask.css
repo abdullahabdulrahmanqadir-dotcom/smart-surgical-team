@@ -82,11 +82,14 @@
 .ask-card-title { margin: 0 0 1.25rem; font-family: var(--editorial-display); font-size: var(--step-3); font-weight: 500; line-height: 1.3; }
 
 .ask-form { display: grid; gap: 1.2rem; }
-.ask-form-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; }
+/* Start-aligned so a field with a two-line hint does not stretch its
+   neighbour and push the two inputs out of line. */
+.ask-form-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; align-items: start; }
 .ask-form .form-field label,
 .ask-reply legend { font-size: var(--step--1); font-weight: 700; }
 .ask-form .form-field small { font-size: var(--step--2); line-height: 1.5; }
-.ask-optional { color: var(--text-soft); font-weight: 500; }
+/* Specific enough to beat the shared `.form-field label span` (copper). */
+.ask-form .form-field label .ask-optional { color: var(--text-soft); font-weight: 500; }
 .ask-form .form-field label span[aria-hidden="true"],
 .ask-reply legend span[aria-hidden="true"] { color: var(--accent); }
 

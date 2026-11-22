@@ -62,6 +62,9 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
   const active: Locale = locale;
   const dict = getDictionary(active);
   const t = dict.mdt;
+  // Labels are title-like ("Head and neck surgery"), so a middot line reads
+  // cleaner than a sentence joined with "and", and needs no per-language grammar.
+  const list = (items: string[]) => items.join(" · ");
 
   return (
     <>
@@ -69,43 +72,42 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
       <SiteHeader locale={active} dict={dict} />
       <main id="main-content" className="ask-page mdt-page">
         <div className="ask-shell">
-          <header className="ask-intro">
+          <header className="ask-intro mdt-intro">
             <p className="section-kicker">{t.kicker}</p>
             <h1>{t.title}</h1>
             <p>{t.intro}</p>
+            <a className="btn btn-primary mdt-cta" href="#mdt-form">{t.ctaInquiry}<IconArrowRight size={17} /></a>
           </header>
 
-          <div className="mdt-overview">
-            <section className="mdt-panel" aria-labelledby="mdt-who-title">
-              <h2 id="mdt-who-title">{t.whoTitle}</h2>
-              <p>{t.whoIntro}</p>
-              <ul className="mdt-chips">
-                {MDT_FACTS.specialties.map((specialty) => <li key={specialty}>{t[SPECIALTY_LABEL[specialty]]}</li>)}
-              </ul>
-            </section>
-            <section className="mdt-panel" aria-labelledby="mdt-cases-title">
-              <h2 id="mdt-cases-title">{t.casesTitle}</h2>
-              <ul className="mdt-chips">
-                {MDT_FACTS.caseAreas.map((area) => <li key={area}>{t[CASE_LABEL[area]]}</li>)}
-              </ul>
-            </section>
-            <section className="mdt-panel" aria-labelledby="mdt-meet-title">
-              <h2 id="mdt-meet-title">{t.meetTitle}</h2>
-              <p>{MDT_FACTS.schedule ? MDT_FACTS.schedule[active] : t.meetPending}</p>
-            </section>
-          </div>
+          {/* A ruled fact sheet, like the contact page's details list. The
+              lists are drafts (MDT_FACTS) until the team confirms them. */}
+          <dl className="mdt-facts" aria-label={t.factsLabel}>
+            <div>
+              <dt>{t.factSpecialties}</dt>
+              <dd>{list(MDT_FACTS.specialties.map((specialty) => t[SPECIALTY_LABEL[specialty]]))}</dd>
+            </div>
+            <div>
+              <dt>{t.factCases}</dt>
+              <dd>{list(MDT_FACTS.caseAreas.map((area) => t[CASE_LABEL[area]]))}</dd>
+            </div>
+            <div>
+              <dt>{t.factSchedule}</dt>
+              <dd>{MDT_FACTS.schedule ? MDT_FACTS.schedule[active] : t.meetPending}</dd>
+            </div>
+          </dl>
 
           <section className="mdt-ways" aria-labelledby="mdt-ways-title">
             <h2 id="mdt-ways-title">{t.waysTitle}</h2>
             <p>{t.waysIntro}</p>
-            <ol>
+            {/* Alternatives, not steps: a list without numbers. */}
+            <ul>
               {WAYS.map(([title, body]) => (
                 <li key={title}>
                   <h3>{t[title]}</h3>
                   <p>{t[body]}</p>
                 </li>
               ))}
-            </ol>
+            </ul>
           </section>
 
           <div className="ask-layout mdt-form-layout" id="mdt-form">

@@ -15,7 +15,7 @@ import {
   type MdtInterest,
   type MdtRole,
 } from "../lib/mdt-inquiries";
-import { IconArrowRight, IconCheck, IconGlobe, IconMail, IconPhone, IconUser, IconUsers } from "./icons";
+import { IconArrowRight, IconCheck, IconGlobe, IconMail, IconPhone } from "./icons";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
 type MdtCopy = Dictionary["mdt"];
@@ -210,8 +210,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
         <div className="ask-form-pair">
           <div className="form-field">
             <label htmlFor={fieldId("name")}>{t.name} {required}</label>
-            <div className={`field-control${errors.name ? " is-invalid" : ""}`}>
-              <IconUser size={18} />
+            <div className={`field-control is-plain${errors.name ? " is-invalid" : ""}`}>
               <input
                 id={fieldId("name")} name="name" type="text" autoComplete="name" required
                 maxLength={MDT_LIMITS.nameMax} aria-invalid={Boolean(errors.name)}
@@ -240,8 +239,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
         <div className="ask-form-pair">
           <div className="form-field">
             <label htmlFor={fieldId("institution")}>{t.institution} {required}</label>
-            <div className={`field-control${errors.institution ? " is-invalid" : ""}`}>
-              <IconUsers size={18} />
+            <div className={`field-control is-plain${errors.institution ? " is-invalid" : ""}`}>
               <input
                 id={fieldId("institution")} name="institution" type="text" autoComplete="organization" required
                 maxLength={MDT_LIMITS.institutionMax} aria-invalid={Boolean(errors.institution)}

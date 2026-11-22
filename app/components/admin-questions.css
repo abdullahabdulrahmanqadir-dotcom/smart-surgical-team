@@ -51,13 +51,13 @@
 .aq-contact { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 20px; margin: 16px 0 0; }
 .aq-contact dt { color: #687f7d; font-size: 11.5px; font-weight: 700; }
 .aq-contact dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 3px 0 0; color: #173c3b; font-size: 14px; word-break: break-word; }
-.aq-contact dd a { color: #173c3b; font-weight: 650; white-space: nowrap; }
+.aq-contact dd a { color: #173c3b; font-weight: inherit; white-space: nowrap; text-decoration: underline; text-decoration-color: #b9cfcb; text-underline-offset: 3px; }
 .aq-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 99px; background: #fff1dc; color: #936226; font-size: 11px; font-weight: 700; }
 .aq-badge.is-ok { background: #dff0ea; color: #14615b; }
 .aq-muted { color: #6c8280; font-size: 12.5px; font-weight: 400; }
 
 .aq-question, .aq-answered { margin-top: 20px; }
-.aq-question h3, .aq-answered h3, .aq-channel h3 { margin: 0 0 8px; color: #335b58; font-size: 13px; font-weight: 700; }
+.aq-question h3, .aq-answered h3, .aq-channel h3 { margin: 0 0 8px; font-family: var(--font-body-stack); color: #335b58; font-size: 13px; font-weight: 700; }
 .aq-question p { margin: 0; padding: 14px 16px; border-radius: 9px; background: #f6faf8; color: #173c3b; font-size: 15px; line-height: 1.65; white-space: pre-wrap; }
 .aq-answer-text { margin: 10px 0 0; padding: 14px 16px; border: 1px solid #d6e1de; border-radius: 9px; color: #173c3b; font-size: 14.5px; line-height: 1.65; white-space: pre-wrap; }
 .aq-note { margin: 10px 0 0; color: #536b69; font-size: 13px; }
@@ -66,8 +66,8 @@
 .aq-compose-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
 .aq-compose-head label, .aq-note-field { color: #335b58; font-size: 13px; font-weight: 700; }
 .aq-replies { display: flex; flex-wrap: wrap; gap: 6px; }
-.aq-replies button { padding: 5px 10px; border: 1px dashed #9fbdb8; border-radius: 99px; background: transparent; color: #17605d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.aq-replies button:hover { border-style: solid; background: #f6faf9; }
+.aq-replies button { padding: 5px 10px; border: 1px solid #cbdad7; border-radius: 99px; background: transparent; color: #17605d; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.aq-replies button:hover { border-color: #167a78; background: #f6faf9; }
 .aq-compose textarea, .aq-note-input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #cbdad7; border-radius: 8px; outline: none; background: #fff; color: #173c3b; font: inherit; font-size: 14.5px; line-height: 1.6; resize: vertical; }
 .aq-compose textarea { min-height: 170px; }
 .aq-compose textarea:focus, .aq-note-input:focus { border-color: #167a78; box-shadow: 0 0 0 3px rgba(22,122,120,.14); }
@@ -77,10 +77,10 @@
 .aq-channel.is-preferred { border-color: #9cc6c1; background: #f2f9f7; }
 .aq-channel h3 { display: flex; align-items: center; gap: 7px; margin: 0; color: #173c3b; font-size: 14px; }
 .aq-channel h3 svg { color: #167a78; }
-.aq-channel h3 small { padding: 1px 7px; border-radius: 99px; background: #dff0ea; color: #14615b; font-size: 10.5px; font-weight: 700; }
+.aq-channel h3 small { font-family: var(--font-body-stack); padding: 1px 7px; border-radius: 99px; background: #dff0ea; color: #14615b; font-size: 10.5px; font-weight: 700; }
 .aq-channel p { margin: 0; }
 .aq-channel .btn { justify-self: start; }
-.aq-channel .btn:disabled { opacity: .55; cursor: not-allowed; }
+.aq-channel .btn:disabled { border-color: #e1e9e7; background: #e8efed; color: #8aa09e; box-shadow: none; opacity: 1; cursor: not-allowed; }
 .aq-steps { display: grid; gap: 6px; margin: 0; padding-inline-start: 1.2rem; color: #536b69; font-size: 13px; line-height: 1.5; }
 
 .aq-note-field { display: block; margin-top: 18px; margin-bottom: 6px; }
@@ -108,3 +108,14 @@
 .ainbox-tabs button span { min-width: 20px; padding: 1px 7px; border-radius: 99px; background: #e8efed; color: #4f6b69; font-size: 11px; text-align: center; }
 .ainbox-tabs button span.is-waiting { background: #fff1dc; color: #936226; }
 .ainbox-panel .aq { padding-top: 18px; }
+
+/* One quiet line under the tabs instead of a boxed note on every visit. */
+.aq-lede { max-width: 820px; margin: 0 0 16px; color: #687f7d; font-size: 13.5px; line-height: 1.6; }
+
+/* Overview: waiting counts sit apart from content counts and are marked
+   when something is actually waiting. */
+.admin-metric-grid.is-waiting-row { margin: 0 0 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1180px) { .admin-metric-grid.is-content-row { grid-template-columns: repeat(5, minmax(0, 1fr)); } .admin-metric-grid.is-content-row button { min-height: 116px; } }
+@media (max-width: 590px) { .admin-metric-grid.is-waiting-row { grid-template-columns: 1fr; } }
+.admin-metric-grid button.is-waiting { border-color: #e9c48f; background: #fffaf4; }
+.admin-metric-grid button.is-waiting strong { color: #936226; }

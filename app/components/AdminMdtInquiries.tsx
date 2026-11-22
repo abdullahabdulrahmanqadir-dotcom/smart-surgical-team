@@ -182,17 +182,13 @@ export default function AdminMdtInquiries({ authHeaders, onCountChange }: {
 
   return (
     <div className="aq">
-      <p className="aq-privacy">
-        Outside doctors, teams and institutes asking to take part in the MDT. Reply from the team mailbox with
-        &ldquo;Reply by email&rdquo;, then mark the inquiry as contacted. Anything about a patient is arranged by email,
-        never through this form.
-      </p>
+      <p className="aq-lede">Doctors and institutes asking to take part in the MDT. Reply from the team mailbox, then mark the inquiry as contacted.</p>
 
       {loadError && <p className="admin-notice is-warning" role="alert"><b aria-hidden="true">!</b>{loadError}</p>}
       {alertFailures > 0 && (
-        <p className="admin-notice is-warning" role="status">
+        <p className="admin-notice is-warning" role="status" title="Check RESEND_API_KEY and MDT_TEAM_EMAIL (or QUESTIONS_TEAM_EMAIL) on the Worker.">
           <b aria-hidden="true">!</b>
-          {alertFailures === 1 ? "1 inquiry arrived" : `${alertFailures} inquiries arrived`} without the team alert email being sent. Check RESEND_API_KEY and MDT_TEAM_EMAIL on the Worker.
+          Email alerts aren&apos;t being sent: {alertFailures === 1 ? "1 inquiry arrived" : `${alertFailures} inquiries arrived`} without one.
         </p>
       )}
 
@@ -200,7 +196,7 @@ export default function AdminMdtInquiries({ authHeaders, onCountChange }: {
         <div className="aq-filters" role="tablist" aria-label="Filter MDT inquiries">
           {FILTERS.map(({ id, label }) => (
             <button key={id} type="button" role="tab" aria-selected={filter === id} className={filter === id ? "is-active" : ""} onClick={() => setFilter(id)}>
-              {label}<span>{counts[id]}</span>
+              {label}{counts[id] > 0 && <span>{counts[id]}</span>}
             </button>
           ))}
         </div>
@@ -218,9 +214,8 @@ export default function AdminMdtInquiries({ authHeaders, onCountChange }: {
               <button type="button" className={`aq-row${row.id === selectedId ? " is-selected" : ""}`} aria-current={row.id === selectedId} onClick={() => select(row.id)}>
                 <span className="aq-row-head">
                   <b dir="auto">{row.name}</b>
-                  <span className="aq-row-channel" title={row.institution}><IconUsers size={15} /></span>
                 </span>
-                <span className="aq-row-text">{row.institution} · {row.country}</span>
+                <span className="aq-row-text"><bdi>{row.institution}</bdi> · {row.country}</span>
                 <span className="aq-row-meta">
                   <span className={`admin-status is-q-${row.status}`}>{STATUS_LABEL[row.status]}</span>
                   {teamAlertMissing(row.team_alerted_at, row.created_at, now) && <span className="admin-status is-q-overdue">alert failed</span>}
@@ -301,7 +296,7 @@ export default function AdminMdtInquiries({ authHeaders, onCountChange }: {
                 <button type="button" className="btn btn-outline" disabled={busy !== null} onClick={() => act("save")}>{busy === "save" ? "Saving..." : "Save note"}</button>
                 {selected.status !== "new" && <button type="button" className="aq-link" disabled={busy !== null} onClick={() => act("set-status", { status: "new" })}>Reopen</button>}
                 {(selected.status === "new" || selected.status === "contacted") && <button type="button" className="aq-link" disabled={busy !== null} onClick={() => act("set-status", { status: "closed" })}>Close</button>}
-                {selected.status === "new" && <button type="button" className="aq-link" disabled={busy !== null} onClick={() => act("set-status", { status: "wrong_form" })}>Sent by a patient (wrong form)</button>}
+                {selected.status === "new" && <button type="button" className="aq-link" disabled={busy !== null} onClick={() => act("set-status", { status: "wrong_form" })}>Wrong form (patient)</button>}
                 {selected.status !== "spam" && <button type="button" className="aq-link" disabled={busy !== null} onClick={() => act("set-status", { status: "spam" })}>Mark as spam</button>}
               </div>
 
