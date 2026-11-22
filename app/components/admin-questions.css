@@ -36,6 +36,8 @@
 .admin-status.is-q-closed { background: #e8efed; color: #5b7270; }
 .admin-status.is-q-spam { background: #f1e8e5; color: #805c55; }
 .admin-status.is-q-overdue { background: #f6dcd8; color: #8c3b31; }
+.admin-status.is-q-contacted { background: #dff0ea; color: #14615b; }
+.admin-status.is-q-wrong_form { background: #ece7f3; color: #5d4f7a; }
 
 .aq-detail { min-height: 420px; padding: clamp(18px, 2.5vw, 28px); border: 1px solid #d6e1de; border-radius: 11px; background: #fff; }
 .aq-placeholder { display: grid; place-items: center; gap: 8px; min-height: 360px; color: #6c8280; text-align: center; }
@@ -96,3 +98,13 @@
   .aq-layout { grid-template-columns: minmax(0, 1fr); }
   .aq-list { max-height: 340px; }
 }
+
+/* Inbox: one tab per form (patient questions, MDT inquiries). */
+.ainbox-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 20px; border-bottom: 1px solid #d6e1de; }
+.ainbox-tabs button { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; margin-bottom: -1px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #4f6b69; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.ainbox-tabs button:hover { color: #167a78; }
+.ainbox-tabs button[aria-selected="true"] { border-bottom-color: #167a78; color: #153f3d; }
+.ainbox-tabs button:focus-visible { outline: 2px solid #167a78; outline-offset: -2px; }
+.ainbox-tabs button span { min-width: 20px; padding: 1px 7px; border-radius: 99px; background: #e8efed; color: #4f6b69; font-size: 11px; text-align: center; }
+.ainbox-tabs button span.is-waiting { background: #fff1dc; color: #936226; }
+.ainbox-panel .aq { padding-top: 18px; }

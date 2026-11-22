@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { READY_REPLIES, readyReplyText, whatsappOpening } from "../lib/patient-question-replies";
 import { isOverdue, QUESTION_LIMITS, REPLY_WITHIN_WORKING_DAYS, whatsappLink, workingDaysSince, type QuestionStatus } from "../lib/patient-questions";
+import { teamAlertMissing } from "../lib/mdt-inquiries";
 import { IconCheck, IconMail, IconSearch, IconWhatsApp } from "./icons";
 import "./admin-questions.css";
 
@@ -31,6 +32,7 @@ type Question = {
   answered_at: string | null;
   answered_via: "email" | "whatsapp" | null;
   internal_note: string | null;
+  team_alerted_at?: string | null;
   created_at: string;
   answerer?: { full_name: string | null } | null;
 };
@@ -73,7 +75,11 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
   try { return await response.json() as Record<string, unknown>; } catch { return {}; }
 }
 
-export default function AdminQuestions({ authHeaders }: { authHeaders: () => Promise<Record<string, string>> }) {
+export default function AdminQuestions({ authHeaders, onCountChange }: {
+  authHeaders: () => Promise<Record<string, string>>;
+  /** Told the waiting count after each load, for the Inbox tab badge. */
+  onCountChange?: (waiting: number) => void;
+}) {
   const [rows, setRows] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -92,6 +98,8 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
   const headersRef = useRef(authHeaders);
   useEffect(() => { headersRef.current = authHeaders; }, [authHeaders]);
   const authHeadersNow = () => headersRef.current();
+  const countRef = useRef(onCountChange);
+  useEffect(() => { countRef.current = onCountChange; }, [onCountChange]);
 
   const load = useCallback(async () => {
     setLoadError("");
@@ -99,8 +107,10 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
       const response = await fetch("/api/admin/questions", { headers: await headersRef.current() });
       const result = await readJson(response);
       if (!response.ok) throw new Error(typeof result.error === "string" ? result.error : "Could not load the questions.");
-      setRows(Array.isArray(result.data) ? result.data as Question[] : []);
+      const data = Array.isArray(result.data) ? result.data as Question[] : [];
+      setRows(data);
       setNow(new Date());
+      countRef.current?.(data.filter((row) => row.status === "new").length);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Could not load the questions.");
     } finally {
@@ -114,6 +124,8 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
   }, [load]);
 
   const counts = useMemo(() => Object.fromEntries(FILTERS.map(({ id }) => [id, rows.filter((row) => matches(id, row, now)).length])) as Record<Filter, number>, [rows, now]);
+
+  const alertFailures = useMemo(() => rows.filter((row) => teamAlertMissing(row.team_alerted_at, row.created_at, now)).length, [rows, now]);
 
   const visible = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -206,6 +218,12 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
       </p>
 
       {loadError && <p className="admin-notice is-warning" role="alert"><b aria-hidden="true">!</b>{loadError}</p>}
+      {alertFailures > 0 && (
+        <p className="admin-notice is-warning" role="status">
+          <b aria-hidden="true">!</b>
+          {alertFailures === 1 ? "1 question arrived" : `${alertFailures} questions arrived`} without the team alert email being sent. Check RESEND_API_KEY and QUESTIONS_TEAM_EMAIL on the Worker.
+        </p>
+      )}
 
       <div className="aq-controls">
         <div className="aq-filters" role="tablist" aria-label="Filter questions">
@@ -234,7 +252,7 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
               <li key={row.id}>
                 <button type="button" className={`aq-row${row.id === selectedId ? " is-selected" : ""}`} aria-current={row.id === selectedId} onClick={() => select(row.id)}>
                   <span className="aq-row-head">
-                    <b>{row.name}</b>
+                    <b dir="auto">{row.name}</b>
                     <span className="aq-row-channel" title={row.reply_via === "email" ? "Prefers email" : "Prefers WhatsApp"}>
                       {row.reply_via === "email" ? <IconMail size={15} /> : <IconWhatsApp size={15} />}
                     </span>
@@ -243,6 +261,7 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
                   <span className="aq-row-meta">
                     <span className={`admin-status is-q-${row.status}`}>{row.status === "new" ? "waiting" : row.status}</span>
                     {overdue && <span className="admin-status is-q-overdue">overdue</span>}
+                    {teamAlertMissing(row.team_alerted_at, row.created_at, now) && <span className="admin-status is-q-overdue">alert failed</span>}
                     {row.topic && <span>{TOPIC_LABEL[row.topic] ?? row.topic}</span>}
                     <span>{row.status === "new" ? waitingLabel(row.created_at, now) : formatDate(row.created_at)}</span>
                   </span>
@@ -262,7 +281,7 @@ export default function AdminQuestions({ authHeaders }: { authHeaders: () => Pro
             <>
               <header className="aq-detail-head">
                 <div>
-                  <h2 ref={detailHeading} tabIndex={-1}>{selected.name}</h2>
+                  <h2 ref={detailHeading} tabIndex={-1} dir="auto">{selected.name}</h2>
                   <p>
                     Received {formatDate(selected.created_at)} · {LANGUAGE_LABEL[selected.locale]}
                     {selected.topic ? ` · ${TOPIC_LABEL[selected.topic] ?? selected.topic}` : ""}

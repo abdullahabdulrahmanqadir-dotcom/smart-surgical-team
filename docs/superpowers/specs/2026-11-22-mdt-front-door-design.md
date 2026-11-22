@@ -146,11 +146,23 @@ patient-questions tests must still pass unchanged.
 
 New optional secret: `MDT_TEAM_EMAIL` (falls back to `QUESTIONS_TEAM_EMAIL`).
 
+## What Phase 2 built (2026-11-22, uncommitted at time of writing)
+
+| Piece | File |
+|---|---|
+| `/api/admin/mdt` — GET (purges expired first), POST `save` / `mark-contacted` / `set-status`, DELETE; Owner + Contributors only | `app/api/admin/mdt/route.ts` |
+| Inbox tab with two lists, both mounted so drafts survive tab switches | `app/components/AdminInbox.tsx` |
+| MDT list: filters, search, detail, "Reply by email" (mailto in the sender's language; wrong-form replies point to `/ask`), mark contacted, note, close / wrong form / spam / reopen, delete | `app/components/AdminMdtInquiries.tsx` |
+| Alert-failed badge + banner in **both** lists (2-minute grace) | `teamAlertMissing()` in `app/lib/mdt-inquiries.ts` |
+| "MDT inquiries waiting" card on the Overview, opening the MDT tab | `AdminWorkspace.tsx`, `app/api/admin/[resource]/route.ts` |
+
+Verified: `npm test` 174/174, tsc + lint clean; clicked through against a local mock with fake rows (overview cards → MDT tab, counts, alert-failed flags, Arabic reply link, mark contacted). **Not verified:** the real database (0026/0027 not applied) and a real Contributor/Editor login.
+
 ## Phases (stop and review after each)
 
-1. Migration, `/mdt` page, form, `POST /api/mdt`, alert email, cross-links
-   with `/ask` — built but unlinked and `noindex`.
-2. Admin Inbox tab (two lists) + alert-failure flag.
+1. ~~Migration, `/mdt` page, form, `POST /api/mdt`, alert email, cross-links
+   with `/ask` — built but unlinked and `noindex`.~~ Built 2026-11-22 (`b3ec338`).
+2. ~~Admin Inbox tab (two lists) + alert-failure flag.~~ Built 2026-11-22.
 3. Internal end-to-end test of **both** forms.
 4. Launch both together: links (header, contact, team, footer), privacy/terms,
    sitemap, push only with the user's yes.

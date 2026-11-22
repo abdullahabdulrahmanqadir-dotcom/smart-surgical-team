@@ -11,6 +11,8 @@ const {
   countLinks,
   isTooFast,
   mdtDeleteAfter,
+  mdtReplyMailto,
+  teamAlertMissing,
   validateMdtInquiry,
 } = await import("../app/lib/mdt-inquiries.ts");
 
@@ -138,4 +140,35 @@ test("the shared email layout escapes what it is given", () => {
   const html = emailLayout("ar", { paragraphs: ["<script>alert(1)</script>"] });
   assert.match(html, /dir="rtl"/);
   assert.doesNotMatch(html, /<script>/);
+});
+
+test("a missing team alert is flagged only after the two-minute grace period", () => {
+  const now = new Date("2026-11-22T12:00:00Z");
+  assert.equal(teamAlertMissing("2026-11-22T11:00:05Z", "2026-11-22T11:00:00Z", now), false);
+  assert.equal(teamAlertMissing(null, "2026-11-22T11:59:00Z", now), false);
+  assert.equal(teamAlertMissing(null, "2026-11-22T11:57:00Z", now), true);
+  assert.equal(teamAlertMissing(undefined, "2026-11-22T11:00:00Z", now), true);
+});
+
+test("the reply link opens the team's mail app in the sender's language", () => {
+  const decode = (href) => {
+    const url = new URL(href);
+    return { to: decodeURIComponent(url.pathname), subject: url.searchParams.get("subject"), body: url.searchParams.get("body") };
+  };
+  const en = decode(mdtReplyMailto({ email: "sara@example.org", name: "Dr. Sara", locale: "en", status: "new" }, "https://ssthyroid.com"));
+  assert.equal(en.to, "sara@example.org");
+  assert.equal(en.subject, "Your MDT inquiry — Smart Surgical Team");
+  assert.match(en.body, /^Dear Dr\. Sara,/);
+  assert.doesNotMatch(en.body, /\/ask/);
+
+  const ar = decode(mdtReplyMailto({ email: "a@example.org", name: "د. آرام", locale: "ar", status: "new" }, "https://ssthyroid.com"));
+  assert.match(ar.subject, /الاجتماع متعدد التخصصات/);
+
+  // A patient who used the wrong form is pointed to /ask in their language.
+  const wrong = decode(mdtReplyMailto({ email: "p@example.org", name: "P", locale: "ar", status: "wrong_form" }, "https://ssthyroid.com"));
+  assert.match(wrong.body, /https:\/\/ssthyroid\.com\/ar\/ask/);
+
+  // Characters that would break a mailto (& ? #) stay inside their parameter.
+  const tricky = decode(mdtReplyMailto({ email: "x@example.org", name: "A & B?#", locale: "en", status: "new" }, "https://x.example"));
+  assert.match(tricky.body, /^Dear A & B\?#,/);
 });

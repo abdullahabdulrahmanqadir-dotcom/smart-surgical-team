@@ -18,8 +18,8 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 const NO_STORE = { "cache-control": "no-store" };
 const INBOX_LIMIT = 500;
-const COLUMNS = "id,name,phone,email,reply_via,topic,question,locale,status,email_confirmed_at,answer,answered_by,answered_at,answered_via,internal_note,created_at,updated_at,answerer:profiles!patient_questions_answered_by_fkey(full_name)";
-const MIGRATION_HINT = "The patient questions table is not in the database yet. Apply supabase/migrations/0026_patient_questions.sql, then reload.";
+const COLUMNS = "id,name,phone,email,reply_via,topic,question,locale,status,email_confirmed_at,answer,answered_by,answered_at,answered_via,internal_note,team_alerted_at,created_at,updated_at,answerer:profiles!patient_questions_answered_by_fkey(full_name)";
+const MIGRATION_HINT = "The patient questions table is not in the database yet. Apply supabase/migrations/0026_patient_questions.sql and then 0027_mdt_inquiries.sql, then reload.";
 
 function missingTable(message: string | undefined) {
   return Boolean(message) && /patient_questions/.test(message!) && /does not exist|find the table|schema cache/i.test(message!);

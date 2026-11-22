@@ -709,3 +709,10 @@ test("the MDT API traps bots silently and refuses junk before touching the datab
   assert.equal(spammy.status, 422);
   assert.deepEqual((await spammy.json()).errors, { message: "tooManyLinks" });
 });
+
+test("the MDT inbox refuses anyone without a staff session", async () => {
+  for (const init of [{ method: "GET" }, { method: "POST", body: "{}" }, { method: "DELETE" }]) {
+    const response = await fetchPath("/api/admin/mdt?id=00000000-0000-0000-0000-000000000000", { "content-type": "application/json" }, init);
+    assert.equal(response.status, 401, `${init.method} without a token`);
+  }
+});

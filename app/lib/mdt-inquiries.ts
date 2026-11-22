@@ -190,3 +190,51 @@ export const MDT_FACTS: {
   caseAreas: MDT_CASE_AREAS,
   schedule: null,
 };
+
+// ---------------------------------------------------------------------------
+// Admin helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * The alert is sent right after the row is saved, in the same request, so a
+ * row only counts as "alert failed" once it is older than this.
+ */
+const ALERT_GRACE_MS = 2 * 60_000;
+
+/** True when the team alert for a submission never reached Resend. */
+export function teamAlertMissing(teamAlertedAt: string | null | undefined, createdAt: string, now: Date = new Date()): boolean {
+  if (teamAlertedAt) return false;
+  return now.getTime() - new Date(createdAt).getTime() > ALERT_GRACE_MS;
+}
+
+const REPLY_COPY = {
+  en: {
+    subject: "Your MDT inquiry — Smart Surgical Team",
+    greeting: (name: string) => `Dear ${name},`,
+    body: "Thank you for your interest in our multidisciplinary team meeting.",
+    wrongForm: (link: string) => `Thank you for your message. Our MDT page is for doctors and institutes. For a question about your own health, please use our patient form instead: ${link}`,
+    signOff: "Kind regards,\nSmart Surgical Team",
+  },
+  ar: {
+    subject: "استفسارك عن الاجتماع متعدد التخصصات — Smart Surgical Team",
+    greeting: (name: string) => `${name} المحترم/ة،`,
+    body: "شكراً لاهتمامك باجتماع فريقنا متعدد التخصصات.",
+    wrongForm: (link: string) => `شكراً لرسالتك. صفحة الاجتماع متعدد التخصصات مخصّصة للأطباء والمؤسسات. لطرح سؤال عن صحتك، يرجى استخدام نموذج المرضى: ${link}`,
+    signOff: "مع التحية،\nSmart Surgical Team",
+  },
+} as const;
+
+/**
+ * A mailto: link that opens the team's own mail app with the subject and a
+ * greeting filled in, in the language the inquiry was sent in. A patient who
+ * used the wrong form gets a reply pointing to /ask instead.
+ */
+export function mdtReplyMailto(
+  row: { email: string; name: string; locale: "en" | "ar"; status: MdtStatus },
+  origin: string,
+): string {
+  const copy = REPLY_COPY[row.locale];
+  const middle = row.status === "wrong_form" ? copy.wrongForm(`${origin}/${row.locale}/ask`) : copy.body;
+  const body = [copy.greeting(row.name), "", middle, "", "", copy.signOff].join("\n");
+  return `mailto:${encodeURIComponent(row.email).replace(/%40/g, "@")}?subject=${encodeURIComponent(copy.subject)}&body=${encodeURIComponent(body)}`;
+}
