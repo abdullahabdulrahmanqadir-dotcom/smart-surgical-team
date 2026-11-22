@@ -219,3 +219,14 @@ before that deploy. New Arabic header hint "العنوان وساعات العم
 7. Ready-made replies and the WhatsApp opening message (EN + AR) are drafts in
    `app/lib/patient-question-replies.ts`; the clinical team must approve them.
 8. The four secrets are runtime Worker secrets on the `smart` Worker (`npx wrangler secret put …`), not build variables: none is `NEXT_PUBLIC_`, so no build setting is needed.
+
+## 2026-11-22 — launch text done
+
+Privacy Policy and Terms (EN + AR, `app/components/LegalPage.tsx`, "last
+updated" 22 November 2026) now cover both forms: what each collects, who sees
+it, the no-name team alert, email confirm / WhatsApp reply, Turnstile, the HMAC
+IP code, Resend, and retention (questions 6 months, MDT 24 months, spam 30
+days). Terms add "general information, not a diagnosis, no doctor–patient
+relationship, not for emergencies" and "MDT inquiry is first contact only".
+Footer links the MDT page; `llms.txt` mentions the contact-page form. The new
+Arabic legal text joins the native-speaker review.

@@ -124,7 +124,7 @@ patient-questions tests must still pass unchanged.
 
 - `mdt` added to `PUBLIC_DOCUMENT` in **both** `worker/page-cache.ts` and
   `public/sw.js`.
-- Privacy policy + terms: a paragraph on MDT inquiries (what, why, how long).
+- ~~Privacy policy + terms: a paragraph on MDT inquiries (what, why, how long).~~ Done 2026-11-22 (24-month retention stated; change both if the team picks another).
 - Sitemap, `llms.txt`, remove `noindex`.
 - Arabic text read by a native speaker.
 
