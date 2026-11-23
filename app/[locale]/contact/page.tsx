@@ -5,10 +5,10 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
 import SocialLinks from "../../components/SocialLinks";
-import { IconAlert, IconArrowRight, IconCheck, IconClock, IconClose, IconMail, IconPhone, IconShield, IconUsers, IconWhatsApp } from "../../components/icons";
+import { IconAlert, IconArrowRight, IconCheck, IconClock, IconClose, IconMail, IconUsers } from "../../components/icons";
 import { fill, getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
-import { ASK_CONTACT, REPLY_WITHIN_WORKING_DAYS } from "../../lib/patient-questions";
+import { ASK_CONTACT } from "../../lib/patient-questions";
 import { pageMetadata } from "../../lib/seo";
 import { notFound } from "next/navigation";
 import "../ask/ask.css";
@@ -59,21 +59,21 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <dl>
                 <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${dict.contact.emailAddress}`} dir="ltr">{dict.contact.emailAddress}</a></dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
-                {/* Questions go through the form below so they land in the private
-                    Admin inbox rather than an unattended mailbox. */}
-                <div className="contact-ask">
-                  <dt><IconWhatsApp size={19} /> {dict.contact.askLabel}</dt>
+                {/* The question form is already the next section down, so this row
+                    serves the page's other audience: doctors go to the MDT page. */}
+                <div className="contact-doctors">
+                  <dt><IconUsers size={19} /> {dict.contact.doctorsLabel}</dt>
                   <dd>
-                    <p>{dict.contact.askBody}</p>
-                    <a className="btn btn-primary contact-ask-link" href="#ask">
-                      {dict.contact.askLink}<IconArrowRight size={17} />
-                    </a>
+                    <p>{t.doctorBody}</p>
+                    <Link className="text-link contact-doctors-link" href={localePath(active, "mdt")}>
+                      {t.doctorLink}<IconArrowRight size={17} />
+                    </Link>
                   </dd>
                 </div>
               </dl>
               <div className="contact-social-section">
                 <p>{dict.contact.followTower}</p>
-                <SocialLinks className="socials contact-socials" t={dict.social} />
+                <SocialLinks className="socials footer-socials contact-socials" t={dict.social} showLabels />
               </div>
             </aside>
             <section className="contact-location" aria-labelledby="visit-heading">
@@ -93,7 +93,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               <h2 id="ask-heading">{t.title}</h2>
               <p>{t.intro}</p>
             </header>
-            <div className="ask-layout">
+            <div className="ask-layout contact-ask-layout">
               <aside className="ask-guide">
                 <section className="ask-emergency" aria-labelledby="ask-emergency-title">
                   <IconAlert size={22} />
@@ -110,40 +110,15 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
 
                 <div className="ask-scope">
                   <section aria-labelledby="ask-can-title">
-                    <h3 id="ask-can-title"><span className="ask-scope-mark is-yes"><IconCheck size={15} /></span>{t.canTitle}</h3>
+                    <h3 id="ask-can-title"><IconCheck size={18} className="ask-scope-mark is-yes" />{t.canTitle}</h3>
                     <p>{t.canBody}</p>
                   </section>
                   <section aria-labelledby="ask-cannot-title">
-                    <h3 id="ask-cannot-title"><span className="ask-scope-mark is-no"><IconClose size={15} /></span>{t.cannotTitle}</h3>
+                    <h3 id="ask-cannot-title"><IconClose size={18} className="ask-scope-mark is-no" />{t.cannotTitle}</h3>
                     <p>{t.cannotBody}</p>
                   </section>
                 </div>
 
-                <dl className="ask-facts">
-                  <div>
-                    <dt><IconPhone size={18} />{t.bookTitle}</dt>
-                    <dd>
-                      {ASK_CONTACT.bookingPhone
-                        ? <>{t.bookBody} <a href={`tel:${ASK_CONTACT.bookingPhone}`} dir="ltr">{ASK_CONTACT.bookingPhone}</a></>
-                        : <a className="text-link" href="#visit-heading">{t.bookFallback}<IconArrowRight size={15} /></a>}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt><IconClock size={18} />{t.replyTitle}</dt>
-                    <dd>{fill(t.replyBody, { days: String(REPLY_WITHIN_WORKING_DAYS) })}</dd>
-                  </div>
-                  <div>
-                    <dt><IconShield size={18} />{t.privacyTitle}</dt>
-                    <dd>{t.privacyBody} <Link className="text-link" href={localePath(active, "privacy")}>{t.privacyLink}</Link></dd>
-                  </div>
-                  <div className="ask-doctor">
-                    <dt><IconUsers size={18} />{t.doctorTitle}</dt>
-                    <dd>
-                      {t.doctorBody}{" "}
-                      <Link className="text-link" href={localePath(active, "mdt")}>{t.doctorLink}<IconArrowRight size={15} /></Link>
-                    </dd>
-                  </div>
-                </dl>
               </aside>
 
               <AskQuestionForm locale={active} t={t} />

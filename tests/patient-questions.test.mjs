@@ -11,6 +11,7 @@ import test from "node:test";
 const {
   QUESTION_LIMITS,
   deleteAfter,
+  isMedicalTopic,
   isOverdue,
   normaliseEmail,
   normalisePhone,
@@ -26,11 +27,10 @@ const { confirmEmail, createEmailToken, hashIp, isWellFormedToken, sha256Hex, te
 const VALID = {
   name: "Shilan Ahmed",
   phone: "0770 123 4567",
-  email: "",
+  email: "shilan@example.com",
   replyVia: "whatsapp",
   topic: "thyroid",
   question: "Is it normal to feel tired three weeks after thyroid surgery?",
-  consent: true,
 };
 
 test("Iraqi local formats normalise to one E.164 number", () => {
@@ -74,7 +74,7 @@ test("a complete question validates and comes back cleaned", () => {
   assert.deepEqual(result.value, {
     name: "Shilan Ahmed",
     phone: "+9647701234567",
-    email: null,
+    email: "shilan@example.com",
     replyVia: "whatsapp",
     topic: "thyroid",
     question: `${VALID.question}\n\nThanks`,
@@ -82,21 +82,32 @@ test("a complete question validates and comes back cleaned", () => {
 });
 
 test("each field reports its own problem", () => {
-  const result = validateQuestion({ name: "", phone: "123", email: "bad", replyVia: "fax", topic: "knee", question: "short", consent: false });
+  const result = validateQuestion({ name: "", phone: "123", email: "bad", replyVia: "fax", topic: "knee", question: "short" });
   assert.equal(result.ok, false);
-  assert.deepEqual(result.errors, { name: "required", phone: "invalid", email: "invalid", replyVia: "required", topic: "invalid", question: "tooShort", consent: "required" });
+  assert.deepEqual(result.errors, { name: "required", phone: "invalid", email: "invalid", replyVia: "required", topic: "invalid", question: "tooShort" });
 });
 
-test("replying by email needs an email address", () => {
-  const result = validateQuestion({ ...VALID, replyVia: "email", email: "" });
-  assert.equal(result.ok, false);
-  assert.equal(result.errors.email, "emailNeeded");
-  assert.equal(validateQuestion({ ...VALID, replyVia: "email", email: "p@example.com" }).ok, true);
+test("an email address is always required", () => {
+  for (const replyVia of ["email", "whatsapp"]) {
+    const result = validateQuestion({ ...VALID, replyVia, email: "" });
+    assert.equal(result.ok, false);
+    assert.equal(result.errors.email, "required");
+  }
 });
 
-test("consent must be a real true, not a truthy string", () => {
-  assert.equal(validateQuestion({ ...VALID, consent: "true" }).ok, false);
-  assert.equal(validateQuestion({ ...VALID, consent: "on" }).ok, false);
+test("the WhatsApp number is optional unless the reply is on WhatsApp", () => {
+  const byEmail = validateQuestion({ ...VALID, replyVia: "email", phone: "" });
+  assert.equal(byEmail.ok, true);
+  assert.equal(byEmail.value.phone, null);
+  const byWhatsapp = validateQuestion({ ...VALID, replyVia: "whatsapp", phone: "" });
+  assert.equal(byWhatsapp.ok, false);
+  assert.equal(byWhatsapp.errors.phone, "phoneNeeded");
+  // A number that is given still has to be a real one.
+  assert.equal(validateQuestion({ ...VALID, replyVia: "email", phone: "123" }).errors.phone, "invalid");
+});
+
+test("no consent field is needed to send a question", () => {
+  assert.equal(validateQuestion(VALID).ok, true);
 });
 
 test("topic is optional; question length is bounded", () => {
@@ -225,4 +236,21 @@ test("every ready-made reply exists in both languages and fills its booking line
 test("the WhatsApp opener asks the patient to confirm before any answer", () => {
   assert.match(whatsappOpening("en", "Shilan"), /Did you send us a question/);
   assert.match(whatsappOpening("ar", "شيلان"), /هل أرسلت إلينا سؤالاً/);
+});
+
+test("questions about the team, visits and research are accepted topics", () => {
+  for (const topic of ["appointments", "team", "research", "other"]) {
+    assert.equal(validateQuestion({ ...VALID, topic }).ok, true, topic);
+  }
+});
+
+test("only medical answers carry the 'not a diagnosis' notice", () => {
+  assert.equal(isMedicalTopic("thyroid"), true);
+  assert.equal(isMedicalTopic(null), true, "no topic is treated as medical");
+  assert.equal(isMedicalTopic("appointments"), false);
+  const medical = answerEmail("en", "Shilan", "A question?", "An answer.");
+  const general = answerEmail("en", "Shilan", "Where do I park?", "Behind the tower.", false);
+  assert.match(medical.text, /not a diagnosis/);
+  assert.doesNotMatch(general.text, /not a diagnosis/);
+  assert.match(general.text, /You can reply to this email/);
 });

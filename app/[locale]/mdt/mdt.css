@@ -6,6 +6,20 @@
 /* --- Hero --------------------------------------------------------------- */
 
 .mdt-page .ask-intro h1 { text-wrap: balance; }
+
+/* Wide screens: intro on the leading side, the fact sheet beside it, aligned
+   to the bottom of the intro so the first screen is a composed spread rather
+   than a column of text with an empty half. */
+@media (min-width: 1001px) {
+  .mdt-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(2.5rem, 5vw, 5rem);
+    align-items: end;
+  }
+  .mdt-hero .mdt-facts { margin: 0; }
+  .mdt-hero .mdt-facts > div { grid-template-columns: minmax(0, 1fr); gap: .25rem; padding-block: 1rem; }
+}
 .mdt-cta { min-height: 44px; margin-block-start: 1.1rem; }
 [dir="rtl"] .mdt-cta svg { transform: scaleX(-1); }
 
@@ -57,8 +71,7 @@
 /* A note between peers, not an alarm: /ask keeps the rose-filled box for
    its real emergency notice. */
 .mdt-page .ask-emergency {
-  border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--brand-rose);
+  border: 1px solid color-mix(in srgb, var(--brand-rose) 32%, var(--line));
   background: var(--surface);
 }
 .mdt-page .ask-emergency h2 { color: var(--text); font-family: var(--editorial-display); font-size: var(--step-1); font-weight: 500; line-height: 1.35; }

@@ -15,7 +15,7 @@ import {
   type MdtInterest,
   type MdtRole,
 } from "../lib/mdt-inquiries";
-import { IconArrowRight, IconCheck, IconGlobe, IconMail, IconPhone } from "./icons";
+import { IconArrowRight, IconCheck, IconMail, IconPhone } from "./icons";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
 type MdtCopy = Dictionary["mdt"];
@@ -252,7 +252,6 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           <div className="form-field">
             <label htmlFor={fieldId("country")}>{t.country} {required}</label>
             <div className={`field-control is-select${errors.country ? " is-invalid" : ""}`}>
-              <IconGlobe size={18} />
               <select
                 id={fieldId("country")} name="country" defaultValue="" required
                 aria-invalid={Boolean(errors.country)} aria-describedby={describedBy("country")}
@@ -330,6 +329,8 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           {fieldError("message")}
         </div>
 
+        {/* Two declarations, one box: they are read and ticked together. */}
+        <div className="ask-consent-group">
         {(["noPatientData", "consent"] as const).map((field) => (
           <div className="ask-consent-field" key={field}>
             <label className={`ask-consent${errors[field] ? " is-invalid" : ""}`}>
@@ -343,6 +344,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
             {fieldError(field)}
           </div>
         ))}
+        </div>
 
         {/* Honeypot: hidden from people and from assistive technology. */}
         <div className="ask-trap" aria-hidden="true">

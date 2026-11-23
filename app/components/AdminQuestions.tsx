@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { READY_REPLIES, readyReplyText, whatsappOpening } from "../lib/patient-question-replies";
-import { isOverdue, QUESTION_LIMITS, REPLY_WITHIN_WORKING_DAYS, whatsappLink, workingDaysSince, type QuestionStatus } from "../lib/patient-questions";
+import { isMedicalTopic, isOverdue, QUESTION_LIMITS, REPLY_WITHIN_WORKING_DAYS, whatsappLink, workingDaysSince, type QuestionStatus } from "../lib/patient-questions";
 import { teamAlertMissing } from "../lib/mdt-inquiries";
 import { IconCheck, IconMail, IconSearch, IconWhatsApp } from "./icons";
 import "./admin-questions.css";
@@ -20,7 +20,7 @@ import "./admin-questions.css";
 type Question = {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string | null;
   reply_via: "email" | "whatsapp";
   topic: string | null;
@@ -50,7 +50,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
 ];
 
-const TOPIC_LABEL: Record<string, string> = { thyroid: "Thyroid", parathyroid: "Parathyroid", breast: "Breast", other: "Other" };
+const TOPIC_LABEL: Record<string, string> = { thyroid: "Thyroid", parathyroid: "Parathyroid", breast: "Breast", appointments: "Appointments", team: "Team & services", research: "Research & events", other: "Other" };
 const LANGUAGE_LABEL = { en: "English form", ar: "Arabic form" } as const;
 
 function matches(filter: Filter, row: Question, now: Date) {
@@ -131,7 +131,7 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
     const needle = search.trim().toLowerCase();
     return rows
       .filter((row) => matches(filter, row, now))
-      .filter((row) => !needle || [row.name, row.phone, row.email ?? "", row.question].some((value) => value.toLowerCase().includes(needle)))
+      .filter((row) => !needle || [row.name, row.phone ?? "", row.email ?? "", row.question].some((value) => value.toLowerCase().includes(needle)))
       // Waiting questions are answered oldest first; everything else reads newest first.
       .sort((a, b) => (filter === "waiting" || filter === "overdue" ? 1 : -1) * a.created_at.localeCompare(b.created_at));
   }, [rows, filter, search, now]);
@@ -294,7 +294,11 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
               <dl className="aq-contact">
                 <div>
                   <dt>Phone (WhatsApp)</dt>
-                  <dd><a href={`tel:${selected.phone}`} dir="ltr">{selected.phone}</a><button type="button" className="aq-link" onClick={() => copy("phone", selected.phone)}>{copied === "phone" ? "Copied" : "Copy"}</button></dd>
+                  <dd>
+                    {selected.phone
+                      ? <><a href={`tel:${selected.phone}`} dir="ltr">{selected.phone}</a><button type="button" className="aq-link" onClick={() => copy("phone", selected.phone ?? "")}>{copied === "phone" ? "Copied" : "Copy"}</button></>
+                      : <span className="aq-muted">None given</span>}
+                  </dd>
                 </div>
                 <div>
                   <dt>Email</dt>
@@ -345,7 +349,7 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
                       <h3><IconMail size={17} />Email{selected.reply_via === "email" && <small>preferred</small>}</h3>
                       {!selected.email ? <p className="aq-muted">No email address was given.</p>
                         : !selected.email_confirmed_at ? <p className="aq-muted">Waiting for the patient to confirm {selected.email}. Nothing can be sent until they do.</p>
-                          : <p className="aq-muted">Sends the answer to {selected.email}, with their question and the &ldquo;general information&rdquo; notice.</p>}
+                          : <p className="aq-muted">Sends the answer to {selected.email}, with their question{isMedicalTopic(selected.topic) ? <> and the &ldquo;general information&rdquo; notice</> : null}.</p>}
                       <button type="button" className="btn btn-primary" disabled={busy !== null || !selected.email_confirmed_at || !draft.answer.trim() || selected.status === "spam"} onClick={() => act("send-email")}>
                         {busy === "send-email" ? "Sending..." : "Send answer by email"}
                       </button>
@@ -353,12 +357,14 @@ export default function AdminQuestions({ authHeaders, onCountChange }: {
 
                     <div className={`aq-channel${selected.reply_via === "whatsapp" ? " is-preferred" : ""}`}>
                       <h3><IconWhatsApp size={17} />WhatsApp{selected.reply_via === "whatsapp" && <small>preferred</small>}</h3>
-                      <ol className="aq-steps">
-                        <li><a className="aq-link" href={whatsappLink(selected.phone, whatsappOpening(selected.locale, selected.name))} target="_blank" rel="noreferrer">Open the chat</a> and ask whether they sent the question. Wait for a yes.</li>
-                        <li><button type="button" className="aq-link" disabled={!draft.answer.trim()} onClick={() => copy("answer", draft.answer)}>{copied === "answer" ? "Answer copied" : "Copy the answer"}</button> and send it from the team phone.</li>
-                        <li>Then record it here.</li>
-                      </ol>
-                      <button type="button" className="btn btn-outline" disabled={busy !== null || !draft.answer.trim() || selected.status === "spam"} onClick={() => act("mark-whatsapp")}>
+                      {selected.phone ? (
+                        <ol className="aq-steps">
+                          <li><a className="aq-link" href={whatsappLink(selected.phone, whatsappOpening(selected.locale, selected.name))} target="_blank" rel="noreferrer">Open the chat</a> and ask whether they sent the question. Wait for a yes.</li>
+                          <li><button type="button" className="aq-link" disabled={!draft.answer.trim()} onClick={() => copy("answer", draft.answer)}>{copied === "answer" ? "Answer copied" : "Copy the answer"}</button> and send it from the team phone.</li>
+                          <li>Then record it here.</li>
+                        </ol>
+                      ) : <p className="aq-muted">No WhatsApp number was given.</p>}
+                      <button type="button" className="btn btn-outline" disabled={busy !== null || !selected.phone || !draft.answer.trim() || selected.status === "spam"} onClick={() => act("mark-whatsapp")}>
                         {busy === "mark-whatsapp" ? "Saving..." : "Mark answered on WhatsApp"}
                       </button>
                     </div>

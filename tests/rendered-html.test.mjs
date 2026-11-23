@@ -612,7 +612,7 @@ test("the question form lives on the contact page in both languages", async () =
     assert.match(html, /class="ask-emergency"/);
     assert.match(html, /name="phone"/);
     assert.match(html, /name="replyVia"[^>]*value="whatsapp"/);
-    assert.match(html, /name="consent"/);
+    assert.doesNotMatch(html, /name="consent"/);
     // The emergency number (122, given by the owner 2026-11-22) is shown as a tel: link.
     assert.match(html, /href="tel:122"/);
   }
@@ -624,10 +624,11 @@ test("the old ask URL redirects permanently to the form on the contact page", as
     assert.ok([301, 308].includes(response.status), `/${locale}/ask status ${response.status}`);
     assert.equal(new URL(response.headers.get("location"), "http://localhost").pathname, `/${locale}/contact`);
     assert.match(response.headers.get("location"), /#ask$/);
-    // The details card jumps down to the form on the same page.
+    // The form is the next section down, so the details card points doctors to
+    // the MDT page instead of repeating a jump link to the form.
     const html = await (await fetchPath(`/${locale}/contact`)).text();
-    assert.match(html, /class="contact-ask"/, `${locale} ask row`);
-    assert.match(html, /href="#ask"/, `${locale} ask jump link`);
+    assert.match(html, /class="contact-doctors"/, `${locale} doctors row`);
+    assert.match(html, new RegExp(`href="/${locale}/mdt"`), `${locale} MDT link`);
   }
 });
 
@@ -650,11 +651,11 @@ test("the questions API refuses what it should before touching the database", as
   assert.equal(trapped.status, 200);
   assert.deepEqual(await trapped.json(), { ok: true, emailConfirmation: false });
 
-  const invalid = await post({ name: "", phone: "12", replyVia: "email", question: "hi", consent: false });
+  const invalid = await post({ name: "", phone: "12", replyVia: "email", question: "hi" });
   assert.equal(invalid.status, 422);
   const body = await invalid.json();
   assert.equal(body.code, "invalid");
-  assert.deepEqual(Object.keys(body.errors).sort(), ["consent", "email", "name", "phone", "question"]);
+  assert.deepEqual(Object.keys(body.errors).sort(), ["email", "name", "phone", "question"]);
   assert.equal(invalid.headers.get("cache-control"), "no-store");
 
   const badToken = await fetchPath("/api/questions/confirm", { "content-type": "application/json" }, { method: "POST", body: JSON.stringify({ token: "short" }) });

@@ -10,8 +10,8 @@ const { validateMdtInquiry } = await import("../app/lib/mdt-inquiries.ts");
 const { refuseForeignRequest, verifyTurnstile } = await import("../app/lib/inbox-server.ts");
 
 const QUESTION = {
-  name: "Shilan Ahmed", phone: "0770 123 4567", email: "", replyVia: "whatsapp", topic: "thyroid",
-  question: "Is it normal to feel tired after thyroid surgery?", consent: true,
+  name: "Shilan Ahmed", phone: "0770 123 4567", email: "shilan@example.com", replyVia: "whatsapp", topic: "thyroid",
+  question: "Is it normal to feel tired after thyroid surgery?",
 };
 
 test("bidi overrides and zero-width characters are removed, Kurdish joiners kept", () => {

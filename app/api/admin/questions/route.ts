@@ -1,5 +1,5 @@
 import { apiError, canAnswerQuestions, jsonObject, resolveAdminIdentity, type AdminIdentity } from "../../../lib/admin-server";
-import { deleteAfter, QUESTION_LIMITS, type QuestionStatus } from "../../../lib/patient-questions";
+import { deleteAfter, QUESTION_LIMITS, type QuestionStatus, isMedicalTopic } from "../../../lib/patient-questions";
 import { answerEmail, sendEmail } from "../../../lib/patient-questions-server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
   return Response.json({ data: data ?? [] }, { headers: NO_STORE });
 }
 
-type QuestionRow = { id: string; name: string; email: string | null; email_confirmed_at: string | null; question: string; locale: "en" | "ar"; status: QuestionStatus };
+type QuestionRow = { id: string; name: string; phone: string | null; email: string | null; topic: string | null; email_confirmed_at: string | null; question: string; locale: "en" | "ar"; status: QuestionStatus };
 
 export async function POST(request: Request) {
   const access = await staff(request);
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
   const { data: row, error: readError } = await client
     .from("patient_questions")
-    .select("id,name,email,email_confirmed_at,question,locale,status")
+    .select("id,name,phone,email,topic,email_confirmed_at,question,locale,status")
     .eq("id", id)
     .maybeSingle<QuestionRow>();
   if (readError) return dbError(readError.message, "Could not read this question.");
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       if (!row.email_confirmed_at) return apiError("The patient has not confirmed this email address yet, so nothing can be sent to it. Answer on WhatsApp instead, or wait for the confirmation.");
       if (row.status === "spam") return apiError("This question is marked as spam. Reopen it before answering.");
 
-      const sent = await sendEmail({ to: row.email, ...answerEmail(row.locale, row.name, row.question, answer) });
+      const sent = await sendEmail({ to: row.email, ...answerEmail(row.locale, row.name, row.question, answer, isMedicalTopic(row.topic)) });
       if (!sent) return apiError("The email could not be sent. Nothing was marked as answered; try again, or answer on WhatsApp.", 502);
 
       const { error } = await update({ answer, internal_note: note ?? undefined, status: "answered", answered_by: identity.id, answered_at: stamp, answered_via: "email", delete_after: deleteAfter("answered", now).toISOString() });
@@ -119,6 +119,7 @@ export async function POST(request: Request) {
 
     case "mark-whatsapp": {
       if (!answer) return apiError("Paste or write the answer you sent, so the record shows what the patient was told.");
+      if (!row.phone) return apiError("This patient gave no WhatsApp number. Answer by email instead.");
       if (row.status === "spam") return apiError("This question is marked as spam. Reopen it before answering.");
       const { error } = await update({ answer, internal_note: note ?? undefined, status: "answered", answered_by: identity.id, answered_at: stamp, answered_via: "whatsapp", delete_after: deleteAfter("answered", now).toISOString() });
       if (error) return dbError(error.message, "Could not record the answer.");

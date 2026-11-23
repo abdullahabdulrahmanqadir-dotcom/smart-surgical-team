@@ -69,8 +69,11 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
       <SiteHeader locale={active} dict={dict} />
       <main id="main-content" className="ask-page mdt-page">
         <div className="ask-shell">
+          {/* Intro and fact sheet share the first screen on wide displays, so
+              a visiting doctor sees who meets and on what cases without
+              scrolling; on phones the facts follow the intro. */}
+          <div className="mdt-hero">
           <header className="ask-intro mdt-intro">
-            <p className="section-kicker">{t.kicker}</p>
             <h1>{t.title}</h1>
             <p>{t.intro}</p>
             <a className="btn btn-primary mdt-cta" href="#mdt-form">{t.ctaInquiry}<IconArrowRight size={17} /></a>
@@ -92,6 +95,7 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
               <dd>{MDT_FACTS.schedule ? MDT_FACTS.schedule[active] : t.meetPending}</dd>
             </div>
           </dl>
+          </div>
 
           <section className="mdt-ways" aria-labelledby="mdt-ways-title">
             <h2 id="mdt-ways-title">{t.waysTitle}</h2>

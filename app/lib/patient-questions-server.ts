@@ -114,10 +114,11 @@ const ANSWER_COPY = {
 } as const;
 
 /** The team's answer, quoting the patient's question back to them. */
-export function answerEmail(locale: Locale, name: string, question: string, answer: string): Omit<Email, "to"> {
+export function answerEmail(locale: Locale, name: string, question: string, answer: string, medical = true): Omit<Email, "to"> {
   const copy = ANSWER_COPY[locale];
   const lines = [copy.greeting(name), copy.intro];
-  const notes = [copy.disclaimer, copy.emergency, copy.reply];
+  // A reply about parking or the team needs no medical notice (owner, 2026-11-23).
+  const notes = medical ? [copy.disclaimer, copy.emergency, copy.reply] : [copy.reply];
   return {
     subject: copy.subject,
     html: layout(locale, { paragraphs: lines, quote: { label: copy.quoteLabel, text: question }, answer, notes }),
