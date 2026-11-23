@@ -234,7 +234,8 @@
 .mdt-ways { margin-block-start: clamp(3rem, 7vw, 5rem); }
 .mdt-ways ul {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Two ways since 2026-11-23 (attending and observing were withdrawn). */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(1rem, 2vw, 1.5rem);
   margin: 1.75rem 0 0;
   padding: 0;
@@ -407,10 +408,6 @@ html[data-motion-ready="true"] .mdt-step[data-scroll-reveal]:not(.is-revealed)::
 }
 
 /* --- Small screens ------------------------------------------------------ */
-
-@media (max-width: 1000px) {
-  .mdt-ways ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
 /* On phones the notice stays before the form, and the rest of the guide
    (what happens next, privacy, patients) follows it. */

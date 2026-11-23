@@ -5,7 +5,7 @@ import MdtInquiryForm from "../../components/MdtInquiryForm";
 import SiteFooter from "../../components/SiteFooter";
 import ScrollMotion from "../../components/ScrollMotion";
 import SiteHeader from "../../components/SiteHeader";
-import { IconAlert, IconArrowRight, IconCalendar, IconClock, IconEye, IconFile, IconLayers, IconLink, IconMail, IconUser, IconUsers } from "../../components/icons";
+import { IconAlert, IconArrowRight, IconCalendar, IconClock, IconFile, IconLayers, IconLink, IconMail, IconUser, IconUsers } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
 import { MDT_FACTS, type MdtCaseArea, type MdtSpecialty } from "../../lib/mdt-inquiries";
@@ -42,8 +42,6 @@ const CASE_LABEL = {
 
 const WAYS = [
   ["wayPresentTitle", "wayPresentBody", IconFile],
-  ["wayAttendTitle", "wayAttendBody", IconUsers],
-  ["wayObserveTitle", "wayObserveBody", IconEye],
   ["wayCollaborateTitle", "wayCollaborateBody", IconLink],
 ] as const;
 

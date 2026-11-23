@@ -24,8 +24,15 @@ export const MDT_ROLES = [
 ] as const;
 export type MdtRole = (typeof MDT_ROLES)[number];
 
-export const MDT_INTERESTS = ["present_case", "attend", "observe", "collaborate", "other"] as const;
+/**
+ * What the form offers. Taking part means bringing a case (or an institutional
+ * link): attending or observing without one was withdrawn on 2026-11-23.
+ */
+export const MDT_INTERESTS = ["present_case", "collaborate", "other"] as const;
 export type MdtInterest = (typeof MDT_INTERESTS)[number];
+/** Withdrawn options: no longer accepted, but older rows still hold them. */
+export const MDT_RETIRED_INTERESTS = ["attend", "observe"] as const;
+export type MdtStoredInterest = MdtInterest | (typeof MDT_RETIRED_INTERESTS)[number];
 
 export const MDT_STATUSES = ["new", "contacted", "closed", "spam", "wrong_form"] as const;
 export type MdtStatus = (typeof MDT_STATUSES)[number];

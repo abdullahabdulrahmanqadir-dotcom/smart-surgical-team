@@ -41,8 +41,6 @@ const ROLE_LABEL = {
 
 const INTEREST_LABEL = {
   present_case: "interestPresent",
-  attend: "interestAttend",
-  observe: "interestObserve",
   collaborate: "interestCollaborate",
   other: "interestOther",
 } as const satisfies Record<MdtInterest, keyof MdtCopy>;
