@@ -9,7 +9,7 @@ import { PUBLIC_TOPIC_GROUPS } from "./lib/topics";
 import { TEAM_PROFILES } from "./lib/team-profiles";
 
 const SITE_ORIGIN = "https://ssthyroid.com";
-const PUBLIC_ROUTES = ["", "about", "topics", "events", "news", "posters", "research", "contact", "mdt", "privacy", "terms"];
+const PUBLIC_ROUTES = ["", "about", "topics", "events", "news", "posters", "research", "contact", "mdt", "breast-summit", "collaboration", "privacy", "terms"];
 
 type SitemapPage = {
   route: string;

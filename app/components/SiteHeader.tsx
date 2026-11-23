@@ -60,6 +60,7 @@ export default function SiteHeader({
     [dict.nav.research, "research"],
     [dict.nav.posters, "posters"],
     [dict.nav.events, "events"],
+    [dict.nav.breastSummit, "breast-summit"],
     [dict.nav.news, "news"],
     [dict.nav.about, "about"],
   ];

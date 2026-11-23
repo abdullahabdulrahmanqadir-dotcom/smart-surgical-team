@@ -28,7 +28,7 @@ const PAGE_CACHE = `sst-pages-${VERSION}`;
 const ASSET_CACHE = `sst-assets-${VERSION}`;
 const CACHE_NAMES = new Set([PAGE_CACHE, ASSET_CACHE]);
 
-const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about(?:\/[^/]+)?|ask|contact|events(?:\/[^/]+)?|library(?:\/[^/]+)?|mdt|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
+const PUBLIC_DOCUMENT = /^\/(?:en|ar)(?:\/(?:about(?:\/[^/]+)?|ask|breast-summit|collaboration|contact|events(?:\/[^/]+)?|library(?:\/[^/]+)?|mdt|news(?:\/[^/]+)?|posters(?:\/[^/]+)?|privacy|research(?:\/[^/]+)?|terms|topics(?:\/[^/]+)?))?\/?$/;
 const PRECACHE = ["/en", "/ar", "/sst-mark.png", "/favicon.svg", "/manifest.webmanifest"];
 
 function mayStore(response) {

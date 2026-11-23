@@ -80,6 +80,11 @@ const revealSelectors = [
   ".mdt-form-layout .ask-emergency",
   ".mdt-form-layout .ask-facts",
   ".mdt-form-layout > .ask-card",
+  ".summit-about > *",
+  ".summit-section-head",
+  ".summit-faculty-grid > li",
+  ".summit-official-grid > li",
+  ".summit-papers > .research-card",
 ];
 
 export default function ScrollMotion() {
