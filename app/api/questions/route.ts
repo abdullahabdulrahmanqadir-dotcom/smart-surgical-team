@@ -103,35 +103,35 @@ export async function POST(request: Request) {
   const table = () => client.from("patient_questions");
 
   const [byPhone, byEmail, allHour, allDay, ipHour, ipDay, duplicate] = await Promise.all([
-    table().select("id", { count: "exact", head: true }).eq("phone", input.phone).gte("created_at", dayAgo),
-    input.email ? table().select("id", { count: "exact", head: true }).eq("email", input.email).gte("created_at", dayAgo) : null,
+    input.phone ? table().select("id", { count: "exact", head: true }).eq("phone", input.phone).gte("created_at", dayAgo) : null,
+    table().select("id", { count: "exact", head: true }).eq("email", input.email).gte("created_at", dayAgo),
     table().select("id", { count: "exact", head: true }).gte("created_at", hourAgo),
     table().select("id", { count: "exact", head: true }).gte("created_at", dayAgo),
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", hourAgo) : null,
     ipHash ? table().select("id", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", dayAgo) : null,
-    // A double-click or a resubmit after a dropped response: same phone, same
+    // A double-click or a resubmit after a dropped response: same email, same
     // words, same day. Answer as if it worked rather than storing it twice.
-    table().select("id, email_token_hash").eq("phone", input.phone).eq("question", input.question).gte("created_at", dayAgo).limit(1),
+    table().select("id, email_token_hash").eq("email", input.email).eq("question", input.question).gte("created_at", dayAgo).limit(1),
   ]);
 
-  const readError = byPhone.error ?? byEmail?.error ?? allHour.error ?? allDay.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
+  const readError = byPhone?.error ?? byEmail.error ?? allHour.error ?? allDay.error ?? ipHour?.error ?? ipDay?.error ?? duplicate.error;
   if (readError) {
     console.error("[questions] rate-limit read failed:", readError.message);
     return fail("server", 500);
   }
-  if (duplicate.data?.length) return succeed(Boolean(input.email && duplicate.data[0].email_token_hash));
+  if (duplicate.data?.length) return succeed(Boolean(duplicate.data[0].email_token_hash));
   if ((allHour.count ?? 0) >= LIMITS.allPerHour || (allDay.count ?? 0) >= LIMITS.allPerDay) {
     console.warn("[questions] site-wide limit reached; refusing new questions for now.");
     return fail("rate", 429);
   }
-  if ((byPhone.count ?? 0) >= LIMITS.perPhonePerDay
-    || (byEmail?.count ?? 0) >= LIMITS.perEmailPerDay
+  if ((byPhone?.count ?? 0) >= LIMITS.perPhonePerDay
+    || (byEmail.count ?? 0) >= LIMITS.perEmailPerDay
     || (ipHour?.count ?? 0) >= LIMITS.perIpPerHour
     || (ipDay?.count ?? 0) >= LIMITS.perIpPerDay) {
     return fail("rate", 429);
   }
 
-  const token = input.email ? await createEmailToken() : null;
+  const token = await createEmailToken();
   const { data: inserted, error: insertError } = await table().insert({
     name: input.name,
     phone: input.phone,
@@ -140,9 +140,11 @@ export async function POST(request: Request) {
     topic: input.topic,
     question: input.question,
     locale,
+    // The form no longer has a consent checkbox (removed 2026-11-23 at the
+    // owner's request); the NOT NULL column now records when it was sent.
     consent_at: new Date(now).toISOString(),
-    email_token_hash: token?.hash ?? null,
-    email_token_expires_at: token?.expiresAt.toISOString() ?? null,
+    email_token_hash: token.hash,
+    email_token_expires_at: token.expiresAt.toISOString(),
     ip_hash: ipHash,
   }).select("id").single();
   if (insertError || !inserted) {
@@ -158,9 +160,7 @@ export async function POST(request: Request) {
   // the team still sees it in Admin, and the patient is told only what is true
   // about the confirmation email.
   const [confirmSent, alerted] = await Promise.all([
-    input.email && token
-      ? sendEmail({ to: input.email, ...confirmEmail(locale, input.name, `${origin}/${locale}/ask/confirm#${token.token}`) })
-      : Promise.resolve(false),
+    sendEmail({ to: input.email, ...confirmEmail(locale, input.name, `${origin}/${locale}/ask/confirm#${token.token}`) }),
     teamAddress ? sendEmail({ to: teamAddress, ...teamAlertEmail(`${origin}/en/admin`) }) : Promise.resolve(false),
   ]);
 

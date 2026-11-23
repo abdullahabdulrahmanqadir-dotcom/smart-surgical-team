@@ -219,7 +219,20 @@ main.contact-page { padding-block-start: var(--editorial-section-space); }
 .contact-intro::before { content: none; }
 .contact-shell { width: min(100%, calc(var(--content) - 2 * var(--gutter))); }
 .contact-intro h1 { max-width: none; margin: 0; }
-.contact-intro p { margin-block-start: .5rem; }
+.contact-intro p { margin-block-start: .5rem; max-width: 60ch; }
+/* Directions sits beside the intro, bottom-aligned with the paragraph and
+   flush with the location card's edge, instead of on a row of its own. */
+@media (min-width: 721px) {
+  .contact-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: end;
+    max-width: none;
+  }
+  .contact-intro h1 { grid-column: 1 / -1; }
+  .contact-intro .btn { grid-column: 2; grid-row: 2; margin-block-start: 0; }
+}
 .contact-layout { margin-block-start: clamp(1.2rem, 3vw, 2rem); }
 .contact-details dl { margin-block-start: .8rem; }
 .contact-location h2 { max-inline-size: 15ch; line-height: 1.15; }

@@ -7,10 +7,21 @@
  * straight from the test runner. Plan: docs/patient-questions-plan.md.
  */
 
-export const QUESTION_TOPICS = ["thyroid", "parathyroid", "breast", "other"] as const;
+/** Mirrors the topic check in 0029_question_topics_general.sql. */
+export const QUESTION_TOPICS = ["thyroid", "parathyroid", "breast", "appointments", "team", "research", "other"] as const;
 export type QuestionTopic = (typeof QUESTION_TOPICS)[number];
 
-export const REPLY_CHANNELS = ["whatsapp", "email"] as const;
+/**
+ * Topics where an answer could be read as medical advice, so the answer email
+ * carries the "general information, not a diagnosis" notice. No topic chosen
+ * counts as medical: the safe default.
+ */
+const MEDICAL_TOPICS: readonly string[] = ["thyroid", "parathyroid", "breast"];
+export function isMedicalTopic(topic: string | null): boolean {
+  return topic === null || MEDICAL_TOPICS.includes(topic);
+}
+
+export const REPLY_CHANNELS = ["email", "whatsapp"] as const;
 export type ReplyChannel = (typeof REPLY_CHANNELS)[number];
 
 export const QUESTION_STATUSES = ["new", "answered", "closed", "spam"] as const;
@@ -133,13 +144,14 @@ function cleanLine(raw: string): string {
 // Validation
 // ---------------------------------------------------------------------------
 
-export type QuestionField = "name" | "phone" | "email" | "replyVia" | "topic" | "question" | "consent";
-export type QuestionFieldError = "required" | "invalid" | "tooShort" | "tooLong" | "tooManyLinks" | "emailNeeded";
+export type QuestionField = "name" | "phone" | "email" | "replyVia" | "topic" | "question";
+export type QuestionFieldError = "required" | "invalid" | "tooShort" | "tooLong" | "tooManyLinks" | "phoneNeeded";
 
 export type QuestionInput = {
   name: string;
-  phone: string;
-  email: string | null;
+  /** Optional since 0028: only a WhatsApp reply needs one. */
+  phone: string | null;
+  email: string;
   replyVia: ReplyChannel;
   topic: QuestionTopic | null;
   question: string;
@@ -165,18 +177,20 @@ export function validateQuestion(raw: Record<string, unknown>): QuestionValidati
   if (!name) errors.name = "required";
   else if (name.length > QUESTION_LIMITS.nameMax) errors.name = "tooLong";
 
-  const phoneRaw = str(raw.phone).trim();
-  const phone = phoneRaw ? normalisePhone(phoneRaw) : null;
-  if (!phoneRaw) errors.phone = "required";
-  else if (!phone) errors.phone = "invalid";
+  // Email is required and the WhatsApp number optional (owner, 2026-11-23);
+  // a WhatsApp reply still needs a number to send to.
+  const emailRaw = str(raw.email).trim();
+  const email = emailRaw ? normaliseEmail(emailRaw) : null;
+  if (!emailRaw) errors.email = "required";
+  else if (!email) errors.email = "invalid";
 
   const replyVia = (REPLY_CHANNELS as readonly string[]).includes(str(raw.replyVia)) ? str(raw.replyVia) as ReplyChannel : null;
   if (!replyVia) errors.replyVia = "required";
 
-  const emailRaw = str(raw.email).trim();
-  const email = emailRaw ? normaliseEmail(emailRaw) : null;
-  if (emailRaw && !email) errors.email = "invalid";
-  else if (!emailRaw && replyVia === "email") errors.email = "emailNeeded";
+  const phoneRaw = str(raw.phone).trim();
+  const phone = phoneRaw ? normalisePhone(phoneRaw) : null;
+  if (phoneRaw && !phone) errors.phone = "invalid";
+  else if (!phoneRaw && replyVia === "whatsapp") errors.phone = "phoneNeeded";
 
   const topicRaw = str(raw.topic);
   const topic = (QUESTION_TOPICS as readonly string[]).includes(topicRaw) ? topicRaw as QuestionTopic : null;
@@ -188,10 +202,8 @@ export function validateQuestion(raw: Record<string, unknown>): QuestionValidati
   else if (question.length > QUESTION_LIMITS.questionMax) errors.question = "tooLong";
   else if (countLinks(question) > QUESTION_LIMITS.linksMax) errors.question = "tooManyLinks";
 
-  if (raw.consent !== true) errors.consent = "required";
-
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, value: { name, phone: phone!, email, replyVia: replyVia!, topic, question } };
+  return { ok: true, value: { name, phone, email: email!, replyVia: replyVia!, topic, question } };
 }
 
 // ---------------------------------------------------------------------------

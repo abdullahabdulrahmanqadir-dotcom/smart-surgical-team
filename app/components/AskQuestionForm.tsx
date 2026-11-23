@@ -13,7 +13,7 @@ import {
   type QuestionFieldError,
   type ReplyChannel,
 } from "../lib/patient-questions";
-import { IconArrowRight, IconCheck, IconMail, IconPhone, IconUser, IconWhatsApp } from "./icons";
+import { IconArrowRight, IconCheck, IconMail, IconWhatsApp } from "./icons";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
 type AskCopy = Dictionary["ask"];
@@ -21,13 +21,13 @@ type Errors = Partial<Record<QuestionField, QuestionFieldError>>;
 type Sent = { replyVia: ReplyChannel; emailConfirmation: boolean };
 
 /** Field order, so focus lands on the first problem as the patient reads it. */
-const FIELD_ORDER: QuestionField[] = ["name", "phone", "email", "replyVia", "topic", "question", "consent"];
+const FIELD_ORDER: QuestionField[] = ["name", "email", "phone", "replyVia", "topic", "question"];
 
 function fieldMessage(t: AskCopy, field: QuestionField, error: QuestionFieldError): string {
   switch (field) {
     case "name": return error === "tooLong" ? t.nameTooLong : t.nameRequired;
-    case "phone": return error === "invalid" ? t.phoneInvalid : t.phoneRequired;
-    case "email": return error === "emailNeeded" ? t.emailNeeded : t.emailInvalid;
+    case "phone": return error === "invalid" ? t.phoneInvalid : t.phoneNeeded;
+    case "email": return error === "invalid" ? t.emailInvalid : t.emailRequired;
     case "replyVia": return t.replyRequired;
     case "topic": return t.topicInvalid;
     case "question":
@@ -35,7 +35,6 @@ function fieldMessage(t: AskCopy, field: QuestionField, error: QuestionFieldErro
       if (error === "tooLong") return fill(t.questionTooLong, { max: String(QUESTION_LIMITS.questionMax) });
       if (error === "tooManyLinks") return fill(t.questionTooManyLinks, { max: String(QUESTION_LIMITS.linksMax) });
       return t.questionRequired;
-    case "consent": return t.consentRequired;
   }
 }
 
@@ -43,6 +42,9 @@ const TOPIC_LABEL = {
   thyroid: "topicThyroid",
   parathyroid: "topicParathyroid",
   breast: "topicBreast",
+  appointments: "topicAppointments",
+  team: "topicTeam",
+  research: "topicResearch",
   other: "topicOther",
 } as const satisfies Record<(typeof QUESTION_TOPICS)[number], keyof AskCopy>;
 
@@ -52,7 +54,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
   const sentHeading = useRef<HTMLHeadingElement>(null);
   const turnstile = useTurnstile(locale);
 
-  const [replyVia, setReplyVia] = useState<ReplyChannel>("whatsapp");
+  const [replyVia, setReplyVia] = useState<ReplyChannel>("email");
   const [questionLength, setQuestionLength] = useState(0);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -91,7 +93,6 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
       replyVia: String(data.get("replyVia") ?? ""),
       topic: String(data.get("topic") ?? ""),
       question: String(data.get("question") ?? ""),
-      consent: data.get("consent") === "on",
       website: String(data.get("website") ?? ""),
       locale,
     };
@@ -167,7 +168,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
         <button
           type="button"
           className="btn btn-outline"
-          onClick={() => { setSent(null); setQuestionLength(0); setReplyVia("whatsapp"); }}
+          onClick={() => { setSent(null); setQuestionLength(0); setReplyVia("email"); }}
         >
           {t.askAnother}
         </button>
@@ -187,8 +188,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
       <form ref={formRef} className="ask-form" noValidate onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor={fieldId("name")}>{t.name} <span aria-hidden="true">*</span></label>
-          <div className={`field-control${errors.name ? " is-invalid" : ""}`}>
-            <IconUser size={18} />
+          <div className={`field-control is-plain${errors.name ? " is-invalid" : ""}`}>
             <input
               id={fieldId("name")} name="name" type="text" autoComplete="name" required
               maxLength={QUESTION_LIMITS.nameMax} aria-invalid={Boolean(errors.name)}
@@ -200,25 +200,11 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
 
         <div className="ask-form-pair">
           <div className="form-field">
-            <label htmlFor={fieldId("phone")}>{t.phone} <span aria-hidden="true">*</span></label>
-            <div className={`field-control${errors.phone ? " is-invalid" : ""}`}>
-              <IconPhone size={18} />
-              <input
-                id={fieldId("phone")} name="phone" type="tel" inputMode="tel" autoComplete="tel" required dir="ltr"
-                placeholder="07XX XXX XXXX" aria-invalid={Boolean(errors.phone)}
-                aria-describedby={describedBy("phone", true)} onInput={() => clearError("phone")}
-              />
-            </div>
-            <small id={fieldId("phone-hint")}>{t.phoneHint}</small>
-            {fieldError("phone")}
-          </div>
-
-          <div className="form-field">
-            <label htmlFor={fieldId("email")}>{t.email} <span className="ask-optional">({t.optional})</span></label>
+            <label htmlFor={fieldId("email")}>{t.email} <span aria-hidden="true">*</span></label>
             <div className={`field-control${errors.email ? " is-invalid" : ""}`}>
               <IconMail size={18} />
               <input
-                id={fieldId("email")} name="email" type="email" inputMode="email" autoComplete="email" dir="ltr"
+                id={fieldId("email")} name="email" type="email" inputMode="email" autoComplete="email" required dir="ltr"
                 maxLength={QUESTION_LIMITS.emailMax} aria-invalid={Boolean(errors.email)}
                 aria-describedby={describedBy("email", true)} onInput={() => clearError("email")}
               />
@@ -226,16 +212,30 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
             <small id={fieldId("email-hint")}>{t.emailHint}</small>
             {fieldError("email")}
           </div>
+
+          <div className="form-field">
+            <label htmlFor={fieldId("phone")}>{t.phone} <span className="ask-optional">({t.optional})</span></label>
+            <div className={`field-control${errors.phone ? " is-invalid" : ""}`}>
+              <IconWhatsApp size={18} />
+              <input
+                id={fieldId("phone")} name="phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr"
+                placeholder="07XX XXX XXXX" aria-invalid={Boolean(errors.phone)}
+                aria-describedby={describedBy("phone", true)} onInput={() => clearError("phone")}
+              />
+            </div>
+            <small id={fieldId("phone-hint")}>{t.phoneHint}</small>
+            {fieldError("phone")}
+          </div>
         </div>
 
         <fieldset className="ask-reply" aria-describedby={errors.replyVia ? fieldId("replyVia-error") : undefined}>
           <legend>{t.replyVia} <span aria-hidden="true">*</span></legend>
           <div className="ask-reply-options">
-            {(["whatsapp", "email"] as const).map((channel) => (
+            {(["email", "whatsapp"] as const).map((channel) => (
               <label key={channel} className={`ask-reply-option${replyVia === channel ? " is-selected" : ""}`}>
                 <input
                   type="radio" name="replyVia" value={channel} checked={replyVia === channel}
-                  onChange={() => { setReplyVia(channel); clearError("replyVia"); clearError("email"); }}
+                  onChange={() => { setReplyVia(channel); clearError("replyVia"); clearError("phone"); }}
                 />
                 <span className="ask-reply-icon" aria-hidden="true">{channel === "whatsapp" ? <IconWhatsApp size={20} /> : <IconMail size={20} />}</span>
                 <span className="ask-reply-text">
@@ -276,18 +276,6 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
           </div>
           <small id={fieldId("question-hint")}>{t.questionHint}</small>
           {fieldError("question")}
-        </div>
-
-        <div className="ask-consent-field">
-          <label className={`ask-consent${errors.consent ? " is-invalid" : ""}`}>
-            <input
-              id={fieldId("consent")} type="checkbox" name="consent" required
-              aria-invalid={Boolean(errors.consent)} aria-describedby={describedBy("consent")}
-              onChange={() => clearError("consent")}
-            />
-            <span>{t.consent}</span>
-          </label>
-          {fieldError("consent")}
         </div>
 
         {/* Honeypot: hidden from people and from assistive technology. */}
