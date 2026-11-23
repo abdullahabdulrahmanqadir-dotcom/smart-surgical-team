@@ -72,7 +72,7 @@ export function isTooFast(elapsedMs: unknown): boolean {
 // ---------------------------------------------------------------------------
 
 export type MdtField =
-  | "name" | "role" | "institution" | "country" | "email" | "phone" | "interest" | "message" | "noPatientData" | "consent";
+  | "name" | "role" | "institution" | "country" | "email" | "phone" | "interest" | "message";
 export type MdtFieldError = "required" | "invalid" | "tooShort" | "tooLong" | "tooManyLinks";
 
 export type MdtInput = {
@@ -136,9 +136,6 @@ export function validateMdtInquiry(raw: Record<string, unknown>): MdtValidation 
   else if (message.length < MDT_LIMITS.messageMin) errors.message = "tooShort";
   else if (message.length > MDT_LIMITS.messageMax) errors.message = "tooLong";
   else if (countLinks(message) > MDT_LIMITS.linksMax) errors.message = "tooManyLinks";
-
-  if (raw.noPatientData !== true) errors.noPatientData = "required";
-  if (raw.consent !== true) errors.consent = "required";
 
   if (Object.keys(errors).length) return { ok: false, errors };
   return {

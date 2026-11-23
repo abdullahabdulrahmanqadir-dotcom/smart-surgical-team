@@ -106,6 +106,14 @@ test("the WhatsApp number is optional unless the reply is on WhatsApp", () => {
   assert.equal(validateQuestion({ ...VALID, replyVia: "email", phone: "123" }).errors.phone, "invalid");
 });
 
+test("a question with no reply channel is answered by email", () => {
+  const { replyVia: _omitted, ...withoutChannel } = VALID;
+  const result = validateQuestion({ ...withoutChannel, phone: "" });
+  assert.equal(result.ok, true);
+  assert.equal(result.value.replyVia, "email");
+  assert.equal(result.value.phone, null);
+});
+
 test("no consent field is needed to send a question", () => {
   assert.equal(validateQuestion(VALID).ok, true);
 });

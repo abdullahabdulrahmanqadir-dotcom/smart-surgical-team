@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { IconCheck, IconChevronDown } from "./icons";
 
 export type FilterOption = { value: string; label: string };
@@ -8,26 +8,46 @@ export type FilterOption = { value: string; label: string };
 export default function FilterSelect({
   label,
   value,
-  options,
+  options: allOptions,
   onChange,
   disabled = false,
   className = "",
+  id,
+  invalid = false,
+  describedBy,
+  hidePlaceholder = false,
 }: {
-  label: string;
+  label: ReactNode;
   value: string;
   options: FilterOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  /** Lets a form move focus to the trigger, e.g. to the first invalid field. */
+  id?: string;
+  /** Marks the control invalid for styling and assistive technology. */
+  invalid?: boolean;
+  /** Ids of the hint/error text that describe the control. */
+  describedBy?: string;
+  /** Keep the "" option as the trigger's placeholder only, not a menu row —
+      for required form fields, where "Choose…" is not a valid answer. */
+  hidePlaceholder?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
-  const [activeIndex, setActiveIndex] = useState(selectedIndex);
+  const options = hidePlaceholder ? allOptions.filter((option) => option.value !== "") : allOptions;
+  // -1 when nothing in the menu is chosen (a hidden placeholder is showing).
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const startIndex = Math.max(0, selectedIndex);
+  const [activeIndex, setActiveIndex] = useState(startIndex);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const labelId = useId();
   const listId = useId();
   const optionId = (index: number) => `${listId}-option-${index}`;
+  // Type-to-jump, as a native select does: letters typed within a short window
+  // build a prefix, and the first option whose label starts with it becomes
+  // active. Needed for long lists such as the country list.
+  const typeahead = useRef({ text: "", at: 0 });
 
   useEffect(() => {
     const list = listRef.current;
@@ -60,11 +80,23 @@ export default function FilterSelect({
     setActiveIndex((current) => (current + direction + options.length) % options.length);
   };
 
-  const selectedOption = options[selectedIndex] ?? options[0];
+  const jumpTo = (key: string) => {
+    const now = Date.now();
+    const state = typeahead.current;
+    state.text = now - state.at > 700 ? key : state.text + key;
+    state.at = now;
+    const prefix = state.text.toLocaleLowerCase();
+    const match = options.findIndex((option) => option.value !== "" && option.label.toLocaleLowerCase().startsWith(prefix));
+    if (match < 0) return;
+    setActiveIndex(match);
+    if (!isOpen) setIsOpen(true);
+  };
+
+  const selectedOption = allOptions.find((option) => option.value === value) ?? allOptions[0];
 
   return (
     <div
-      className={`content-filter-control content-select${isOpen ? " is-open" : ""}${disabled ? " is-disabled" : ""}${className ? ` ${className}` : ""}`}
+      className={`content-filter-control content-select${isOpen ? " is-open" : ""}${disabled ? " is-disabled" : ""}${invalid ? " is-invalid" : ""}${className ? ` ${className}` : ""}`}
       ref={rootRef}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsOpen(false);
@@ -73,7 +105,8 @@ export default function FilterSelect({
       <span className="content-control-label" id={labelId}>{label}</span>
       <div className="content-select-shell">
         <button
-          className="content-control-field content-select-trigger"
+          className={`content-control-field content-select-trigger${selectedOption?.value === "" ? " is-placeholder" : ""}`}
+          id={id}
           type="button"
           role="combobox"
           aria-labelledby={labelId}
@@ -81,11 +114,13 @@ export default function FilterSelect({
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-activedescendant={isOpen ? optionId(activeIndex) : undefined}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           disabled={disabled}
           onClick={() => {
             if (isOpen) setIsOpen(false);
             else {
-              setActiveIndex(selectedIndex);
+              setActiveIndex(startIndex);
               setIsOpen(true);
             }
           }}
@@ -94,7 +129,7 @@ export default function FilterSelect({
               event.preventDefault();
               if (!isOpen) {
                 setIsOpen(true);
-                setActiveIndex(selectedIndex);
+                setActiveIndex(startIndex);
               } else {
                 move(event.key === "ArrowDown" ? 1 : -1);
               }
@@ -108,6 +143,9 @@ export default function FilterSelect({
             } else if (event.key === "Escape" && isOpen) {
               event.preventDefault();
               setIsOpen(false);
+            } else if (event.key.length === 1 && event.key !== " " && !event.ctrlKey && !event.metaKey && !event.altKey) {
+              event.preventDefault();
+              jumpTo(event.key);
             }
           }}
         >

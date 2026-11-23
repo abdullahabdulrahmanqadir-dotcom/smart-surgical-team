@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { countryOptions } from "../lib/countries";
 import type { Dictionary } from "../lib/dictionaries";
 import { fill } from "../lib/dictionaries";
@@ -15,6 +15,7 @@ import {
   type MdtInterest,
   type MdtRole,
 } from "../lib/mdt-inquiries";
+import FilterSelect from "./FilterSelect";
 import { IconArrowRight, IconCheck, IconMail, IconPhone } from "./icons";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
@@ -23,7 +24,7 @@ type Errors = Partial<Record<MdtField, MdtFieldError>>;
 
 /** Field order, so focus lands on the first problem as the visitor reads it. */
 const FIELD_ORDER: MdtField[] = [
-  "name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent",
+  "name", "role", "institution", "country", "email", "phone", "interest", "message",
 ];
 
 const ROLE_LABEL = {
@@ -63,8 +64,6 @@ function fieldMessage(t: MdtCopy, field: MdtField, error: MdtFieldError): string
       if (error === "tooLong") return fill(t.messageTooLong, { max: String(MDT_LIMITS.messageMax) });
       if (error === "tooManyLinks") return fill(t.messageTooManyLinks, { max: String(MDT_LIMITS.linksMax) });
       return t.messageRequired;
-    case "noPatientData": return t.noPatientDataRequired;
-    case "consent": return t.consentRequired;
   }
 }
 
@@ -82,6 +81,10 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
   const [formError, setFormError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [role, setRole] = useState("");
+  const [country, setCountry] = useState("");
+  const [interest, setInterest] = useState("");
+  const countries = useMemo(() => countryOptions(locale), [locale]);
 
   useEffect(() => {
     loadedAt.current = Date.now();
@@ -117,8 +120,6 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
       phone: String(data.get("phone") ?? ""),
       interest: String(data.get("interest") ?? ""),
       message: String(data.get("message") ?? ""),
-      noPatientData: data.get("noPatientData") === "on",
-      consent: data.get("consent") === "on",
       website: String(data.get("website") ?? ""),
       locale,
     };
@@ -189,7 +190,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
         <button
           type="button"
           className="btn btn-outline"
-          onClick={() => { setSent(false); setMessageLength(0); loadedAt.current = Date.now(); }}
+          onClick={() => { setSent(false); setMessageLength(0); setRole(""); setCountry(""); setInterest(""); loadedAt.current = Date.now(); }}
         >
           {t.sendAnother}
         </button>
@@ -220,18 +221,20 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
             {fieldError("name")}
           </div>
 
-          <div className="form-field">
-            <label htmlFor={fieldId("role")}>{t.role} {required}</label>
-            <div className={`field-control is-select${errors.role ? " is-invalid" : ""}`}>
-              <select
-                id={fieldId("role")} name="role" defaultValue="" required
-                aria-invalid={Boolean(errors.role)} aria-describedby={describedBy("role")}
-                onChange={() => clearError("role")}
-              >
-                <option value="" disabled>{t.rolePlaceholder}</option>
-                {MDT_ROLES.map((role) => <option key={role} value={role}>{t[ROLE_LABEL[role]]}</option>)}
-              </select>
-            </div>
+          {/* The site's own styled listbox rather than a native select, as on
+              /ask: the open native list follows the OS and clashed with the page. */}
+          <div className="form-field ask-select">
+            <FilterSelect
+              id={fieldId("role")}
+              label={<>{t.role} {required}</>}
+              value={role}
+              options={[{ value: "", label: t.rolePlaceholder }, ...MDT_ROLES.map((value) => ({ value, label: t[ROLE_LABEL[value]] }))]}
+              onChange={(value) => { setRole(value); clearError("role"); }}
+              invalid={Boolean(errors.role)}
+              describedBy={describedBy("role")}
+              hidePlaceholder
+            />
+            <input type="hidden" name="role" value={role} />
             {fieldError("role")}
           </div>
         </div>
@@ -249,18 +252,18 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
             {fieldError("institution")}
           </div>
 
-          <div className="form-field">
-            <label htmlFor={fieldId("country")}>{t.country} {required}</label>
-            <div className={`field-control is-select${errors.country ? " is-invalid" : ""}`}>
-              <select
-                id={fieldId("country")} name="country" defaultValue="" required
-                aria-invalid={Boolean(errors.country)} aria-describedby={describedBy("country")}
-                onChange={() => clearError("country")}
-              >
-                <option value="" disabled>{t.countryPlaceholder}</option>
-                {countryOptions(locale).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </div>
+          <div className="form-field ask-select">
+            <FilterSelect
+              id={fieldId("country")}
+              label={<>{t.country} {required}</>}
+              value={country}
+              options={[{ value: "", label: t.countryPlaceholder }, ...countries]}
+              onChange={(value) => { setCountry(value); clearError("country"); }}
+              invalid={Boolean(errors.country)}
+              describedBy={describedBy("country")}
+              hidePlaceholder
+            />
+            <input type="hidden" name="country" value={country} />
             {fieldError("country")}
           </div>
         </div>
@@ -295,18 +298,18 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           </div>
         </div>
 
-        <div className="form-field">
-          <label htmlFor={fieldId("interest")}>{t.interest} {required}</label>
-          <div className={`field-control is-select${errors.interest ? " is-invalid" : ""}`}>
-            <select
-              id={fieldId("interest")} name="interest" defaultValue="" required
-              aria-invalid={Boolean(errors.interest)} aria-describedby={describedBy("interest")}
-              onChange={() => clearError("interest")}
-            >
-              <option value="" disabled>{t.interestPlaceholder}</option>
-              {MDT_INTERESTS.map((interest) => <option key={interest} value={interest}>{t[INTEREST_LABEL[interest]]}</option>)}
-            </select>
-          </div>
+        <div className="form-field ask-select">
+          <FilterSelect
+            id={fieldId("interest")}
+            label={<>{t.interest} {required}</>}
+            value={interest}
+            options={[{ value: "", label: t.interestPlaceholder }, ...MDT_INTERESTS.map((value) => ({ value, label: t[INTEREST_LABEL[value]] }))]}
+            onChange={(value) => { setInterest(value); clearError("interest"); }}
+            invalid={Boolean(errors.interest)}
+            describedBy={describedBy("interest")}
+            hidePlaceholder
+          />
+          <input type="hidden" name="interest" value={interest} />
           {fieldError("interest")}
         </div>
 
@@ -327,23 +330,6 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           </div>
           <small id={fieldId("message-hint")}>{t.messageHint}</small>
           {fieldError("message")}
-        </div>
-
-        {/* Two declarations, one box: they are read and ticked together. */}
-        <div className="ask-consent-group">
-        {(["noPatientData", "consent"] as const).map((field) => (
-          <div className="ask-consent-field" key={field}>
-            <label className={`ask-consent${errors[field] ? " is-invalid" : ""}`}>
-              <input
-                id={fieldId(field)} type="checkbox" name={field} required
-                aria-invalid={Boolean(errors[field])} aria-describedby={describedBy(field)}
-                onChange={() => clearError(field)}
-              />
-              <span>{t[field]}</span>
-            </label>
-            {fieldError(field)}
-          </div>
-        ))}
         </div>
 
         {/* Honeypot: hidden from people and from assistive technology. */}

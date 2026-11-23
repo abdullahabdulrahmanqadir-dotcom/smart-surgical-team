@@ -611,7 +611,8 @@ test("the question form lives on the contact page in both languages", async () =
     // The emergency notice and the form are both server-rendered.
     assert.match(html, /class="ask-emergency"/);
     assert.match(html, /name="phone"/);
-    assert.match(html, /name="replyVia"[^>]*value="whatsapp"/);
+    // Answers go by email; the form offers no reply choice any more.
+    assert.doesNotMatch(html, /name="replyVia"/);
     assert.doesNotMatch(html, /name="consent"/);
     // The emergency number (122, given by the owner 2026-11-22) is shown as a tel: link.
     assert.match(html, /href="tel:122"/);
@@ -683,7 +684,7 @@ test("the MDT page renders in both languages, open to search engines", async () 
     // The fact sheet and the jump link to the form are server-rendered too.
     assert.match(html, /class="mdt-facts"/);
     assert.match(html, /href="#mdt-form"/);
-    for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "noPatientData", "consent", "website"]) {
+    for (const field of ["name", "role", "institution", "country", "email", "phone", "interest", "message", "website"]) {
       assert.match(html, new RegExp(`name="${field}"`), `${locale} field ${field}`);
     }
     // Patients are pointed to the form on /contact, which points doctors back here.
@@ -706,16 +707,16 @@ test("the MDT API traps bots silently and refuses junk before touching the datab
     assert.deepEqual(await response.json(), { ok: true });
   }
 
-  const invalid = await post({ elapsedMs: 9000, name: "", role: "ceo", email: "nope", message: "hi", noPatientData: false, consent: true });
+  const invalid = await post({ elapsedMs: 9000, name: "", role: "ceo", email: "nope", message: "hi" });
   assert.equal(invalid.status, 422);
   assert.equal(invalid.headers.get("cache-control"), "no-store");
   const body = await invalid.json();
   assert.equal(body.code, "invalid");
-  assert.deepEqual(Object.keys(body.errors).sort(), ["country", "email", "institution", "interest", "message", "name", "noPatientData", "role"]);
+  assert.deepEqual(Object.keys(body.errors).sort(), ["country", "email", "institution", "interest", "message", "name", "role"]);
 
   const spammy = await post({
     elapsedMs: 9000, name: "A", role: "other", institution: "Clinic", country: "Iraq", email: "a@b.example", interest: "other",
-    message: "cheap https://1.example https://2.example https://3.example", noPatientData: true, consent: true,
+    message: "cheap https://1.example https://2.example https://3.example",
   });
   assert.equal(spammy.status, 422);
   assert.deepEqual((await spammy.json()).errors, { message: "tooManyLinks" });

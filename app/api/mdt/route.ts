@@ -120,6 +120,9 @@ export async function POST(request: Request) {
     interest: input.interest,
     message: input.message,
     locale,
+    // The form has had no consent or patient-data tick since 2026-11-23 (owner's
+    // decision). The column is NOT NULL, so it still gets the submission time,
+    // but it is no longer a record that consent was given.
     consent_at: new Date(now).toISOString(),
     ip_hash: ipHash,
   }).select("id").single();

@@ -38,7 +38,6 @@ test("MDT text is stripped of hidden characters too", () => {
   const result = validateMdtInquiry({
     name: "Dr‮ Test", role: "surgeon", institution: "City​ Hospital", country: "Iraq",
     email: "dr@example.org", phone: "", interest: "attend", message: "We would like to attend the meeting.",
-    consent: true, noPatientData: true,
   });
   assert.equal(result.ok, true);
   assert.equal(result.value.name, "Dr Test");
