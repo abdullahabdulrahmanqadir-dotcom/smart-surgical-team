@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { Literata, Inter, Noto_Naskh_Arabic, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Literata, Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { LOCALES, LOCALE_META, isLocale, type Locale } from "../lib/i18n";
 import { getDictionary } from "../lib/dictionaries";
 import { seoAlternates } from "../lib/seo";
@@ -17,11 +17,13 @@ import "./editorial-pages.css";
 // institutional, and rare on marketing sites. Same three weights, so no
 // component's font-weight had to move.
 //
-// The Arabic pair echoes the Latin pair's register rather than being an
-// unrelated default: Noto Naskh Arabic (calligraphic, serif-adjacent) for the
-// display role, IBM Plex Sans Arabic (humanist sans) for Inter's body role.
-// The Arabic faces are attached on Arabic pages only — see `fontVariables`.
-// All four are self-hosted at build time by next/font.
+// Arabic uses one family for every role: IBM Plex Sans Arabic, for headings
+// and running text alike (owner's decision, 2026-11-23). Noto Naskh Arabic was
+// the display face until then, but beside Plex it read as the system default
+// rather than a choice, so the Arabic site looked like two fonts. 700 is
+// loaded so labels set at 700-800 are not synthesised bold.
+// The Arabic face is attached on Arabic pages only — see `fontVariables`.
+// All three are self-hosted at build time by next/font.
 const literata = Literata({
   variable: "--font-display",
   subsets: ["latin"],
@@ -37,18 +39,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const notoNaskh = Noto_Naskh_Arabic({
-  variable: "--font-display-arabic",
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  fallback: ["Times New Roman", "serif"],
-});
-
 const plexArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-body-arabic",
   subsets: ["arabic"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -58,7 +52,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({
 // kilobytes of webfont for a single dropdown label, which now falls back to
 // the reader's own Arabic font.
 const LATIN_FONTS = [literata.variable, inter.variable].join(" ");
-const ARABIC_FONTS = [notoNaskh.variable, plexArabic.variable].join(" ");
+const ARABIC_FONTS = plexArabic.variable;
 
 function fontVariables(locale: Locale) {
   return locale === "ar" ? `${LATIN_FONTS} ${ARABIC_FONTS}` : LATIN_FONTS;

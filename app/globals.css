@@ -124,10 +124,10 @@
 /* ============================================================
    Typography — revised 2026-09-02
    Latin: Literata (display) over Inter (body).
-   Arabic script: Noto Naskh Arabic (display) over IBM Plex Sans Arabic (body) —
-   chosen to echo the Latin pair's register rather than as an unrelated
-   default: Naskh's calligraphic warmth mirrors Literata, Plex's humanist
-   sans mirrors Inter.
+   Arabic script: IBM Plex Sans Arabic for every role, headings included
+   (2026-11-23). The display stack keeps its own name so rules stay readable,
+   but it resolves to the same face as the body stack. Noto Naskh Arabic was
+   the display face before; beside Plex it read as the system default.
    The RTL locale swaps the stacks via [dir="rtl"]; both Arabic faces also sit
    in the LTR stacks as fallbacks so stray Arabic on an English page — the
    language menu's "العربية" — picks up the right one instead of a random
@@ -140,9 +140,9 @@
      `var(--undefined)` inside a font-family list invalidates the whole
      declaration at computed-value time — which would strip Literata and
      Inter from every English page, not just the Arabic glyphs. */
-  --font-display-arabic-stack: var(--font-display-arabic, "Segoe UI"), "Segoe UI", system-ui, serif;
+  --font-display-arabic-stack: var(--font-body-arabic, "Segoe UI"), "Segoe UI", system-ui, sans-serif;
   --font-body-arabic-stack: var(--font-body-arabic, "Segoe UI"), "Segoe UI", system-ui, sans-serif;
-  --font-display-stack: var(--font-display), var(--font-display-arabic, "Segoe UI"), Georgia,
+  --font-display-stack: var(--font-display), var(--font-body-arabic, "Segoe UI"), Georgia,
     "Times New Roman", serif;
   --font-body-stack: var(--font-body), var(--font-body-arabic, "Segoe UI"), "Segoe UI", system-ui,
     sans-serif;
@@ -2511,10 +2511,9 @@ html:has(.image-lightbox)::before { display: none; }
 [dir="rtl"] .events-hero-copy { justify-self: left; width: min(100%, 34rem); text-align: center; }
 .events-hero .eyebrow { border-color: rgba(205,235,229,.48); background: rgba(13,56,56,.82); color: #fff; }.events-hero h1, .events-hero p { color: #fff; }.events-hero h1 { margin-top: .65rem; font-size: clamp(3rem, 6vw, 5.5rem); line-height: .96; }.events-hero h1 span { color: #b9e8de; }.events-hero p { max-width: 38rem; margin-top: 1.25rem; color: rgba(255,255,255,.83); font-size: 1.06rem; }.events-hero .btn { margin-top: 2rem; background: var(--brand-copper); }
 [dir="rtl"] .events-hero h1 {
-  /* The compact Latin hero leading makes Arabic glyphs collide. Keep the
-     clean sans face seen in local previews explicit so production does not
-     replace it with the calligraphic display font. */
-  font-family: Arial, "Segoe UI", sans-serif;
+  /* The compact Latin hero leading makes Arabic glyphs collide, so the
+     Arabic title gets its own looser leading, in the site's Arabic face. */
+  font-family: var(--font-body-arabic-stack);
   line-height: 1.18;
 }
 .featured-event-section { max-width: var(--content); margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) var(--gutter) 0; }
@@ -4198,7 +4197,7 @@ html:has(.image-lightbox)::before { display: none; }
    cover carries a similar amount of ink (see coverTitleScale). The clamp is
    what bounds it: whatever the scale asks for, the type cannot end up smaller
    than .95rem or larger than 1.75rem. */
-.research-cover-title { position:absolute; inset-block-start:50%; inset-inline:clamp(.95rem,5.5cqi,1.9rem); display:-webkit-box; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:6; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-family:Literata,Georgia,"Times New Roman",var(--font-display-arabic, "Segoe UI"),serif; font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:wrap; transform:translateY(-50%); }
+.research-cover-title { position:absolute; inset-block-start:50%; inset-inline:clamp(.95rem,5.5cqi,1.9rem); display:-webkit-box; overflow:hidden; margin:0; -webkit-box-orient:vertical; -webkit-line-clamp:6; color:#fff; font:500 clamp(1.02rem,1.35vw + .55rem,1.38rem)/1.3 var(--font-display-stack); font-family:Literata,Georgia,var(--font-body-arabic, "Segoe UI"),"Times New Roman",serif; font-size:clamp(.95rem,calc(6cqi * var(--cover-title-scale,1)),1.75rem); text-wrap:wrap; transform:translateY(-50%); }
 
 /* The card's white space below the cover: byline, then date. The title is not
    repeated here — the cover is the title. */

@@ -29,8 +29,6 @@ const VALID = {
   phone: "",
   interest: "present_case",
   message: "We would like to present a difficult thyroid case at your next meeting.",
-  noPatientData: true,
-  consent: true,
 };
 
 test("a complete inquiry is accepted and normalised", () => {
@@ -58,7 +56,7 @@ test("every required field is reported when empty", () => {
   const result = validateMdtInquiry({});
   assert.equal(result.ok, false);
   assert.deepEqual(Object.keys(result.errors).sort(), [
-    "consent", "country", "email", "institution", "interest", "message", "name", "noPatientData", "role",
+    "country", "email", "institution", "interest", "message", "name", "role",
   ]);
 });
 
@@ -70,9 +68,10 @@ test("fixed lists refuse values the form cannot produce", () => {
   assert.equal(isKnownCountry("iraq"), false);
 });
 
-test("the patient-data confirmation and the consent are both required, as real booleans", () => {
-  assert.deepEqual(validateMdtInquiry({ ...VALID, noPatientData: "on" }).errors, { noPatientData: "required" });
-  assert.deepEqual(validateMdtInquiry({ ...VALID, consent: false }).errors, { consent: "required" });
+test("no consent or patient-data tick is asked for (removed 2026-11-23)", () => {
+  assert.equal(validateMdtInquiry({ ...VALID }).ok, true);
+  assert.equal("consent" in validateMdtInquiry({}).errors, false);
+  assert.equal("noPatientData" in validateMdtInquiry({}).errors, false);
 });
 
 test("link spam is refused: at most two links in a message, none in the institution", () => {

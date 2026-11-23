@@ -184,7 +184,11 @@ export function validateQuestion(raw: Record<string, unknown>): QuestionValidati
   if (!emailRaw) errors.email = "required";
   else if (!email) errors.email = "invalid";
 
-  const replyVia = (REPLY_CHANNELS as readonly string[]).includes(str(raw.replyVia)) ? str(raw.replyVia) as ReplyChannel : null;
+  // The form no longer offers a reply choice (owner, 2026-11-23): answers go
+  // by email. A missing channel therefore means email; "whatsapp" is still
+  // accepted so Admin's WhatsApp path keeps working for older questions.
+  const replyViaRaw = str(raw.replyVia) || "email";
+  const replyVia = (REPLY_CHANNELS as readonly string[]).includes(replyViaRaw) ? replyViaRaw as ReplyChannel : null;
   if (!replyVia) errors.replyVia = "required";
 
   const phoneRaw = str(raw.phone).trim();

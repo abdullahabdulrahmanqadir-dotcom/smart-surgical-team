@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import MdtInquiryForm from "../../components/MdtInquiryForm";
 import SiteFooter from "../../components/SiteFooter";
+import ScrollMotion from "../../components/ScrollMotion";
 import SiteHeader from "../../components/SiteHeader";
-import { IconAlert, IconArrowRight, IconClock, IconShield, IconUser } from "../../components/icons";
+import { IconAlert, IconArrowRight, IconCalendar, IconClock, IconEye, IconFile, IconLayers, IconLink, IconMail, IconUser, IconUsers } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
 import { MDT_FACTS, type MdtCaseArea, type MdtSpecialty } from "../../lib/mdt-inquiries";
@@ -40,10 +41,16 @@ const CASE_LABEL = {
 } as const satisfies Record<MdtCaseArea, string>;
 
 const WAYS = [
-  ["wayPresentTitle", "wayPresentBody"],
-  ["wayAttendTitle", "wayAttendBody"],
-  ["wayObserveTitle", "wayObserveBody"],
-  ["wayCollaborateTitle", "wayCollaborateBody"],
+  ["wayPresentTitle", "wayPresentBody", IconFile],
+  ["wayAttendTitle", "wayAttendBody", IconUsers],
+  ["wayObserveTitle", "wayObserveBody", IconEye],
+  ["wayCollaborateTitle", "wayCollaborateBody", IconLink],
+] as const;
+
+const STEPS = [
+  ["step1Title", "step1Body", IconMail],
+  ["step2Title", "step2Body", IconCalendar],
+  ["step3Title", "step3Body", IconUsers],
 ] as const;
 
 /**
@@ -59,56 +66,89 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
   const active: Locale = locale;
   const dict = getDictionary(active);
   const t = dict.mdt;
-  // Labels are title-like ("Head and neck surgery"), so a middot line reads
-  // cleaner than a sentence joined with "and", and needs no per-language grammar.
-  const list = (items: string[]) => items.join(" · ");
+  const chips = (items: string[]) => (
+    <ul className="mdt-chips">
+      {items.map((item) => <li key={item}>{item}</li>)}
+    </ul>
+  );
 
   return (
     <>
       <a className="skip-link" href="#main-content">{dict.nav.skipToContent}</a>
       <SiteHeader locale={active} dict={dict} />
+      <ScrollMotion />
       <main id="main-content" className="ask-page mdt-page">
         <div className="ask-shell">
-          {/* Intro and fact sheet share the first screen on wide displays, so
+          {/* Intro and fact panel share the first screen on wide displays, so
               a visiting doctor sees who meets and on what cases without
               scrolling; on phones the facts follow the intro. */}
           <div className="mdt-hero">
-          <header className="ask-intro mdt-intro">
-            <h1>{t.title}</h1>
-            <p>{t.intro}</p>
-            <a className="btn btn-primary mdt-cta" href="#mdt-form">{t.ctaInquiry}<IconArrowRight size={17} /></a>
-          </header>
+            <header className="ask-intro mdt-intro">
+              {/* The department that runs the meeting, as a lockup rather than
+                  a kicker: the brand mark stays Latin in both locales. */}
+              <p className="mdt-dept">
+                <span className="mdt-dept-mark">{dict.brand.short}</span>{" "}
+                <span className="mdt-dept-name">{t.department}</span>
+              </p>
+              <h1>{t.title}</h1>
+              <p className="mdt-lede">{t.intro}</p>
+              <a className="btn btn-primary mdt-cta" href="#mdt-form">{t.ctaInquiry}<IconArrowRight size={17} /></a>
+            </header>
 
-          {/* A ruled fact sheet, like the contact page's details list. The
-              lists come from MDT_FACTS (confirmed facts only). */}
-          <dl className="mdt-facts" aria-label={t.factsLabel}>
-            <div>
-              <dt>{t.factSpecialties}</dt>
-              <dd>{list(MDT_FACTS.specialties.map((specialty) => t[SPECIALTY_LABEL[specialty]]))}</dd>
+            {/* The lists come from MDT_FACTS (confirmed facts only). The stage
+                holds the decorative depth layers behind the floating panel. */}
+            <div className="mdt-facts-stage">
+            <dl className="mdt-facts" aria-label={t.factsLabel}>
+              <div>
+                <dt><IconLayers size={18} />{t.factSpecialties}</dt>
+                <dd>{chips(MDT_FACTS.specialties.map((specialty) => t[SPECIALTY_LABEL[specialty]]))}</dd>
+              </div>
+              <div>
+                <dt><IconFile size={18} />{t.factCases}</dt>
+                <dd>{chips(MDT_FACTS.caseAreas.map((area) => t[CASE_LABEL[area]]))}</dd>
+              </div>
+              <div>
+                <dt><IconClock size={18} />{t.factSchedule}</dt>
+                <dd>{MDT_FACTS.schedule ? MDT_FACTS.schedule[active] : t.meetPending}</dd>
+              </div>
+            </dl>
             </div>
-            <div>
-              <dt>{t.factCases}</dt>
-              <dd>{list(MDT_FACTS.caseAreas.map((area) => t[CASE_LABEL[area]]))}</dd>
-            </div>
-            <div>
-              <dt>{t.factSchedule}</dt>
-              <dd>{MDT_FACTS.schedule ? MDT_FACTS.schedule[active] : t.meetPending}</dd>
-            </div>
-          </dl>
           </div>
 
           <section className="mdt-ways" aria-labelledby="mdt-ways-title">
-            <h2 id="mdt-ways-title">{t.waysTitle}</h2>
-            <p>{t.waysIntro}</p>
+            <div className="mdt-section-head">
+              <h2 id="mdt-ways-title">{t.waysTitle}</h2>
+              <p>{t.waysIntro}</p>
+            </div>
             {/* Alternatives, not steps: a list without numbers. */}
             <ul>
-              {WAYS.map(([title, body]) => (
-                <li key={title}>
+              {WAYS.map(([title, body, Icon]) => (
+                <li key={title} className="mdt-way">
+                  <span className="mdt-way-icon" aria-hidden="true"><Icon size={22} /></span>
                   <h3>{t[title]}</h3>
                   <p>{t[body]}</p>
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="mdt-steps" aria-labelledby="mdt-steps-title">
+            <div className="mdt-section-head">
+              <h2 id="mdt-steps-title">{t.stepsTitle}</h2>
+            </div>
+            {/* A real sequence, so an ordered list with visible numbers. */}
+            <ol>
+              {STEPS.map(([title, body, Icon], index) => (
+                <li key={title} className="mdt-step">
+                  <span className="mdt-step-marker" aria-hidden="true">
+                    <span className="mdt-step-number">{index + 1}</span>
+                    <Icon size={20} />
+                  </span>
+                  <h3>{t[title]}</h3>
+                  <p>{t[body]}</p>
+                </li>
+              ))}
+            </ol>
           </section>
 
           <div className="ask-layout mdt-form-layout" id="mdt-form">
@@ -125,10 +165,6 @@ export default async function MdtPage({ params }: { params: Promise<{ locale: st
                 <div>
                   <dt><IconClock size={18} />{t.nextTitle}</dt>
                   <dd>{t.nextBody}</dd>
-                </div>
-                <div>
-                  <dt><IconShield size={18} />{t.privacyTitle}</dt>
-                  <dd>{t.privacyBody} <Link className="text-link" href={localePath(active, "privacy")}>{t.privacyLink}</Link></dd>
                 </div>
                 <div className="mdt-patient">
                   <dt><IconUser size={18} />{t.patientTitle}</dt>

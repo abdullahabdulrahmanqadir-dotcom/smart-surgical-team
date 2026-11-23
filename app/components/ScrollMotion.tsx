@@ -72,6 +72,14 @@ const revealSelectors = [
   ".profile-identity",
   ".profile-welcome",
   ".profile-panel",
+  ".mdt-intro > *",
+  ".mdt-facts-stage",
+  ".mdt-section-head",
+  ".mdt-way",
+  ".mdt-step",
+  ".mdt-form-layout .ask-emergency",
+  ".mdt-form-layout .ask-facts",
+  ".mdt-form-layout > .ask-card",
 ];
 
 export default function ScrollMotion() {
@@ -155,9 +163,9 @@ export default function ScrollMotion() {
         const position = seenPerParent.get(parent) ?? 0;
         seenPerParent.set(parent, position + 1);
         element.dataset.scrollReveal = "";
-        if (element.matches(".topic-card, .team-feature-card, .research-member, .research-card, .content-case-card, .event-row, .event-faculty-grid > article, .related-card, .news-more-card, .poster-card")) {
+        if (element.matches(".topic-card, .team-feature-card, .research-member, .research-card, .content-case-card, .event-row, .event-faculty-grid > article, .related-card, .news-more-card, .poster-card, .mdt-way")) {
           element.dataset.revealStyle = position % 2 ? "right" : "left";
-        } else if (element.matches(".anatomy-hero, .research-preview-card, .introduction-stage, .featured-event, .news-detail-cover, .poster-feature, .poster-display")) {
+        } else if (element.matches(".anatomy-hero, .research-preview-card, .introduction-stage, .featured-event, .news-detail-cover, .poster-feature, .poster-display, .mdt-facts-stage")) {
           element.dataset.revealStyle = "scale";
         }
         element.style.setProperty("--reveal-delay", `${Math.min(position * 65, 260)}ms`);

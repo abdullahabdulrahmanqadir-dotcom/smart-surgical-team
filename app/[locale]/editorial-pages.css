@@ -1,7 +1,7 @@
 :root {
   --editorial-section-space: clamp(2rem, 4.5vw, 4rem);
   --editorial-display: var(--font-display, Literata), Georgia, "Times New Roman", serif;
-  --editorial-display-arabic: var(--font-display-arabic, "Noto Naskh Arabic"), "Times New Roman", serif;
+  --editorial-display-arabic: var(--font-body-arabic, "IBM Plex Sans Arabic"), "Segoe UI", system-ui, sans-serif;
 }
 
 [lang="ar"] { --editorial-display: var(--editorial-display-arabic); }

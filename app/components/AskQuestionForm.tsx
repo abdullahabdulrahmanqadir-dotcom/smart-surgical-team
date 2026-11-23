@@ -11,17 +11,17 @@ import {
   validateQuestion,
   type QuestionField,
   type QuestionFieldError,
-  type ReplyChannel,
 } from "../lib/patient-questions";
+import FilterSelect from "./FilterSelect";
 import { IconArrowRight, IconCheck, IconMail, IconWhatsApp } from "./icons";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
 type AskCopy = Dictionary["ask"];
 type Errors = Partial<Record<QuestionField, QuestionFieldError>>;
-type Sent = { replyVia: ReplyChannel; emailConfirmation: boolean };
+type Sent = { emailConfirmation: boolean };
 
 /** Field order, so focus lands on the first problem as the patient reads it. */
-const FIELD_ORDER: QuestionField[] = ["name", "email", "phone", "replyVia", "topic", "question"];
+const FIELD_ORDER: QuestionField[] = ["name", "email", "phone", "topic", "question"];
 
 function fieldMessage(t: AskCopy, field: QuestionField, error: QuestionFieldError): string {
   switch (field) {
@@ -54,7 +54,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
   const sentHeading = useRef<HTMLHeadingElement>(null);
   const turnstile = useTurnstile(locale);
 
-  const [replyVia, setReplyVia] = useState<ReplyChannel>("email");
+  const [topic, setTopic] = useState("");
   const [questionLength, setQuestionLength] = useState(0);
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -72,9 +72,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
   function focusFirst(found: Errors) {
     const first = FIELD_ORDER.find((field) => found[field]);
     if (!first) return;
-    const target = first === "replyVia"
-      ? formRef.current?.querySelector<HTMLInputElement>('input[name="replyVia"]')
-      : document.getElementById(fieldId(first));
+    const target = document.getElementById(fieldId(first));
     target?.focus();
   }
 
@@ -90,7 +88,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
       name: String(data.get("name") ?? ""),
       phone: String(data.get("phone") ?? ""),
       email: String(data.get("email") ?? ""),
-      replyVia: String(data.get("replyVia") ?? ""),
+      replyVia: "email",
       topic: String(data.get("topic") ?? ""),
       question: String(data.get("question") ?? ""),
       website: String(data.get("website") ?? ""),
@@ -131,7 +129,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
         | null;
 
       if (result?.ok) {
-        setSent({ replyVia: check.value.replyVia, emailConfirmation: result.emailConfirmation });
+        setSent({ emailConfirmation: result.emailConfirmation });
         return;
       }
       turnstile.reset();
@@ -156,9 +154,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
   }
 
   if (sent) {
-    const followUp = sent.replyVia === "email" && sent.emailConfirmation
-      ? t.sentEmailConfirm
-      : sent.replyVia === "email" ? t.sentEmailNoConfirm : t.sentWhatsapp;
+    const followUp = sent.emailConfirmation ? t.sentEmailConfirm : t.sentEmailNoConfirm;
     return (
       <section className="ask-card ask-sent" aria-labelledby={fieldId("sent")}>
         <span className="ask-sent-mark" aria-hidden="true"><IconCheck size={26} /></span>
@@ -168,7 +164,7 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
         <button
           type="button"
           className="btn btn-outline"
-          onClick={() => { setSent(null); setQuestionLength(0); setReplyVia("email"); }}
+          onClick={() => { setSent(null); setQuestionLength(0); setTopic(""); }}
         >
           {t.askAnother}
         </button>
@@ -228,34 +224,17 @@ export default function AskQuestionForm({ locale, t }: { locale: Locale; t: AskC
           </div>
         </div>
 
-        <fieldset className="ask-reply" aria-describedby={errors.replyVia ? fieldId("replyVia-error") : undefined}>
-          <legend>{t.replyVia} <span aria-hidden="true">*</span></legend>
-          <div className="ask-reply-options">
-            {(["email", "whatsapp"] as const).map((channel) => (
-              <label key={channel} className={`ask-reply-option${replyVia === channel ? " is-selected" : ""}`}>
-                <input
-                  type="radio" name="replyVia" value={channel} checked={replyVia === channel}
-                  onChange={() => { setReplyVia(channel); clearError("replyVia"); clearError("phone"); }}
-                />
-                <span className="ask-reply-icon" aria-hidden="true">{channel === "whatsapp" ? <IconWhatsApp size={20} /> : <IconMail size={20} />}</span>
-                <span className="ask-reply-text">
-                  <strong>{channel === "whatsapp" ? t.replyWhatsapp : t.replyEmail}</strong>
-                  <small>{channel === "whatsapp" ? t.replyWhatsappHint : t.replyEmailHint}</small>
-                </span>
-              </label>
-            ))}
-          </div>
-          {fieldError("replyVia")}
-        </fieldset>
-
-        <div className="form-field">
-          <label htmlFor={fieldId("topic")}>{t.topic} <span className="ask-optional">({t.optional})</span></label>
-          <div className="field-control is-select">
-            <select id={fieldId("topic")} name="topic" defaultValue="" aria-describedby={describedBy("topic")}>
-              <option value="">{t.topicPlaceholder}</option>
-              {QUESTION_TOPICS.map((topic) => <option key={topic} value={topic}>{t[TOPIC_LABEL[topic]]}</option>)}
-            </select>
-          </div>
+        {/* The site's own styled listbox rather than a native select: the open
+            native list follows the OS theme and clashed with the dark page. */}
+        <div className="form-field ask-topic">
+          <FilterSelect
+            id={fieldId("topic")}
+            label={<>{t.topic} <span className="ask-optional">({t.optional})</span></>}
+            value={topic}
+            options={[{ value: "", label: t.topicPlaceholder }, ...QUESTION_TOPICS.map((value) => ({ value, label: t[TOPIC_LABEL[value]] }))]}
+            onChange={(value) => { setTopic(value); clearError("topic"); }}
+          />
+          <input type="hidden" name="topic" value={topic} />
           {fieldError("topic")}
         </div>
 
