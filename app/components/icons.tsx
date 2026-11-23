@@ -53,6 +53,82 @@ export function IconArrowRight(props: IconProps) {
   );
 }
 
+export function IconArrowUpRight(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M7 17 17 7" />
+      <path d="M8.5 7H17v8.5" />
+    </svg>
+  );
+}
+
+export function IconMinus(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M5.5 12h13" />
+    </svg>
+  );
+}
+
+export function IconCrosshair(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <circle cx="12" cy="12" r="5.5" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+    </svg>
+  );
+}
+
+export function IconClipboard(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <rect x="5" y="4.5" width="14" height="16" rx="2.5" />
+      <path d="M9 4.5h6v2a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2Z" />
+      <path d="M8.5 12h7M8.5 15.5h4.5" />
+    </svg>
+  );
+}
+
+export function IconBuilding(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M4.5 20.5h15" />
+      <path d="M6.5 20.5V5.5a1.5 1.5 0 0 1 1.5-1.5h8a1.5 1.5 0 0 1 1.5 1.5v15" />
+      <path d="M10 8.5h1M13 8.5h1M10 12h1M13 12h1M10.5 20.5v-4h3v4" />
+    </svg>
+  );
+}
+
+export function IconCompass(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m15.2 8.8-1.9 4.5-4.5 1.9 1.9-4.5 4.5-1.9Z" />
+    </svg>
+  );
+}
+
+export function IconPassport(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <rect x="5" y="3.5" width="14" height="17" rx="2.5" />
+      <circle cx="12" cy="10.5" r="3.2" />
+      <path d="M8.8 10.5h6.4M12 7.3c1 .9 1.4 2 1.4 3.2s-.4 2.3-1.4 3.2c-1-.9-1.4-2-1.4-3.2s.4-2.3 1.4-3.2Z" />
+      <path d="M8.5 16.8h7" />
+    </svg>
+  );
+}
+
+export function IconAward(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <circle cx="12" cy="9.5" r="5" />
+      <path d="M9.2 13.8 8 20.5l4-2.2 4 2.2-1.2-6.7" />
+    </svg>
+  );
+}
+
 export function IconCalendar(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

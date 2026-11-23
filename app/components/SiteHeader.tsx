@@ -77,8 +77,10 @@ export default function SiteHeader({
     const href = localePath(locale, path);
     if (pathname === href) return "page";
     const library = localePath(locale, "library");
+    const collaboration = localePath(locale, "collaboration");
     if (pathname?.startsWith(`${href}/`) ||
-      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`)))) return "location";
+      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`))) ||
+      (path === "breast-summit" && (pathname === collaboration || pathname?.startsWith(`${collaboration}/`)))) return "location";
   }
 
   // A client-side navigation keeps the header mounted, so close the menu here.

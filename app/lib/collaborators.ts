@@ -21,10 +21,10 @@ export type Collaborator = {
 
 /** Smart Surgical Team at Smart Health Tower: the map's centre. Listing
     ourselves needs no consent, so the hub shows even when the map is empty.
-    City-level position; the map never zooms past country scale. */
-export const HUB = { lat: 35.5617, lng: 45.4372, country: "IQ" } as const;
+    Matches Smart Health Tower coordinates (structured-data.ts). */
+export const HUB = { lat: 35.5686, lng: 45.443, country: "IQ" } as const;
 
-/** "N institutions in M countries", counted the same way everywhere. */
+/** Count institutions and distinct countries the same way everywhere. */
 export function collaboratorCounts(list: Collaborator[]) {
   return { institutions: list.length, countries: new Set(list.map((item) => item.country)).size };
 }
@@ -32,9 +32,103 @@ export function collaboratorCounts(list: Collaborator[]) {
 /** The map component's strings, picked from the page dictionary. Lives here,
     not in the "use client" component, so server pages can call it. */
 export function mapLabels(t: Record<
-  "mapLabel" | "zoomIn" | "zoomOut" | "world" | "ctrlHint" | "touchHint" | "hubName" | "hubPlace" | "count" | "allCountries" | "filterLabel" | "emptyTitle" | "emptyBody" | "emptyCta" | "visit" | "close" | "showOnMap" | "clusterLabel" | "listLabel",
+  | "mapLabel"
+  | "zoomIn"
+  | "zoomOut"
+  | "focusHub"
+  | "world"
+  | "ctrlHint"
+  | "touchHint"
+  | "hubTag"
+  | "hubName"
+  | "hubPlace"
+  | "hubCity"
+  | "hubBody"
+  | "countOne"
+  | "countMany"
+  | "countOneCountry"
+  | "showingFiltered"
+  | "clearFilter"
+  | "allCountries"
+  | "filterLabel"
+  | "emptyTitle"
+  | "emptyBody"
+  | "emptyCta"
+  | "compactEmptyBody"
+  | "consentNote"
+  | "legendHub"
+  | "legendInstitution"
+  | "visit"
+  | "close"
+  | "showOnMap"
+  | "clusterLabel"
+  | "listLabel",
   string
 >) {
-  const { mapLabel, zoomIn, zoomOut, world, ctrlHint, touchHint, hubName, hubPlace, count, allCountries, filterLabel, emptyTitle, emptyBody, emptyCta, visit, close, showOnMap, clusterLabel, listLabel } = t;
-  return { mapLabel, zoomIn, zoomOut, world, ctrlHint, touchHint, hubName, hubPlace, count, allCountries, filterLabel, emptyTitle, emptyBody, emptyCta, visit, close, showOnMap, clusterLabel, listLabel };
+  const {
+    mapLabel,
+    zoomIn,
+    zoomOut,
+    focusHub,
+    world,
+    ctrlHint,
+    touchHint,
+    hubTag,
+    hubName,
+    hubPlace,
+    hubCity,
+    hubBody,
+    countOne,
+    countMany,
+    countOneCountry,
+    showingFiltered,
+    clearFilter,
+    allCountries,
+    filterLabel,
+    emptyTitle,
+    emptyBody,
+    emptyCta,
+    compactEmptyBody,
+    consentNote,
+    legendHub,
+    legendInstitution,
+    visit,
+    close,
+    showOnMap,
+    clusterLabel,
+    listLabel,
+  } = t;
+  return {
+    mapLabel,
+    zoomIn,
+    zoomOut,
+    focusHub,
+    world,
+    ctrlHint,
+    touchHint,
+    hubTag,
+    hubName,
+    hubPlace,
+    hubCity,
+    hubBody,
+    countOne,
+    countMany,
+    countOneCountry,
+    showingFiltered,
+    clearFilter,
+    allCountries,
+    filterLabel,
+    emptyTitle,
+    emptyBody,
+    emptyCta,
+    compactEmptyBody,
+    consentNote,
+    legendHub,
+    legendInstitution,
+    visit,
+    close,
+    showOnMap,
+    clusterLabel,
+    listLabel,
+  };
 }

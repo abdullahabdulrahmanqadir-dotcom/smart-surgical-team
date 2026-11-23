@@ -83,7 +83,7 @@ const revealSelectors = [
   ".summit-about > *",
   ".summit-section-head",
   ".summit-faculty-grid > li",
-  ".summit-official-grid > li",
+  ".summit-official-grid",
   ".summit-papers > .research-card",
 ];
 

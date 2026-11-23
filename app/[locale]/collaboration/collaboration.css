@@ -1,44 +1,149 @@
-/* /:locale/collaboration. The map and panel styles live with the component
-   (app/components/collaboration-map.css); this is the page frame only. */
+/* /:locale/collaboration. Dressed in the official MEBS 2027 visual identity
+   (crisp white, charcoal-slate ink, berry-crimson #c43c63 accents) so the
+   collaboration atlas feels directly part of the Breast Summit family. */
 
-.collab-page { padding-block: var(--editorial-section-space, 3rem) clamp(3rem, 7vw, 5.5rem); background: var(--bg); }
-.collab-shell { box-sizing: border-box; width: 100%; max-width: var(--content); margin-inline: auto; padding-inline: var(--gutter); }
+.collab-page {
+  --bg: #ffffff;
+  --bg-muted: #faf6f7;
+  --surface: #ffffff;
+  --surface-2: #f6eff1;
+  --line: #eadfe2;
+  --line-strong: #d8c7cc;
+  --text: #2e3136;
+  --text-muted: #626262;
+  --text-soft: #7b777a;
+  --primary: #c43c63;
+  --primary-strong: #a02b4d;
+  --primary-soft: #fdf2f5;
+  --primary-ring: rgba(196, 60, 99, .28);
+  --on-primary: #ffffff;
 
-.collab-intro { max-width: 52rem; margin-block-end: clamp(1.5rem, 3.5vw, 2.25rem); }
+  padding-block: clamp(1.15rem, 2.2vw, 1.85rem) clamp(2.5rem, 5vw, 4.5rem);
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme="dark"] .collab-page {
+  --bg: #14181b;
+  --bg-muted: #191f23;
+  --surface: #1d2429;
+  --surface-2: #242c32;
+  --line: #2d363d;
+  --line-strong: #3e4952;
+  --text: #f3eff1;
+  --text-muted: #b6b1b4;
+  --text-soft: #8d888b;
+  --primary: #f07b9d;
+  --primary-strong: #fe9ab7;
+  --primary-soft: rgba(240, 123, 157, .14);
+  --primary-ring: rgba(240, 123, 157, .34);
+  --on-primary: #1a0d12;
+}
+
+.collab-page .btn-primary {
+  box-shadow: 0 2px 8px rgba(196, 60, 99, .22);
+}
+[data-theme="dark"] .collab-page .btn-primary {
+  background: #c43c63;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .32);
+}
+[data-theme="dark"] .collab-page .btn-primary:hover {
+  background: #d64971;
+}
+
+.collab-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.collab-intro {
+  margin-block-end: clamp(1rem, 2vw, 1.35rem);
+  padding-block-end: clamp(.85rem, 1.6vw, 1.15rem);
+  border-block-end: 1px solid var(--line);
+}
 .collab-crumbs {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: .5rem;
-  margin-block-end: 1rem;
+  margin-block-end: .55rem;
   color: var(--text-muted);
-  font-size: var(--step--1);
+  font-size: var(--step--2);
   font-weight: 650;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
+[dir="rtl"] .collab-crumbs { text-transform: none; }
 .collab-crumbs a { color: var(--primary); text-decoration: none; }
 .collab-crumbs a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.collab-intro-grid {
+  display: grid;
+  gap: .75rem 2.5rem;
+  align-items: end;
+}
+@media (min-width: 960px) {
+  .collab-intro-grid {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, .95fr);
+  }
+}
 .collab-intro h1 {
   margin: 0;
+  color: var(--text);
   font-family: var(--editorial-display);
-  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+  font-size: clamp(1.85rem, 3.6vw, 2.85rem);
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.12;
   text-wrap: balance;
 }
 [dir="rtl"] .collab-intro h1 { line-height: 1.35; }
-.collab-intro > p { max-width: 62ch; margin-block-start: .9rem; color: var(--text-muted); font-size: var(--step-1); line-height: 1.65; }
-.collab-intro .collab-consent {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  margin-block-start: 1rem;
-  padding: .45rem .8rem;
-  border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  font-size: var(--step--1);
-  font-weight: 700;
+.collab-lede {
+  max-width: 54ch;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--step-0);
+  line-height: 1.65;
 }
-[data-theme="dark"] .collab-intro .collab-consent { color: var(--primary); }
-.collab-back { margin-block-start: 1.75rem; }
+
+@media (max-width: 640px) {
+  /* Prioritize the interactive map above the fold on phones. */
+  .collab-page {
+    padding-block: .85rem 2.25rem;
+  }
+  .collab-intro {
+    margin-block-end: .85rem;
+    padding-block-end: .75rem;
+  }
+  .collab-crumbs {
+    margin-block-end: .4rem;
+  }
+  .collab-intro h1 {
+    font-size: clamp(1.5rem, 6.8vw, 1.95rem);
+  }
+  .collab-lede {
+    font-size: var(--step--1);
+    line-height: 1.55;
+  }
+}
+
+.collab-back {
+  margin-block-start: clamp(1.5rem, 3vw, 2.25rem);
+  padding-block-start: 1.25rem;
+  border-block-start: 1px solid var(--line);
+}
+.collab-back-link .collab-back-arrow {
+  transform: scaleX(-1);
+}
+[dir="rtl"] .collab-back-link .collab-back-arrow {
+  transform: none;
+}
+.collab-back-link:hover .collab-back-arrow {
+  transform: scaleX(-1) translateX(3px);
+}
+[dir="rtl"] .collab-back-link:hover .collab-back-arrow {
+  transform: translateX(3px);
+}

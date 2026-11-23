@@ -11,7 +11,19 @@ import ScrollMotion from "../../components/ScrollMotion";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import SummitCountdown from "../../components/SummitCountdown";
-import { IconArrowRight, IconCalendar, IconFile, IconGlobe, IconMail, IconPin, IconUsers, IconLayers, IconShield, IconLink, IconCheck, IconClock } from "../../components/icons";
+import {
+  IconArrowRight,
+  IconArrowUpRight,
+  IconAward,
+  IconBuilding,
+  IconCalendar,
+  IconClipboard,
+  IconCompass,
+  IconMail,
+  IconPassport,
+  IconPin,
+  IconUsers,
+} from "../../components/icons";
 import { SUMMIT, SUMMIT_FACULTY, type SummitLinkKey } from "../../lib/breast-summit";
 import { getCollaborators, mapLabels } from "../../lib/collaborators-server";
 import { countryName } from "../../lib/countries";
@@ -29,28 +41,52 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return pageMetadata({ locale: active, path: SUMMIT.slug, title: dict.seo.summitTitle, description: dict.seo.summitDescription });
 }
 
-/** The official site's pages, in the order a visitor plans a trip. */
+/** Official summit site pages, ordered in the sequence a delegate plans attendance. */
 const OFFICIAL_LINKS = [
-  ["register", "linkRegister", "linkRegisterHint", IconCheck],
-  ["programme", "linkProgramme", "linkProgrammeHint", IconClock],
+  ["register", "linkRegister", "linkRegisterHint", IconClipboard],
+  ["programme", "linkProgramme", "linkProgrammeHint", IconCalendar],
   ["faculty", "linkFaculty", "linkFacultyHint", IconUsers],
   ["venue", "linkVenue", "linkVenueHint", IconPin],
-  ["hotels", "linkHotels", "linkHotelsHint", IconLayers],
-  ["transportation", "linkTransportation", "linkTransportationHint", IconLink],
-  ["travel", "linkTravel", "linkTravelHint", IconShield],
-  ["sponsors", "linkSponsors", "linkSponsorsHint", IconFile],
+  ["hotels", "linkHotels", "linkHotelsHint", IconBuilding],
+  ["transportation", "linkTransportation", "linkTransportationHint", IconCompass],
+  ["travel", "linkTravel", "linkTravelHint", IconPassport],
+  ["sponsors", "linkSponsors", "linkSponsorsHint", IconAward],
 ] as const satisfies readonly (readonly [SummitLinkKey, string, string, unknown])[];
 
 const BREAST = /breast/i;
 
+/** Deterministic concentric dotted radial rings echoing the official MEBS 2027
+    banner's signature blush-pink dotted motif without using heavy raster art. */
+const HERO_DOTS = (() => {
+  const dots: { cx: number; cy: number; r: number; o: number }[] = [];
+  const rings = [64, 112, 160, 208, 256, 304, 352];
+  for (let ri = 0; ri < rings.length; ri++) {
+    const radius = rings[ri];
+    const count = 18 + ri * 9;
+    const opacity = Number((0.46 - ri * 0.055).toFixed(2));
+    const dotR = ri < 2 ? 2.1 : ri < 5 ? 1.75 : 1.4;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      dots.push({
+        cx: Math.round((400 + Math.cos(a) * radius) * 10) / 10,
+        cy: Math.round((400 + Math.sin(a) * radius) * 10) / 10,
+        r: dotR,
+        o: opacity,
+      });
+    }
+  }
+  return dots;
+})();
+
 /**
- * /:locale/breast-summit: our companion page for the Second Middle East
- * Breast Summit (2nd MEBS 2027).
+ * /:locale/breast-summit: companion page for the Second Middle East Breast
+ * Summit (2nd MEBS 2027), dressed in the official MEBS 2027 charcoal, crisp
+ * white, and berry-crimson (#c43c63) palette.
  *
- * The official summit site is the destination. Every section here either
- * sends the visitor there or adds something only we have: the collaboration
- * map and our breast research. Spec:
- * docs/superpowers/specs/2026-11-23-breast-summit-and-map-design.md.
+ * The official summit site (ibs.smarthealth.group) remains the primary
+ * destination for registration, programme, faculty, and travel. This page
+ * pairs direct official links with what only Smart Surgical Team maintains:
+ * the international collaboration map and our published breast research.
  */
 export default async function BreastSummitPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -66,6 +102,7 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
   const countries = new Set(SUMMIT_FACULTY.map((member) => member.country)).size;
   const external = { target: "_blank", rel: "noopener" } as const;
   const newTab = <span className="visually-hidden"> {t.newTab}</span>;
+  const stepFormat = new Intl.NumberFormat(active === "ar" ? "ar" : "en", { minimumIntegerDigits: 2 });
 
   return (
     <>
@@ -75,59 +112,83 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
       <ScrollMotion />
       <main id="main-content" className="summit-page">
         <section className="summit-hero" aria-labelledby="summit-title">
-          {/* Rings radiating from one point: the summit's city as a hub. The
-              collaboration map in phase 2 picks up the same idea. */}
-          <svg className="summit-hero-rings" viewBox="0 0 800 800" aria-hidden="true" focusable="false">
-            {[90, 170, 250, 330, 410, 490].map((r) => <circle key={r} cx="400" cy="400" r={r} />)}
+          {/* Subtle blush-rose dotted radial field echoing the official MEBS 2027
+              hero artwork without crowding the typography. */}
+          <svg className="summit-hero-dots" viewBox="0 0 800 800" aria-hidden="true" focusable="false">
+            <circle cx="400" cy="400" r="6" className="summit-hero-hub-dot" />
+            {HERO_DOTS.map((dot, index) => (
+              <circle key={index} cx={dot.cx} cy={dot.cy} r={dot.r} fillOpacity={dot.o} />
+            ))}
           </svg>
-          <div className="summit-shell summit-hero-grid">
+
+          <div className="summit-shell summit-hero-inner">
             <header className="summit-intro">
-              <p className="summit-lockup">
-                <span className="summit-lockup-mark">{t.kicker}</span>
-                <span className="summit-lockup-name">{t.edition}</span>
-              </p>
+              <div className="summit-brand">
+                <img
+                  className="summit-brand-logo"
+                  src="/mebs-logo.webp"
+                  alt=""
+                  width={560}
+                  height={270}
+                  decoding="async"
+                  fetchPriority="high"
+                />
+                <span className="summit-brand-divider" aria-hidden="true" />
+                <p className="summit-eyebrow">
+                  <span className="summit-eyebrow-mark" dir="ltr">{t.kicker}</span>
+                  <span className="summit-eyebrow-edition">{t.edition}</span>
+                </p>
+              </div>
               <h1 id="summit-title">{t.title}</h1>
-              <p className="summit-lede">{t.lede}</p>
-              <ul className="summit-meta">
-                <li><IconCalendar size={18} />{t.dates}</li>
-                <li><IconPin size={18} />{t.venue}</li>
-              </ul>
+              <p className="summit-slogan">{t.slogan}</p>
               <div className="summit-actions">
-                <a className="btn btn-primary btn-lg summit-cta" href={SUMMIT.links.register} {...external}>
-                  {t.register}{newTab}<IconArrowRight size={18} />
+                <a className="btn btn-lg summit-cta-primary" href={SUMMIT.links.register} {...external}>
+                  {t.register}{newTab}<IconArrowUpRight size={18} className="summit-ext-icon" />
                 </a>
-                <a className="btn btn-outline btn-lg summit-cta" href={SUMMIT.officialUrl} {...external}>
-                  <IconGlobe size={18} />{t.visitOfficial}{newTab}
+                <a className="summit-cta-link" href={SUMMIT.officialUrl} {...external}>
+                  <span dir="ltr">{t.visitOfficial}</span>{newTab}<IconArrowUpRight size={16} className="summit-ext-icon" />
                 </a>
               </div>
-              <p className="summit-official-note">{t.officialNote}</p>
             </header>
 
-            <aside className="summit-plate" aria-label={t.dates}>
-              <p className="summit-plate-date">
-                <span className="summit-plate-day">{t.dateDay}</span>
-                <span className="summit-plate-month">{t.dateMonth} {t.dateYear}</span>
-              </p>
+            <div className="summit-hero-bar">
+              <div className="summit-hero-facts">
+                <p className="summit-hero-date">
+                  <span className="summit-plate-day" dir="ltr">{t.dateDay}</span>{" "}
+                  <span>{t.dateMonth} {t.dateYear}</span>
+                </p>
+                <span className="summit-hero-divider" aria-hidden="true" />
+                <p className="summit-hero-venue">{t.venueShort}</p>
+              </div>
               <SummitCountdown
                 opensAt={SUMMIT.opensAt}
                 closesAt={SUMMIT.closesAt}
                 locale={active}
                 labels={{ until: t.until, days: t.days, hours: t.hours, minutes: t.minutes, live: t.live, past: t.past }}
               />
-            </aside>
+            </div>
           </div>
         </section>
 
         <section className="summit-shell summit-about" aria-labelledby="summit-about-title">
-          <h2 id="summit-about-title">{t.aboutTitle}</h2>
+          <div className="summit-about-head">
+            <h2 id="summit-about-title">{t.aboutTitle}</h2>
+          </div>
           <div className="summit-about-body">
             <p>{t.aboutBody1}</p>
             <p>{t.aboutBody2}</p>
             <p className="summit-themes-label">{t.themesLabel}</p>
             <ol className="summit-themes">
-              {t.themes.map((theme) => <li key={theme}>{theme}</li>)}
+              {t.themes.map((theme, index) => (
+                <li key={theme}>
+                  <span className="summit-theme-num" aria-hidden="true">{stepFormat.format(index + 1)}</span>
+                  <span className="summit-theme-text">{theme}</span>
+                </li>
+              ))}
             </ol>
-            <a className="text-link" href={SUMMIT.links.about} {...external}>{t.aboutMore}<IconArrowRight size={16} />{newTab}</a>
+            <a className="text-link summit-ext-link" href={SUMMIT.links.about} {...external}>
+              {t.aboutMore}<IconArrowUpRight size={16} className="summit-ext-icon" />{newTab}
+            </a>
           </div>
         </section>
 
@@ -137,13 +198,20 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
               <h2 id="summit-faculty-title">{t.facultyTitle}</h2>
               <p>{fill(t.facultyIntro, { count: SUMMIT_FACULTY.length, countries })}</p>
             </div>
-            <a className="text-link" href={SUMMIT.links.faculty} {...external}>{t.facultyAll}<IconArrowRight size={16} />{newTab}</a>
+            <a className="text-link summit-ext-link" href={SUMMIT.links.faculty} {...external}>
+              {t.facultyAll}<IconArrowUpRight size={16} className="summit-ext-icon" />{newTab}
+            </a>
           </div>
           <ul className="summit-faculty-grid">
             {SUMMIT_FACULTY.map((member) => (
               <li key={member.url}>
-                <a href={member.url} {...external}>
-                  <img src={member.image} alt="" width={96} height={96} loading="lazy" decoding="async" />
+                <a href={member.url} {...external} title={t.facultyProfile}>
+                  <span className="summit-faculty-portrait">
+                    <img src={member.image} alt="" width={240} height={240} loading="lazy" decoding="async" />
+                    <span className="summit-faculty-ext" aria-hidden="true">
+                      <IconArrowUpRight size={15} className="summit-ext-icon" />
+                    </span>
+                  </span>
                   <span className="summit-faculty-name" {...authoredTitleProps(member.name)}>{member.name}</span>
                   <span className="summit-faculty-role">{member.specialty[active]}</span>
                   <span className="summit-faculty-country">{countryName(member.country, active)}</span>
@@ -166,17 +234,20 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
               {OFFICIAL_LINKS.map(([key, label, hint, Icon]) => (
                 <li key={key}>
                   <a href={SUMMIT.links[key]} {...external}>
-                    <span className="summit-official-icon" aria-hidden="true"><Icon size={20} /></span>
+                    <span className="summit-official-top" aria-hidden="true">
+                      <Icon size={19} className="summit-official-icon" />
+                      <IconArrowUpRight size={16} className="summit-official-arrow summit-ext-icon" />
+                    </span>
                     <span className="summit-official-label">{t[label]}</span>
                     <span className="summit-official-hint">{t[hint]}</span>
-                    <IconArrowRight size={17} className="summit-official-arrow" />
                     {newTab}
                   </a>
                 </li>
               ))}
             </ul>
             <p className="summit-contact">
-              <IconMail size={18} />{t.contactLine}{" "}
+              <IconMail size={17} />
+              <span>{t.contactLine}</span>
               <a className="text-link" href={`mailto:${SUMMIT.contactEmail}`} dir="ltr">{SUMMIT.contactEmail}</a>
             </p>
           </div>
@@ -230,10 +301,16 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
           </section>
         )}
 
-        <section className="summit-shell summit-previous" aria-labelledby="summit-previous-title">
-          <h2 id="summit-previous-title" className="summit-kicker">{t.previousTitle}</h2>
-          <p>{t.previousBody}</p>
-          <a className="text-link" href={SUMMIT.previousEditionUrl} {...external}>{t.previousLink}<IconArrowRight size={16} />{newTab}</a>
+        <section className="summit-shell summit-previous-wrap" aria-labelledby="summit-previous-title">
+          <div className="summit-previous">
+            <div className="summit-previous-copy">
+              <h2 id="summit-previous-title" className="summit-kicker">{t.previousTitle}</h2>
+              <p>{t.previousBody}</p>
+            </div>
+            <a className="text-link summit-ext-link" href={SUMMIT.previousEditionUrl} {...external}>
+              {t.previousLink}<IconArrowUpRight size={16} className="summit-ext-icon" />{newTab}
+            </a>
+          </div>
         </section>
       </main>
       <SiteFooter locale={active} dict={dict} />

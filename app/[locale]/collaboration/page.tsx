@@ -5,7 +5,7 @@ import CollaborationMap from "../../components/CollaborationMap";
 import ScrollMotion from "../../components/ScrollMotion";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
-import { IconArrowRight, IconShield } from "../../components/icons";
+import { IconArrowRight } from "../../components/icons";
 import { getCollaborators, mapLabels } from "../../lib/collaborators-server";
 import { getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
@@ -47,19 +47,25 @@ export default async function CollaborationPage({ params }: { params: Promise<{ 
               <span aria-hidden="true">/</span>
               <span>{t.navLabel}</span>
             </nav>
-            <h1>{t.title}</h1>
-            <p>{t.intro}</p>
-            <p className="collab-consent"><IconShield size={17} />{t.consentNote}</p>
+            <div className="collab-intro-grid">
+              <h1>{t.title}</h1>
+              <p className="collab-lede">{t.intro}</p>
+            </div>
           </header>
+
           <CollaborationMap
             collaborators={collaborators}
             locale={active}
             labels={mapLabels(t)}
             emptyHref={localePath(active, "contact")}
           />
-          <p className="collab-back">
-            <Link className="text-link" href={localePath(active, "breast-summit")}>{dict.summit.title}<IconArrowRight size={16} /></Link>
-          </p>
+
+          <footer className="collab-back">
+            <Link className="text-link collab-back-link" href={localePath(active, "breast-summit")}>
+              <IconArrowRight size={16} className="collab-back-arrow" />
+              {t.backToSummit}
+            </Link>
+          </footer>
         </div>
       </main>
       <SiteFooter locale={active} dict={dict} />

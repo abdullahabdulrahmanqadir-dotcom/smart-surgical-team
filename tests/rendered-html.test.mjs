@@ -728,3 +728,30 @@ test("the MDT inbox refuses anyone without a staff session", async () => {
     assert.equal(response.status, 401, `${init.method} without a token`);
   }
 });
+
+test("the Breast Summit and Collaboration Map pages render cleanly in both languages", async () => {
+  for (const [locale, dir, summitHeading, mapHeading] of [
+    ["en", "ltr", "Second Middle East Breast Summit", "International Breast Surgery Collaboration Map"],
+    ["ar", "rtl", "قمة الشرق الأوسط الثانية لأمراض الثدي", "الخريطة الدولية للتعاون في جراحة الثدي"],
+  ]) {
+    const summit = await fetchPath(`/${locale}/breast-summit`);
+    assert.equal(summit.status, 200, `/${locale}/breast-summit`);
+    const summitHtml = await summit.text();
+    assert.match(summitHtml, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.ok(summitHtml.includes(summitHeading), `${locale} summit heading`);
+    assert.match(summitHtml, /\/mebs-logo\.webp/, `${locale} hero renders optimized MEBS logo`);
+    assert.match(summitHtml, /class="summit-plate-day"[^>]*dir="ltr"/, `${locale} date range isolates LTR order`);
+    assert.match(summitHtml, /https:\/\/ibs\.smarthealth\.group\/register/, `${locale} links to official registration`);
+    assert.match(summitHtml, /"@type":"Event"/, `${locale} Event JSON-LD`);
+    assert.match(summitHtml, new RegExp(`href="/${locale}/collaboration"`), `${locale} links to full collaboration map`);
+
+    const collab = await fetchPath(`/${locale}/collaboration`);
+    assert.equal(collab.status, 200, `/${locale}/collaboration`);
+    const collabHtml = await collab.text();
+    assert.match(collabHtml, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.ok(collabHtml.includes(mapHeading), `${locale} collaboration heading`);
+    assert.match(collabHtml, /class="cmap cmap-full"/, `${locale} full collaboration map`);
+    assert.match(collabHtml, /class="cmap-panel-foot"/, `${locale} written-consent footer`);
+    assert.match(collabHtml, new RegExp(`href="/${locale}/breast-summit"`), `${locale} back link to summit`);
+  }
+});
