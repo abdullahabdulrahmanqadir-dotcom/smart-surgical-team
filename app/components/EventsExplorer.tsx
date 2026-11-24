@@ -9,6 +9,7 @@ import { eventDateRange, eventFormatLabel, eventTypeLabel, type TeamEvent } from
 import { authoredTitleProps, localePath, type Locale } from "../lib/i18n";
 import type { Dictionary } from "../lib/dictionaries";
 import FilterSelect from "./FilterSelect";
+import TitleMotion from "./TitleMotion";
 
 export default function EventsExplorer({ locale, events, t }: { locale: Locale; events: TeamEvent[]; t: Dictionary["events"] }) {
   const [status, setStatus] = useState("all");
@@ -37,7 +38,7 @@ export default function EventsExplorer({ locale, events, t }: { locale: Locale; 
 
   return <section className="events-collection" aria-labelledby="all-events-heading">
     <div className="events-collection-heading">
-      <div><h2 id="all-events-heading">{t.allEvents}</h2></div>
+      <div><TitleMotion as="h2" id="all-events-heading" text={t.allEvents} variant="focus" /></div>
     </div>
     <div className="event-filters" aria-label={t.filterEvents}>
       <FilterSelect className="event-filter-control" label={t.status} value={status} onChange={setStatus} options={[{ value: "all", label: t.allStatuses }, { value: "upcoming", label: t.upcoming }, { value: "past", label: t.past }]} />

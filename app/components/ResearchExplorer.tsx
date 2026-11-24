@@ -6,6 +6,7 @@ import { IconArrowRight, IconSearch } from "./icons";
 import { localePath, type Locale } from "../lib/i18n";
 import ResearchCover from "./ResearchCover";
 import FilterSelect from "./FilterSelect";
+import TitleMotion from "./TitleMotion";
 import type { Publication, ResearchTopicTree } from "../lib/research";
 import { fill, type Dictionary } from "../lib/dictionaries";
 
@@ -109,7 +110,11 @@ export default function ResearchExplorer({ publications, topics, locale, t }: { 
   };
 
   return <section className="research-archive" id="publications" aria-labelledby="publications-heading">
-    <div className="research-archive-heading"><h1 id="publications-heading" ref={heading} tabIndex={-1}>{t.publications}</h1></div>
+    <div className="research-archive-heading">
+      <h1 id="publications-heading" ref={heading} tabIndex={-1}>
+        <TitleMotion as="span" text={t.publications} variant="write" immediate delayMs={60} cursor />
+      </h1>
+    </div>
     <div className={`research-filters${filtersAreActive ? " has-active-filters" : ""}`}>
       <div className="content-filter-header">
         <span className="content-filter-label">{t.filterBy}</span>

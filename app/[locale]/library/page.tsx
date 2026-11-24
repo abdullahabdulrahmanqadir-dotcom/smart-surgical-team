@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
+import TitleMotion from "../../components/TitleMotion";
 import CaseCard, { type LibraryItem } from "../../components/CaseCard";
 import CaseLibraryExplorer from "../../components/CaseLibraryExplorer";
 import { IconArrowRight } from "../../components/icons";
@@ -84,7 +85,7 @@ export default async function LibraryIndexPage({ params }: { params: Promise<{ l
       <main id="main-content" className="library-index">
         <header className="library-index-head">
           <div>
-            <h1>{t.title}</h1>
+            <TitleMotion as="h1" text={t.title} variant="focus" immediate delayMs={60} />
             <p>{t.intro}</p>
           </div>
           <Link className="text-link" href={localePath(active, "topics")}>

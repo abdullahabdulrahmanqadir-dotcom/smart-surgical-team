@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MDT_LIMITS, mdtReplyMailto, teamAlertMissing, type MdtInterest, type MdtRole, type MdtStatus } from "../lib/mdt-inquiries";
+import { MDT_LIMITS, mdtReplyMailto, teamAlertMissing, type MdtStoredInterest, type MdtRole, type MdtStatus } from "../lib/mdt-inquiries";
 import { IconCheck, IconMail, IconSearch, IconUsers } from "./icons";
 import "./admin-questions.css";
 
@@ -20,7 +20,7 @@ type Inquiry = {
   country: string;
   email: string;
   phone: string | null;
-  interest: MdtInterest;
+  interest: MdtStoredInterest;
   message: string;
   locale: "en" | "ar";
   status: MdtStatus;
@@ -57,10 +57,10 @@ const ROLE_LABEL: Record<MdtRole, string> = {
   other: "Other",
 };
 
-const INTEREST_LABEL: Record<MdtInterest, string> = {
+const INTEREST_LABEL: Record<MdtStoredInterest, string> = {
   present_case: "Presenting a case",
-  attend: "Attending regularly",
-  observe: "Observing",
+  attend: "Attending regularly (withdrawn option)",
+  observe: "Observing (withdrawn option)",
   collaborate: "Institutional collaboration",
   other: "Something else",
 };

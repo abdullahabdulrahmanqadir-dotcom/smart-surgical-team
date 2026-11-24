@@ -24,8 +24,15 @@ export const MDT_ROLES = [
 ] as const;
 export type MdtRole = (typeof MDT_ROLES)[number];
 
-export const MDT_INTERESTS = ["present_case", "attend", "observe", "collaborate", "other"] as const;
+/**
+ * What the form offers. Taking part means bringing a case (or an institutional
+ * link): attending or observing without one was withdrawn on 2026-11-23.
+ */
+export const MDT_INTERESTS = ["present_case", "collaborate", "other"] as const;
 export type MdtInterest = (typeof MDT_INTERESTS)[number];
+/** Withdrawn options: no longer accepted, but older rows still hold them. */
+export const MDT_RETIRED_INTERESTS = ["attend", "observe"] as const;
+export type MdtStoredInterest = MdtInterest | (typeof MDT_RETIRED_INTERESTS)[number];
 
 export const MDT_STATUSES = ["new", "contacted", "closed", "spam", "wrong_form"] as const;
 export type MdtStatus = (typeof MDT_STATUSES)[number];
@@ -166,13 +173,22 @@ export const MDT_SPECIALTIES = [
 ] as const;
 export type MdtSpecialty = (typeof MDT_SPECIALTIES)[number];
 
-export const MDT_CASE_AREAS = ["thyroid", "parathyroid", "breast", "headNeck"] as const;
+export const MDT_CASE_AREAS = [
+  "thyroid",
+  "parathyroid",
+  "salivaryGlands",
+  "lymphNodes",
+  "skinSoftTissue",
+  "neckMasses",
+  "breast",
+  "headNeck",
+] as const;
 export type MdtCaseArea = (typeof MDT_CASE_AREAS)[number];
 
 /**
- * Only what the site already states elsewhere (About page, llms.txt): the
- * thyroid / head & neck surgeons plus the radiology, pathology and
- * endocrinology contributors, and the topics the team operates on. Breast
+ * Only what the site already states elsewhere (About page, Topics, llms.txt):
+ * the thyroid / head & neck surgeons plus the radiology, pathology and
+ * endocrinology contributors, and the case areas the team operates on. Breast
  * surgery, oncology and nuclear medicine stay out until the team confirms
  * they sit on the MDT. `schedule` stays null until the team gives it: the
  * page then says the details are shared on reply.
@@ -183,7 +199,15 @@ export const MDT_FACTS: {
   schedule: { en: string; ar: string } | null;
 } = {
   specialties: ["endocrineSurgery", "headNeckSurgery", "endocrinology", "radiology", "pathology"],
-  caseAreas: ["thyroid", "parathyroid", "headNeck"],
+  caseAreas: [
+    "thyroid",
+    "parathyroid",
+    "salivaryGlands",
+    "lymphNodes",
+    "skinSoftTissue",
+    "neckMasses",
+    "headNeck",
+  ],
   schedule: null,
 };
 
