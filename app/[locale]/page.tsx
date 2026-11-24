@@ -3,6 +3,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import ThyroidPlate from "../components/ThyroidPlate";
+import TitleMotion from "../components/TitleMotion";
 import IntroductionVideo from "../components/IntroductionVideo";
 import NewsBanner from "../components/NewsBanner";
 import { IconArrowRight } from "../components/icons";
@@ -58,7 +59,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <main id="main-content" className="editorial-home">
         <section className="editorial-wrap editorial-hero" aria-labelledby="home-title">
           <div>
-            <h1 id="home-title">{t.heroTitle}</h1>
+            <TitleMotion as="h1" id="home-title" text={t.heroTitle} variant="write" immediate delayMs={60} cursor />
             <p className="editorial-intro">{t.heroIntro}</p>
             <div className="editorial-actions">
               <Link className="btn btn-primary" href={localePath(active, "topics")}>
@@ -79,7 +80,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         <section className="editorial-wrap editorial-band editorial-topic-band" id="topics" aria-labelledby="topics-heading">
           <div className="editorial-heading">
-            <h2 id="topics-heading" tabIndex={-1}>{dict.topics.title}</h2>
+            <TitleMotion as="h2" id="topics-heading" tabIndex={-1} text={dict.topics.title} variant="curtain" />
             <Link className="text-link" href={localePath(active, "topics")}>{t.viewAllTopics}<IconArrowRight size={16} /></Link>
           </div>
           <ul className="editorial-topics">
@@ -100,7 +101,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <div className="editorial-updates">
           <div className="editorial-wrap editorial-band editorial-columns editorial-update-columns">
             <section id="research-preview" aria-labelledby="research-preview-heading">
-              <h2 id="research-preview-heading">{t.researchTitle}</h2>
+              <TitleMotion as="h2" id="research-preview-heading" text={t.researchTitle} variant="focus" />
               {recentPublications.length > 0 && (
                 <ul className="editorial-publications">
                   {recentPublications.map((paper) => (
@@ -122,7 +123,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               <Link className="text-link" href={localePath(active, "research")}>{t.exploreResearch}<IconArrowRight size={16} /></Link>
             </section>
             <section id="events" aria-labelledby="updates-heading">
-              <h2 id="updates-heading">{t.updatesTitle}</h2>
+              <TitleMotion as="h2" id="updates-heading" text={t.updatesTitle} variant="ink" delayMs={80} />
               <div className="editorial-update-group">
                 <h3>{t.newsTitle}</h3>
                 <ul className="editorial-update-list">
@@ -157,7 +158,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <div className="editorial-wrap editorial-band" id="library">
           <div className="editorial-columns editorial-team-columns">
             <section id="team" aria-labelledby="team-heading">
-              <h2 id="team-heading">{t.introductionTitle}</h2>
+              <TitleMotion as="h2" id="team-heading" text={t.introductionTitle} variant="write" />
               <p className="editorial-section-intro">{t.teamIntro}</p>
               <ul className="editorial-team">
                 {featuredTeam.map((member) => {
@@ -175,7 +176,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
               <Link className="text-link" href={localePath(active, "about")}>{t.meetFullTeam}<IconArrowRight size={16} /></Link>
             </section>
             <section className="editorial-introduction" id="introduction" aria-labelledby="introduction-heading">
-              <h2 id="introduction-heading">{t.clinicOverview}</h2>
+              <TitleMotion as="h2" id="introduction-heading" text={t.clinicOverview} variant="curtain" delayMs={80} />
               <p className="editorial-section-intro">{t.introductionIntro}</p>
               <IntroductionVideo t={dict.introduction} />
             </section>

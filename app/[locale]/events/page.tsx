@@ -6,6 +6,7 @@ import Link from "next/link";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
+import TitleMotion from "../../components/TitleMotion";
 import EventsExplorer from "../../components/EventsExplorer";
 import { IconArrowRight, IconCalendar, IconPin } from "../../components/icons";
 import { eventDateRange, eventDateStamp, eventTypeLabel, getPublicEvents, localizeFallbackEvent } from "../../lib/events";
@@ -46,7 +47,10 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
       <div className="events-hero-photo" aria-hidden="true"><img src="/events/smart-health-tower-events-hero.webp" alt=""/></div>
       <div className="events-hero-inner">
         <div className="events-hero-copy">
-          <h1>{hero.title} <span>{hero.accent}</span></h1>
+          <h1>
+            <TitleMotion as="span" className="events-hero-lead" text={hero.title} variant="curtain" immediate delayMs={60} />{" "}
+            <TitleMotion as="span" text={hero.accent} variant="write" immediate delayMs={240} />
+          </h1>
           <a className="text-link" href="#all-events">{dict.events.allEvents}<IconArrowRight size={16}/></a>
         </div>
       </div>

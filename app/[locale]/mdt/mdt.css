@@ -17,12 +17,13 @@
   border-block-end: 1px solid var(--line);
 }
 
-/* Wide screens: intro on the leading side, the fact panel beside it. */
+/* Wide screens: intro on the leading side, the meeting brief beside it with
+   enough horizontal measure that specialties and case areas never feel cramped. */
 @media (min-width: 1001px) {
   .mdt-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    gap: clamp(2.5rem, 5vw, 5rem);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    gap: clamp(2rem, 4vw, 4rem);
     align-items: center;
   }
   .mdt-hero .mdt-facts-stage { margin: 0; }
@@ -80,17 +81,15 @@
 
 /* --- Fact panel --------------------------------------------------------- */
 
-/* The panel floats above two decorative layers: a soft teal glow and a tilted
-   "ghost" card that drifts on its own rhythm, so the panel reads as lifted off
-   the page. A light orbits its border. All motion uses translate/rotate/scale,
-   because ScrollMotion owns transform on the stage. */
-@property --mdt-orbit { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-
+/* A calm clinical brief: crisp paper card over a subtle stacked-folio layer,
+   structured by hairline rules. Specialties read as a clean two-column roster,
+   cases as light flat paper tags, and the schedule anchors the bottom band. */
 .mdt-facts-stage {
   position: relative;
   isolation: isolate;
-  margin: clamp(2.5rem, 6vw, 3.5rem) 0 0;
-  padding: clamp(.75rem, 2vw, 1.25rem);
+  margin: clamp(2.25rem, 5vw, 3rem) 0 0;
+  padding-inline-end: 8px;
+  padding-block-end: 8px;
 }
 .mdt-facts-stage::before,
 .mdt-facts-stage::after {
@@ -99,189 +98,199 @@
   z-index: -1;
   pointer-events: none;
 }
-/* Glow */
+/* Quiet ambient wash behind the brief */
 .mdt-facts-stage::before {
   inset: 8% 4%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--primary) 30%, transparent), transparent);
-  filter: blur(28px);
-  opacity: .75;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--primary) 22%, transparent), transparent);
+  filter: blur(26px);
+  opacity: .7;
 }
-/* Ghost card */
+/* Grounded folio sheet tucked slightly behind the card */
+.mdt-facts-stage { --folio-x: 4px; --folio-r: .9deg; }
+[dir="rtl"] .mdt-facts-stage { --folio-x: -4px; --folio-r: -.9deg; }
 .mdt-facts-stage::after {
-  inset: clamp(.75rem, 2vw, 1.25rem);
-  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--line));
+  inset-block-start: 8px;
+  inset-block-end: 0;
+  inset-inline-start: 8px;
+  inset-inline-end: 0;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--line));
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--primary-soft) 70%, var(--surface));
-  rotate: var(--ghost-r);
-  translate: var(--ghost-x) 12px;
+  background: var(--bg-muted);
 }
-.mdt-facts-stage { --ghost-r: 3.5deg; --ghost-x: 10px; }
-[dir="rtl"] .mdt-facts-stage { --ghost-r: -3.5deg; --ghost-x: -10px; }
 @media (max-width: 600px) {
-  .mdt-facts-stage { --ghost-r: 1.5deg; --ghost-x: 3px; padding-inline: 0; }
-  [dir="rtl"] .mdt-facts-stage { --ghost-r: -1.5deg; --ghost-x: -3px; }
-  .mdt-facts-stage::after { inset-inline: 0; }
+  .mdt-facts-stage { padding-inline-end: 0; padding-block-end: 0; }
+  .mdt-facts-stage::after { display: none; }
 }
 
 .mdt-facts {
   position: relative;
   margin: 0;
-  padding: clamp(1.35rem, 2.6vw, 2rem);
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  background: var(--surface);
   box-shadow:
-    0 1px 2px color-mix(in srgb, var(--primary) 10%, transparent),
-    0 22px 50px -18px color-mix(in srgb, var(--primary) 40%, transparent),
-    0 40px 80px -40px rgba(0, 0, 0, .35);
-  backdrop-filter: blur(6px);
+    0 1px 2px rgba(64, 50, 42, .05),
+    0 18px 40px -22px color-mix(in srgb, var(--primary) 26%, rgba(64, 50, 42, .22));
+  transition: border-color 280ms ease, box-shadow 320ms ease;
 }
-/* Orbiting border light: a teal-to-copper arc that travels round the edge. */
+.mdt-facts-stage:hover .mdt-facts {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--line));
+  box-shadow:
+    0 2px 4px rgba(64, 50, 42, .06),
+    0 24px 48px -20px color-mix(in srgb, var(--primary) 34%, rgba(64, 50, 42, .26));
+}
+/* Luminous teal-to-copper bar across the top edge of the card */
 .mdt-facts::before {
   content: "";
-  position: absolute;
-  inset: -1px;
-  padding: 2px;
-  border-radius: inherit;
-  background: conic-gradient(from var(--mdt-orbit), transparent 0 55%, var(--primary) 72%, var(--brand-copper) 86%, transparent 96%);
-  pointer-events: none;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
+  display: block;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    color-mix(in srgb, var(--primary) 65%, var(--brand-aqua)) 36%,
+    var(--brand-copper) 62%,
+    var(--primary) 100%
+  );
+  background-size: 220% 100%;
+}
+[dir="rtl"] .mdt-facts::before {
+  background: linear-gradient(
+    270deg,
+    var(--primary) 0%,
+    color-mix(in srgb, var(--primary) 65%, var(--brand-aqua)) 36%,
+    var(--brand-copper) 62%,
+    var(--primary) 100%
+  );
+  background-size: 220% 100%;
 }
 
-.mdt-facts > div { position: relative; padding-block: 1.1rem; border-block-end: 1px solid var(--line); }
-.mdt-facts > div:first-child { padding-block-start: .25rem; }
-.mdt-facts > div:last-child { padding-block-end: .25rem; border-block-end: 0; }
+.mdt-facts > div {
+  padding: clamp(1.15rem, 2.2vw, 1.45rem) clamp(1.25rem, 2.4vw, 1.7rem);
+  border-block-end: 1px solid var(--line);
+}
+.mdt-facts > div:last-child { border-block-end: 0; }
+
 .mdt-facts dt {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: .6rem;
-  color: var(--accent);
+  gap: .5rem;
+  color: var(--primary);
   font-size: var(--step--2);
   font-weight: 750;
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
 }
+[dir="rtl"] .mdt-facts dt { text-transform: none; }
 .mdt-facts dt svg {
-  box-sizing: content-box;
-  padding: .4rem;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  transition: rotate 500ms var(--mdt-ease), scale 500ms var(--mdt-ease);
+  flex: none;
+  opacity: .88;
+  transition: rotate 420ms var(--mdt-ease), scale 420ms var(--mdt-ease), opacity 220ms ease;
 }
-.mdt-facts > div:hover dt svg { rotate: -12deg; scale: 1.12; }
-.mdt-facts dd { margin: .8rem 0 0; color: var(--text-muted); font-size: var(--step-0); line-height: 1.65; }
+.mdt-facts > div:hover dt svg { rotate: -10deg; scale: 1.16; opacity: 1; }
+.mdt-facts dd { margin: .85rem 0 0; color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
 
-/* Chips bob gently, each on its own phase, so the lists look suspended rather
-   than typeset. Hover lifts one forward and fills it. */
-.mdt-chips { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0; padding: 0; list-style: none; }
-.mdt-chips li {
-  --chip-dot: var(--primary);
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  padding-block: .45rem;
-  padding-inline: .75rem .9rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--line));
-  border-radius: 999px;
-  background: var(--primary-soft);
+/* Specialties: structured two-column typographic roster — zero box noise so
+   multi-word disciplines breathe cleanly. */
+.mdt-specialty-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem 1.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mdt-specialty-list li {
+  --row-in-x: -8px;
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
   color: var(--text);
   font-size: var(--step--1);
-  font-weight: 600;
-  line-height: 1.3;
-  box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--primary) 45%, transparent);
+  font-weight: 550;
+  line-height: 1.45;
   cursor: default;
-  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 260ms ease, scale 320ms cubic-bezier(.34, 1.56, .64, 1);
+  transition: color 200ms ease, transform 260ms var(--mdt-ease);
 }
-.mdt-facts > div:nth-child(2) .mdt-chips li { --chip-dot: var(--brand-copper); }
-.mdt-chips li::before {
+[dir="rtl"] .mdt-specialty-list li { --row-in-x: 8px; }
+.mdt-specialty-list li:hover { color: var(--primary-strong); transform: translateX(4px); }
+[dir="rtl"] .mdt-specialty-list li:hover { transform: translateX(-4px); }
+.mdt-specialty-list li::before {
   content: "";
   flex: none;
-  width: .45rem;
-  height: .45rem;
+  width: 6px;
+  height: 6px;
+  margin-block-start: .52em;
   border-radius: 50%;
-  background: var(--chip-dot);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--chip-dot) 22%, transparent);
-  transition: background-color 220ms ease;
-}
-.mdt-chips li:hover {
-  border-color: var(--primary);
   background: var(--primary);
-  color: var(--surface);
-  box-shadow: 0 12px 24px -8px color-mix(in srgb, var(--primary) 70%, transparent);
-  scale: 1.07;
+  opacity: .72;
+  transition: opacity 200ms ease, scale 260ms cubic-bezier(.34, 1.56, .64, 1), box-shadow 260ms ease;
 }
-.mdt-chips li:hover::before { background: var(--surface); }
+.mdt-specialty-list li:hover::before {
+  opacity: 1;
+  scale: 1.3;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+.mdt-specialty-list li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
-/* Chip order across both lists, for staggered entrance and float phase. */
-.mdt-chips li:nth-child(2) { --chip: 1; }
-.mdt-chips li:nth-child(3) { --chip: 2; }
-.mdt-chips li:nth-child(4) { --chip: 3; }
-.mdt-chips li:nth-child(5) { --chip: 4; }
-.mdt-chips li:nth-child(n+6) { --chip: 5; }
-.mdt-facts > div:nth-child(2) .mdt-chips li { --chip-base: 5; }
+/* Cases: quiet flat paper tags on a warm oat fill, crisp small radius and
+   generous gaps so all seven areas scan in two to three tidy rows. */
+.mdt-case-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mdt-case-tags li {
+  padding: .36rem .78rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--step--1);
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: default;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease,
+    box-shadow 240ms ease,
+    transform 280ms cubic-bezier(.34, 1.56, .64, 1);
+}
+.mdt-case-tags li:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--primary) 55%, transparent);
+  transform: translateY(-3px) scale(1.04);
+}
+
+/* Stagger indices for entrance choreography and ambient rhythm */
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(1) { --idx: 0; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(2) { --idx: 1; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(3) { --idx: 2; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(4) { --idx: 3; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(5) { --idx: 4; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(6) { --idx: 5; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(7) { --idx: 6; }
+:is(.mdt-specialty-list, .mdt-case-tags) li:nth-child(n+8) { --idx: 7; }
+
+/* Schedule: recessed ivory footer band anchoring the bottom of the brief. */
+.mdt-fact-schedule { background: var(--bg-muted); }
+.mdt-fact-schedule dd { margin-block-start: .45rem; }
+
+@media (max-width: 480px) {
+  .mdt-specialty-list { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* --- Section heads ------------------------------------------------------ */
 
 .mdt-section-head h2 { margin: 0; font-family: var(--editorial-display); font-size: clamp(1.6rem, 3vw, 2.25rem); font-weight: 500; line-height: 1.2; }
 .mdt-section-head p { max-width: 60ch; margin-block-start: .5rem; color: var(--text-muted); line-height: 1.65; }
-
-/* --- Ways to take part -------------------------------------------------- */
-
-.mdt-ways { margin-block-start: clamp(3rem, 7vw, 5rem); }
-.mdt-ways ul {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(1rem, 2vw, 1.5rem);
-  margin: 1.75rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.mdt-way {
-  position: relative;
-  padding: 1.5rem 1.35rem 1.6rem;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  transition: translate 300ms var(--mdt-ease), box-shadow 300ms ease, border-color 300ms ease;
-}
-/* An accent bar that grows across the top on hover. */
-.mdt-way::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--primary);
-  transform: scaleX(.18);
-  transform-origin: left;
-  transition: transform 420ms var(--mdt-ease);
-}
-[dir="rtl"] .mdt-way::before { transform-origin: right; }
-.mdt-way:hover {
-  border-color: color-mix(in srgb, var(--primary) 40%, var(--line));
-  box-shadow: var(--shadow-lg);
-  translate: 0 -4px;
-}
-.mdt-way:hover::before { transform: scaleX(1); }
-
-.mdt-way-icon {
-  display: grid;
-  place-items: center;
-  width: 2.9rem;
-  height: 2.9rem;
-  margin-block-end: 1.1rem;
-  border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
-  transition: background-color 300ms ease, color 300ms ease, rotate 400ms var(--mdt-ease), scale 400ms var(--mdt-ease);
-}
-.mdt-way:hover .mdt-way-icon { background: var(--primary); color: var(--surface); rotate: -8deg; scale: 1.08; }
-.mdt-way h3 { margin: 0; font-family: var(--editorial-display); font-size: var(--step-1); font-weight: 500; line-height: 1.3; }
-.mdt-way p { margin-block-start: .5rem; color: var(--text-muted); font-size: var(--step--1); line-height: 1.6; }
 
 /* --- How it works ------------------------------------------------------- */
 
@@ -366,51 +375,184 @@ html[data-motion-ready="true"] .mdt-step[data-scroll-reveal]:not(.is-revealed)::
 .mdt-patient .text-link { display: inline-flex; align-items: center; gap: .3rem; }
 [dir="rtl"] .mdt-patient .text-link svg { transform: scaleX(-1); }
 
+/* Form card heading underline that draws across as the title writes in. */
+.mdt-form-card .ask-card-title { position: relative; padding-block-end: .75rem; }
+.mdt-form-card .ask-card-title::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 35%, var(--line)) 45%, transparent 100%);
+  transform-origin: left;
+}
+[dir="rtl"] .mdt-form-card .ask-card-title::after {
+  background: linear-gradient(270deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 35%, var(--line)) 45%, transparent 100%);
+  transform-origin: right;
+}
+
+/* --- Progressive text-writing & section-by-section form reveal ---------- */
+
+/* Keep ScrollMotion from blurring or double-fading copy that runs its own
+   crisp word-by-word ink-writing animation. */
+html[data-motion-ready="true"] .mdt-page .mdt-intro > *[data-scroll-reveal],
+html[data-motion-ready="true"] .mdt-page .mdt-section-head[data-scroll-reveal] {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition: none;
+}
+html[data-motion-ready="true"] .mdt-form-layout > .ask-card[data-scroll-reveal] {
+  filter: none;
+}
+
+.mdt-write-word { display: inline-block; }
+.mdt-write.is-armed .mdt-write-word {
+  opacity: 0;
+  clip-path: inset(-20% 100% -25% -4%);
+}
+[dir="rtl"] .mdt-write.is-armed .mdt-write-word {
+  clip-path: inset(-20% -4% -25% 100%);
+}
+.mdt-write-caret {
+  display: inline-block;
+  width: 2px;
+  height: .84em;
+  margin-inline-start: .14em;
+  border-radius: 2px;
+  background: var(--primary);
+  vertical-align: -.08em;
+  opacity: 0;
+}
+
 /* --- Entrance and ambient motion ---------------------------------------- */
 
 @media (prefers-reduced-motion: no-preference) {
   .mdt-dept-name::after { animation: mdt-rule-draw 900ms var(--mdt-ease) 450ms both; }
   .mdt-dept-mark { animation: mdt-mark-in 600ms var(--mdt-ease) 150ms both; }
+  .mdt-cta { animation: mdt-cta-in 560ms var(--mdt-ease) 560ms backwards; }
 
-  .mdt-facts { animation: mdt-float 7s ease-in-out infinite; }
-  .mdt-facts::before { animation: mdt-orbit 7s linear infinite; }
-  .mdt-facts-stage:hover .mdt-facts::before { animation-duration: 2.6s; }
-  .mdt-facts-stage::after { animation: mdt-ghost 9s ease-in-out infinite; }
-  .mdt-facts-stage::before { animation: mdt-glow 6s ease-in-out infinite; }
-
-  /* Pop in one after another, then keep bobbing on a staggered phase. */
-  .mdt-chips li {
-    animation:
-      mdt-chip-in 620ms cubic-bezier(.34, 1.56, .64, 1) backwards,
-      mdt-chip-bob 4.6s ease-in-out infinite;
-    animation-delay:
-      calc(550ms + (var(--chip-base, 0) + var(--chip, 0)) * 80ms),
-      calc((var(--chip-base, 0) + var(--chip, 0)) * -.7s);
+  .mdt-write.is-writing .mdt-write-word {
+    animation: mdt-word-write var(--write-dur, 340ms) var(--mdt-ease) calc(var(--write-delay, 0ms) + var(--w, 0) * var(--write-step, 45ms)) backwards;
   }
-  .mdt-chips li:hover { animation-play-state: running, paused; }
+  [dir="rtl"] .mdt-write.is-writing .mdt-write-word {
+    animation-name: mdt-word-write-rtl;
+  }
+  .mdt-write.is-writing .mdt-write-caret {
+    animation: mdt-caret-write calc(var(--write-total, 700ms) + 420ms) ease-out var(--write-delay, 0ms) forwards;
+  }
+
+  .mdt-facts { animation: mdt-float 6.5s ease-in-out infinite; }
+  .mdt-facts::before { animation: mdt-bar-sheen 6s ease-in-out infinite; }
+  .mdt-facts-stage:hover .mdt-facts::before { animation-duration: 2.6s; }
+  .mdt-facts-stage::before { animation: mdt-glow 6s ease-in-out infinite; }
+  .mdt-facts-stage::after { animation: mdt-folio 8.5s ease-in-out infinite; }
+
+  .mdt-specialty-list li {
+    animation: mdt-row-in 520ms var(--mdt-ease) backwards;
+    animation-delay: calc(220ms + var(--idx, 0) * 60ms);
+  }
+  .mdt-specialty-list li::before {
+    animation: mdt-dot-pulse 4.4s ease-in-out infinite;
+    animation-delay: calc(var(--idx, 0) * -.75s);
+  }
+  .mdt-specialty-list li:hover::before { animation-play-state: paused; }
+
+  .mdt-case-tags li {
+    animation:
+      mdt-tag-in 540ms cubic-bezier(.34, 1.56, .64, 1) backwards,
+      mdt-tag-wave 4.8s ease-in-out infinite;
+    animation-delay:
+      calc(420ms + var(--idx, 0) * 55ms),
+      calc(var(--idx, 0) * -.55s);
+  }
+  .mdt-case-tags li:hover { animation-play-state: running, paused; }
+
+  /* Form writes itself to life section by section on scroll into view.
+     Fill mode is `backwards` so `transform` and `clip-path` release once done,
+     leaving FilterSelect dropdowns completely unclipped and stack-safe. */
+  .mdt-form-card.is-armed .ask-card-title::after { transform: scaleX(0); }
+  .mdt-form-card.is-armed .mdt-form-section { opacity: 0; }
+  .mdt-form-card.is-written .ask-card-title::after {
+    animation: mdt-rule-draw 780ms var(--mdt-ease) 140ms backwards;
+  }
+  .mdt-form-card.is-written .mdt-form-section {
+    animation: mdt-section-rise 520ms var(--mdt-ease) calc(110ms + var(--section, 0) * 125ms) backwards;
+  }
+  .mdt-form-card.is-written .mdt-form-section :is(label, .content-control-label) {
+    animation: mdt-line-write 480ms var(--mdt-ease) calc(160ms + var(--section, 0) * 125ms) backwards;
+  }
+  [dir="rtl"] .mdt-form-card.is-written .mdt-form-section :is(label, .content-control-label) {
+    animation-name: mdt-line-write-rtl;
+  }
+  .mdt-form-card.is-written .mdt-form-section :is(.field-control, .content-control-field) {
+    animation: mdt-field-write 460ms var(--mdt-ease) calc(210ms + var(--section, 0) * 125ms) backwards;
+  }
+  .mdt-form-card.is-written .mdt-form-section :is(small, .ask-counter) {
+    animation: mdt-fade-in 420ms ease-out calc(280ms + var(--section, 0) * 125ms) backwards;
+  }
 }
 @keyframes mdt-rule-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes mdt-mark-in { from { opacity: 0; scale: .7; } to { opacity: 1; scale: 1; } }
-@keyframes mdt-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
-@keyframes mdt-orbit { to { --mdt-orbit: 360deg; } }
-@keyframes mdt-ghost { 0%, 100% { rotate: var(--ghost-r); translate: var(--ghost-x) 12px; } 50% { rotate: calc(var(--ghost-r) * 1.4); translate: calc(var(--ghost-x) * 1.4) 18px; } }
-@keyframes mdt-glow { 0%, 100% { opacity: .55; scale: .95; } 50% { opacity: .9; scale: 1.05; } }
-@keyframes mdt-chip-in { from { opacity: 0; scale: .5; } to { opacity: 1; scale: 1; } }
-@keyframes mdt-chip-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+@keyframes mdt-cta-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes mdt-word-write {
+  0% { opacity: .15; clip-path: inset(-20% 100% -25% -4%); translate: -4px 0; }
+  100% { opacity: 1; clip-path: inset(-20% -4% -25% -4%); translate: 0 0; }
+}
+@keyframes mdt-word-write-rtl {
+  0% { opacity: .15; clip-path: inset(-20% -4% -25% 100%); translate: 4px 0; }
+  100% { opacity: 1; clip-path: inset(-20% -4% -25% -4%); translate: 0 0; }
+}
+@keyframes mdt-caret-write {
+  0% { opacity: 0; }
+  6%, 22% { opacity: 1; }
+  30%, 38% { opacity: .2; }
+  46%, 62% { opacity: 1; }
+  70%, 78% { opacity: .2; }
+  86%, 92% { opacity: .9; }
+  100% { opacity: 0; }
+}
+@keyframes mdt-section-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mdt-line-write {
+  from { opacity: .2; clip-path: inset(-15% 100% -20% 0); }
+  to { opacity: 1; clip-path: inset(-15% 0 -20% 0); }
+}
+@keyframes mdt-line-write-rtl {
+  from { opacity: .2; clip-path: inset(-15% 0 -20% 100%); }
+  to { opacity: 1; clip-path: inset(-15% 0 -20% 0); }
+}
+@keyframes mdt-field-write {
+  from { opacity: 0; transform: translateY(8px) scaleX(.985); }
+  to { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+@keyframes mdt-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
+@keyframes mdt-bar-sheen { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes mdt-glow { 0%, 100% { opacity: .45; scale: .96; } 50% { opacity: .82; scale: 1.06; } }
+@keyframes mdt-folio { 0%, 100% { translate: 0 0; rotate: 0deg; } 50% { translate: var(--folio-x) 4px; rotate: var(--folio-r); } }
+@keyframes mdt-row-in { from { opacity: 0; translate: var(--row-in-x, -8px) 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes mdt-dot-pulse {
+  0%, 70%, 100% { scale: 1; box-shadow: 0 0 0 0 transparent; }
+  35% { scale: 1.25; box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 20%, transparent); }
+}
+@keyframes mdt-tag-in { from { opacity: 0; translate: 0 8px; scale: .92; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes mdt-tag-wave { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+@keyframes mdt-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .mdt-cta svg, .mdt-chips li, .mdt-way, .mdt-way::before, .mdt-way-icon, .mdt-step::after, .mdt-facts dt svg { transition: none; }
-  .mdt-way:hover { translate: none; }
-  .mdt-chips li:hover { scale: none; }
-  .mdt-facts > div:hover dt svg { rotate: none; scale: none; }
-  .mdt-way:hover .mdt-way-icon { rotate: none; scale: none; }
+  .mdt-cta svg, .mdt-facts, .mdt-facts dt svg, .mdt-specialty-list li, .mdt-specialty-list li::before, .mdt-case-tags li, .mdt-step::after { transition: none; }
+  .mdt-specialty-list li:hover, .mdt-case-tags li:hover { transform: none; }
+  .mdt-specialty-list li:hover::before, .mdt-facts > div:hover dt svg { rotate: none; scale: none; }
+  .mdt-write.is-armed .mdt-write-word { opacity: 1; clip-path: none; }
+  .mdt-write-caret { display: none; }
+  .mdt-form-card.is-armed .mdt-form-section { opacity: 1; }
+  .mdt-form-card.is-armed .ask-card-title::after { transform: none; }
 }
 
 /* --- Small screens ------------------------------------------------------ */
-
-@media (max-width: 1000px) {
-  .mdt-ways ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
 /* On phones the notice stays before the form, and the rest of the guide
    (what happens next, privacy, patients) follows it. */
@@ -437,8 +579,4 @@ html[data-motion-ready="true"] .mdt-step[data-scroll-reveal]:not(.is-revealed)::
   }
   [dir="rtl"] .mdt-step:not(:last-child)::after { transform-origin: top; }
   html[data-motion-ready="true"] .mdt-step[data-scroll-reveal]:not(.is-revealed)::after { transform: scaleY(0); }
-}
-
-@media (max-width: 560px) {
-  .mdt-ways ul { grid-template-columns: minmax(0, 1fr); }
 }

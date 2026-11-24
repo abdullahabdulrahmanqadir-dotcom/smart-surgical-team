@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type FormEvent } from "react";
 import { countryOptions } from "../lib/countries";
 import type { Dictionary } from "../lib/dictionaries";
 import { fill } from "../lib/dictionaries";
@@ -17,6 +17,7 @@ import {
 } from "../lib/mdt-inquiries";
 import FilterSelect from "./FilterSelect";
 import { IconArrowRight, IconCheck, IconMail, IconPhone } from "./icons";
+import MdtWriteText from "./MdtWriteText";
 import { isTurnstileUnavailable, useTurnstile } from "./Turnstile";
 
 type MdtCopy = Dictionary["mdt"];
@@ -67,8 +68,23 @@ function fieldMessage(t: MdtCopy, field: MdtField, error: MdtFieldError): string
   }
 }
 
+function subscribeMotionPreference(callback: () => void): () => void {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
+function getMotionAllowed(): boolean {
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function getServerMotionAllowed(): boolean {
+  return false;
+}
+
 export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCopy }) {
   const id = useId();
+  const cardRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const sentHeading = useRef<HTMLHeadingElement>(null);
   // Set when the form first renders in the browser; the server treats a
@@ -84,11 +100,56 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
   const [role, setRole] = useState("");
   const [country, setCountry] = useState("");
   const [interest, setInterest] = useState("");
+  const canAnimate = useSyncExternalStore(
+    subscribeMotionPreference,
+    getMotionAllowed,
+    getServerMotionAllowed,
+  );
+  const [formWritten, setFormWritten] = useState(false);
   const countries = useMemo(() => countryOptions(locale), [locale]);
 
   useEffect(() => {
     loadedAt.current = Date.now();
   }, []);
+
+  useEffect(() => {
+    if (!canAnimate || formWritten) return;
+    const node = cardRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      const frame = window.requestAnimationFrame(() => setFormWritten(true));
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const bounds = node.getBoundingClientRect();
+    if (bounds.top < window.innerHeight * 0.94 && bounds.bottom > 0) {
+      let inner = 0;
+      const outer = window.requestAnimationFrame(() => {
+        inner = window.requestAnimationFrame(() => setFormWritten(true));
+      });
+      return () => {
+        window.cancelAnimationFrame(outer);
+        window.cancelAnimationFrame(inner);
+      };
+    }
+
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      setFormWritten(true);
+      observer.disconnect();
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) reveal();
+      },
+      { rootMargin: "0px 0px -6%", threshold: 0.06 },
+    );
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, [canAnimate, formWritten]);
 
   useEffect(() => {
     if (sent) sentHeading.current?.focus();
@@ -185,8 +246,12 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
     return (
       <section className="ask-card ask-sent" aria-labelledby={fieldId("sent")}>
         <span className="ask-sent-mark" aria-hidden="true"><IconCheck size={26} /></span>
-        <h2 id={fieldId("sent")} ref={sentHeading} tabIndex={-1}>{t.sentTitle}</h2>
-        <p>{t.sentBody}</p>
+        <h2 id={fieldId("sent")} ref={sentHeading} tabIndex={-1}>
+          <MdtWriteText text={t.sentTitle} immediate delayMs={60} stepMs={65} wordDurationMs={340} cursor />
+        </h2>
+        <p>
+          <MdtWriteText text={t.sentBody} immediate delayMs={260} stepMs={26} wordDurationMs={280} />
+        </p>
         <button
           type="button"
           className="btn btn-outline"
@@ -203,12 +268,16 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
     : null;
   const required = <span aria-hidden="true">*</span>;
   const nearLimit = messageLength > MDT_LIMITS.messageMax * 0.9;
+  const sectionStyle = (index: number) => ({ "--section": index }) as CSSProperties;
+  const cardMotionClass = !canAnimate ? "" : formWritten ? " is-written" : " is-armed";
 
   return (
-    <section className="ask-card" aria-labelledby={fieldId("title")}>
-      <h2 id={fieldId("title")} className="ask-card-title">{t.formTitle}</h2>
+    <section ref={cardRef} className={`ask-card mdt-form-card${cardMotionClass}`} aria-labelledby={fieldId("title")}>
+      <h2 id={fieldId("title")} className="ask-card-title">
+        <MdtWriteText text={t.formTitle} delayMs={60} stepMs={75} wordDurationMs={380} cursor />
+      </h2>
       <form ref={formRef} className="ask-form" noValidate onSubmit={handleSubmit}>
-        <div className="ask-form-pair">
+        <div className="ask-form-pair mdt-form-section" style={sectionStyle(0)}>
           <div className="form-field">
             <label htmlFor={fieldId("name")}>{t.name} {required}</label>
             <div className={`field-control is-plain${errors.name ? " is-invalid" : ""}`}>
@@ -239,7 +308,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           </div>
         </div>
 
-        <div className="ask-form-pair">
+        <div className="ask-form-pair mdt-form-section" style={sectionStyle(1)}>
           <div className="form-field">
             <label htmlFor={fieldId("institution")}>{t.institution} {required}</label>
             <div className={`field-control is-plain${errors.institution ? " is-invalid" : ""}`}>
@@ -268,7 +337,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           </div>
         </div>
 
-        <div className="ask-form-pair">
+        <div className="ask-form-pair mdt-form-section" style={sectionStyle(2)}>
           <div className="form-field">
             <label htmlFor={fieldId("email")}>{t.email} {required}</label>
             <div className={`field-control${errors.email ? " is-invalid" : ""}`}>
@@ -298,7 +367,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           </div>
         </div>
 
-        <div className="form-field ask-select">
+        <div className="form-field ask-select mdt-form-section" style={sectionStyle(3)}>
           <FilterSelect
             id={fieldId("interest")}
             label={<>{t.interest} {required}</>}
@@ -313,7 +382,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
           {fieldError("interest")}
         </div>
 
-        <div className="form-field">
+        <div className="form-field mdt-form-section" style={sectionStyle(4)}>
           <div className="field-label-row">
             <label htmlFor={fieldId("message")}>{t.message} {required}</label>
             <span className={`ask-counter${nearLimit ? " is-near" : ""}`} aria-live={nearLimit ? "polite" : "off"}>
@@ -341,7 +410,7 @@ export default function MdtInquiryForm({ locale, t }: { locale: Locale; t: MdtCo
         {turnstile.widget}
         {formError && <p className="form-message is-error" role="alert">{formError}</p>}
 
-        <button className="btn btn-primary ask-submit" type="submit" disabled={sending} aria-busy={sending}>
+        <button className="btn btn-primary ask-submit mdt-form-section" style={sectionStyle(5)} type="submit" disabled={sending} aria-busy={sending}>
           {sending ? t.sending : <>{t.submit}<IconArrowRight size={17} /></>}
         </button>
       </form>
