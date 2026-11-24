@@ -5,6 +5,7 @@ import JsonLd from "../../../components/JsonLd";
 import ScrollMotion from "../../../components/ScrollMotion";
 import SiteFooter from "../../../components/SiteFooter";
 import SiteHeader from "../../../components/SiteHeader";
+import TitleMotion from "../../../components/TitleMotion";
 import { IconArrowRight } from "../../../components/icons";
 import { fill, getDictionary } from "../../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../../lib/i18n";
@@ -67,7 +68,7 @@ export default async function TeamProfilePage({ params }: { params: Promise<Para
         <div className="member-profile-intro">
           <Link className="text-link member-profile-back" href={localePath(active, "about")}>{t.backToTeam}</Link>
           <p className="member-profile-kicker">{copy.kicker}</p>
-          <h1 {...authoredTitleProps(member.name)}>{member.name}</h1>
+          <TitleMotion as="h1" text={member.name} variant="write" immediate delayMs={80} cursor {...authoredTitleProps(member.name)} />
           <p className="member-profile-headline">{copy.headline}</p>
           <p className="member-profile-credentials">{shown.role} · {shown.credentials}</p>
           <p className="member-profile-lede">{copy.intro}</p>
@@ -81,14 +82,14 @@ export default async function TeamProfilePage({ params }: { params: Promise<Para
       </section>
 
       <div className="member-profile-body">
-        {copy.sections.map((section) => <section key={section.title}>
-          <h2>{section.title}</h2>
+        {copy.sections.map((section, index) => <section key={section.title}>
+          <TitleMotion as="h2" text={section.title} variant={(["curtain", "focus", "ink"] as const)[index % 3]} />
           {section.paragraphs?.map((paragraph) => <p key={paragraph.slice(0, 32)}>{paragraph}</p>)}
           {section.items ? <ul>{section.items.map((item) => <li key={item}>{item}</li>)}</ul> : null}
         </section>)}
 
         {papers.length > 0 && <section>
-          <h2>{t.publicationsTitle}</h2>
+          <TitleMotion as="h2" text={t.publicationsTitle} variant="focus" />
           <p>{fill(t.publicationsCount, { count: papers.length })}</p>
           <ul className="member-profile-papers">
             {papers.slice(0, 6).map((paper) => <li key={paper.id}>
@@ -100,7 +101,7 @@ export default async function TeamProfilePage({ params }: { params: Promise<Para
         </section>}
 
         <section>
-          <h2>{t.elsewhereTitle}</h2>
+          <TitleMotion as="h2" text={t.elsewhereTitle} variant="ink" />
           <ul className="member-profile-links">
             {profile.links.map((link) => <li key={link.href}><a href={link.href} target="_blank" rel="noreferrer">{link.label}</a></li>)}
           </ul>

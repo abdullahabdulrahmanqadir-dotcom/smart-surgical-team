@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import LazyImage from "./LazyImage";
+import TitleMotion from "./TitleMotion";
 import { IconArrowRight } from "./icons";
 // From `news-data`, not `news`: this is a client component, and `news` pulls in
 // `next/cache`, which has no browser equivalent.
@@ -69,7 +70,7 @@ export default function NewsExplorer({ locale, items, categories, t }: { locale:
   return <section className="news-feed" aria-labelledby="news-feed-heading">
     <div className="news-feed-head">
       <div>
-        <h1 id="news-feed-heading">{t.heroTitle} {t.heroAccent}</h1>
+        <TitleMotion as="h1" id="news-feed-heading" text={`${t.heroTitle} ${t.heroAccent}`.trim()} variant="focus" immediate delayMs={60} />
         <p className="section-sub">{t.heroIntro}</p>
       </div>
     </div>
