@@ -403,9 +403,6 @@ html[data-motion-ready="true"] .mdt-page .mdt-section-head[data-scroll-reveal] {
   transform: none;
   transition: none;
 }
-html[data-motion-ready="true"] .mdt-form-layout > .ask-card[data-scroll-reveal] {
-  filter: none;
-}
 
 .mdt-write-word { display: inline-block; }
 .mdt-write.is-armed .mdt-write-word {
