@@ -19,6 +19,8 @@ interface Env {
       back to a per-isolate memory cache and the page cache turns itself off,
       which works but goes cold whenever Cloudflare starts a fresh isolate. */
   CACHE_BUCKET?: R2Bucket;
+  /** The serving Worker version; see ./page-cache.ts `fromAnotherDeploy`. */
+  CF_VERSION_METADATA?: { id: string };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
