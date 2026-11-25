@@ -2605,7 +2605,7 @@ html:has(.image-lightbox)::before { display: none; }
 .events-hero-inner { position: relative; z-index: 1; display: grid; max-width: var(--content); min-height: 34rem; margin: 0 auto; padding: clamp(4.5rem, 9vw, 7.5rem) var(--gutter); align-items: center; }
 .events-hero-copy { max-width: 43rem; }
 [dir="rtl"] .events-hero-copy { justify-self: left; width: min(100%, 34rem); text-align: center; }
-.events-hero .eyebrow { border-color: rgba(205,235,229,.48); background: rgba(13,56,56,.82); color: #fff; }.events-hero h1, .events-hero p { color: #fff; }.events-hero h1 { margin-top: .65rem; font-size: clamp(3rem, 6vw, 5.5rem); line-height: .96; }.events-hero h1 span { color: #b9e8de; }.events-hero h1 .events-hero-lead { color: #fff; }.events-hero h1 .tm-word { color: inherit; }.events-hero p { max-width: 38rem; margin-top: 1.25rem; color: rgba(255,255,255,.83); font-size: 1.06rem; }.events-hero .btn { margin-top: 2rem; background: var(--brand-copper); }
+.events-hero .eyebrow { border-color: rgba(205,235,229,.48); background: rgba(13,56,56,.82); color: #fff; }.events-hero h1, .events-hero p { color: #fff; }.events-hero h1 { margin-top: .65rem; font-size: clamp(3rem, 6vw, 5.5rem); line-height: .96; }.events-hero h1 > span { color: #b9e8de; }.events-hero h1 > .events-hero-lead { color: #fff; }.events-hero h1 .tm-word { color: inherit; }.events-hero p { max-width: 38rem; margin-top: 1.25rem; color: rgba(255,255,255,.83); font-size: 1.06rem; }.events-hero .btn { margin-top: 2rem; background: var(--brand-copper); }
 [dir="rtl"] .events-hero h1 {
   /* The compact Latin hero leading makes Arabic glyphs collide, so the
      Arabic title gets its own looser leading, in the site's Arabic face. */
