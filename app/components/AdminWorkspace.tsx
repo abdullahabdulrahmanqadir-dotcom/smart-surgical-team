@@ -4,7 +4,8 @@ import { FormEvent, MouseEvent as ReactMouseEvent, ReactNode, useCallback, useEf
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import AdminInbox, { type InboxTab } from "./AdminInbox";
-import { IconArrowRight, IconCheck, IconFile, IconLayers, IconMail, IconPlus, IconSearch } from "./icons";
+import { IconArrowRight, IconCheck, IconFile, IconGlobe, IconLayers, IconMail, IconPlus, IconSearch } from "./icons";
+import { countryCodeOptions, countryName } from "../lib/countries";
 
 // The sections the sidebar offers. Contributors and People & roles were retired
 // from the workspace: roles are changed directly in Supabase, and the two topic
@@ -12,7 +13,7 @@ import { IconArrowRight, IconCheck, IconFile, IconLayers, IconMail, IconPlus, Ic
 // "questions" is the Inbox (patient questions + MDT inquiries): shown to the
 // Owner and Contributors only, and self-contained (each list loads and writes
 // its own data).
-type Section = "overview" | "content" | "posters" | "events" | "research" | "news" | "questions";
+type Section = "overview" | "content" | "posters" | "events" | "research" | "news" | "collaborators" | "questions";
 // The taxonomies are still read and written through the same admin API; they
 // simply no longer have a screen of their own. News categories behave the same
 // way: they are managed from inside the news editor that files items under them.
@@ -80,6 +81,7 @@ const nav: { id: Section; label: string; icon: typeof IconLayers }[] = [
   { id: "research", label: "Research", icon: IconFile },
   { id: "news", label: "News", icon: IconFile },
   { id: "events", label: "Events & webinars", icon: IconPlus },
+  { id: "collaborators", label: "Collaboration map", icon: IconGlobe },
   { id: "questions", label: "Inbox", icon: IconMail },
 ];
 // Mirrors canAnswerQuestions() in app/lib/admin-server.ts. Hiding the tab is a
@@ -663,7 +665,7 @@ export default function AdminWorkspace() {
   // (including full article bodies) on each keystroke, and it searches the
   // labelling fields instead of raw markup.
   const searchable = useMemo(
-    () => items.map((item) => ({ item, haystack: ["title", "title_ar", "name", "display_name", "slug", "summary", "kind", "status", "level", "email", "full_name", "topic", "event_type", "location", "authors", "journal", "category", "link_url"].map((key) => typeof item[key] === "string" ? item[key] as string : "").join(" ").toLowerCase() })),
+    () => items.map((item) => ({ item, haystack: ["title", "title_ar", "name", "name_en", "city_en", "display_name", "slug", "summary", "kind", "status", "level", "email", "full_name", "topic", "event_type", "location", "authors", "journal", "category", "link_url"].map((key) => typeof item[key] === "string" ? item[key] as string : "").join(" ").toLowerCase() })),
     [items],
   );
   const filtered = useMemo(() => {
@@ -713,6 +715,9 @@ export default function AdminWorkspace() {
     else if (active === "posters") setEditing({ kind: "poster", status: "published", access_level: "public", justify_body: true, title: "", slug: "", summary: "", level: "Clinical poster", poster_url: "", poster_cta_text: "", poster_cta_url: "", contributor_ids: [], case_sections: [{ key: "overview", label: "Overview", body: "" }, { key: "findings", label: "Key findings", body: "" }] });
     else if (active === "research") setEditing({ title: "", authors: "", abstract: "", journal: "", status: "published", justify_body: true, published_date: "", link: "", topic_id: "", subtopic_id: "", research_media: [] });
     else if (active === "events") setEditing({ title: "", slug: "", event_type: "Webinar", format: "online", status: "published" });
+    // A new institution starts as a draft: it can only be published once its
+    // written consent is on record (enforced by the API and the database).
+    else if (active === "collaborators") setEditing({ name_en: "", name_ar: "", city_en: "", city_ar: "", country_code: "", lat: "", lng: "", description_en: "", description_ar: "", website_url: "", status: "draft", featured: false, sort_order: 0, consent_received_on: "", consent_note: "" });
     // A new item starts as a draft with today's date and one empty section: the
     // commonest news item is a short written announcement, and a press item
     // simply removes the section and pastes a link instead.
@@ -787,10 +792,10 @@ export default function AdminWorkspace() {
   if (access === "signed_out") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Sign in to continue</h1><p>{accessMessage}</p><Link className="btn btn-primary" href="/en/sign-in">Sign in</Link></main>;
   if (access === "denied") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>Admin access required</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in as another account</button></div></main>;
   if (access === "unavailable") return <main className="admin-access"><span className="admin-kicker">Smart Surgical Team</span><h1>We could not verify your access</h1><p>{accessMessage}</p><div className="admin-access-actions"><button className="btn btn-primary" type="button" onClick={() => { setAccess("checking"); void load("overview"); }}>Try again</button><button className="btn btn-outline" type="button" onClick={signOut}>Sign in again</button></div></main>;
-  const canCreate = ["content", "posters", "research", "events", "news"].includes(active);
+  const canCreate = ["content", "posters", "research", "events", "news", "collaborators"].includes(active);
   const visibleNav = nav.filter((item) => item.id !== "questions" || QUESTION_ROLES.includes(String(identity?.role ?? "")));
-  const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : active === "news" ? "news item" : "event";
-  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">{active === "questions" ? "Patients & partners" : "Content operations"}</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive} openInbox={(tab) => { setInboxTab(tab); setActive("questions"); }}/> : active === "questions" ? <AdminInbox authHeaders={authHeaders} tab={inboxTab} setTab={setInboxTab} initialCounts={{ questions: typeof metrics.questionsWaiting === "number" ? metrics.questionsWaiting : undefined, mdt: typeof metrics.mdtWaiting === "number" ? metrics.mdtWaiting : undefined }}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} contributors={contributors} caseSectionsStorable={caseSectionsStorable} taxonomy={taxonomy} loadRelatedOptions={loadRelatedOptions} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} newsFilters={newsFilters} setNewsFilters={setNewsFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
+  const createLabel = active === "content" ? "content" : active === "posters" ? "poster" : active === "research" ? "research" : active === "news" ? "news item" : active === "collaborators" ? "institution" : "event";
+  return <main className="admin-shell"><aside className="admin-sidebar"><Link className="admin-brand" href="/en"><img className="admin-logo" src="/sst-mark.png" alt=""/><span className="admin-brand-copy"><b>Smart Surgical Team</b><small>Admin</small></span></Link><div className="admin-owner"><span>{String(identity?.full_name ?? identity?.name ?? "Owner").split(" ").slice(0, 2).map((part) => part[0]).join("")}</span><div><b>{String(identity?.full_name ?? identity?.name ?? "Smart Surgical Team")}</b><small>{String(identity?.role ?? "owner").replace(/_/g, " ")}</small></div></div><nav aria-label="Admin sections">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} className={active === id ? "is-active" : ""} type="button" onClick={() => { setActive(id); setEditing(null); setSearch(""); }}><Icon size={18}/>{label}</button>)}</nav><button className="admin-signout" type="button" onClick={signOut}>Sign out</button></aside><section className="admin-main"><header className="admin-topbar"><div><span className="admin-kicker">{active === "questions" ? "Patients & partners" : "Content operations"}</span><h1>{nav.find((item) => item.id === active)?.label}</h1></div>{canCreate && <button className="btn btn-primary" type="button" onClick={startNew}><IconPlus size={17}/> Add {createLabel}</button>}</header>{notice && <p className={noticeTone === "warn" ? "admin-notice is-warning" : "admin-notice"} role="status">{noticeTone === "warn" ? <b aria-hidden="true">!</b> : <IconCheck size={17}/>}{notice}</p>}{loading ? <div className="admin-loading">Loading workspace...</div> : <>{active === "overview" ? <Overview metrics={metrics} setActive={setActive} openInbox={(tab) => { setInboxTab(tab); setActive("questions"); }}/> : active === "questions" ? <AdminInbox authHeaders={authHeaders} tab={inboxTab} setTab={setInboxTab} initialCounts={{ questions: typeof metrics.questionsWaiting === "number" ? metrics.questionsWaiting : undefined, mdt: typeof metrics.mdtWaiting === "number" ? metrics.mdtWaiting : undefined }}/> : editing && active === "collaborators" ? <CollaboratorEditor value={editing} onCancel={() => setEditing(null)} onSave={save}/> : editing ? <Editor section={active} value={editing} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} contributors={contributors} caseSectionsStorable={caseSectionsStorable} taxonomy={taxonomy} loadRelatedOptions={loadRelatedOptions} onCancel={() => setEditing(null)} onSave={save}/> : <List section={active} items={filtered} search={search} setSearch={setSearch} topics={topics} researchTopics={researchTopics} newsCategories={newsCategories} filters={contentFilters} setFilters={setContentFilters} researchFilters={researchFilters} setResearchFilters={setResearchFilters} newsFilters={newsFilters} setNewsFilters={setNewsFilters} onEdit={setEditing} onDelete={remove}/>}</>}</section></main>;
 }
 
 function Overview({ metrics, setActive, openInbox }: { metrics: RecordItem; setActive: (section: Section) => void; openInbox: (tab: InboxTab) => void }) {
@@ -838,7 +843,7 @@ function List({ section, items, search, setSearch, topics, researchTopics, newsC
       <label>Status<select value={newsFilters.status} onChange={(event) => setNewsFilters({ ...newsFilters, status: event.target.value })}><option value="">All statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></label>
       <button type="button" onClick={() => setNewsFilters(EMPTY_NEWS_FILTERS)}>Clear filters</button>
     </div> : null}
-    <div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{researchTopicName(item.topic_id) ?? "Unfiled"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}{section === "news" && <span>{newsCategoryName(item.category_id) ?? "Unfiled"}</span>}{section === "news" && <span>{item.published_at ? new Date(`${String(item.published_at).slice(0, 10)}T12:00:00`).toLocaleDateString() : "No date"}</span>}{section === "news" && item.pinned === true && <span className="admin-status is-published">Pinned</span>}{/* The same rule the public card reads: no body and a link means the card goes straight to the outside article. */}
+    <div className="admin-table">{items.map((item) => <article key={String(item.id)}><div className="admin-item-main"><span className={`admin-status is-${String(item.status ?? "default")}`}>{String(item.status ?? "active")}</span><h2>{String(item.title ?? item.name ?? item.name_en ?? item.display_name ?? item.email ?? "Untitled")}</h2><p>{section === "collaborators" ? `${String(item.city_en ?? "")}, ${countryName(String(item.country_code ?? ""), "en")}` : plainText(item.summary ?? item.authors ?? item.abstract ?? item.description) || "No additional detail."}</p></div><div className="admin-item-meta">{section === "collaborators" && <span>{item.consent_received_on ? `Consent ${String(item.consent_received_on)}` : "No consent on record"}</span>}{section === "content" && <span>{item.published_at ? new Date(String(item.published_at)).toLocaleDateString() : "Not published"}</span>}{section === "research" && <span>{researchTopicName(item.topic_id) ?? "Unfiled"}</span>}{section === "research" && <span>{item.published_date ? new Date(`${String(item.published_date)}T00:00:00`).toLocaleDateString() : "No date"}</span>}{section === "news" && <span>{newsCategoryName(item.category_id) ?? "Unfiled"}</span>}{section === "news" && <span>{item.published_at ? new Date(`${String(item.published_at).slice(0, 10)}T12:00:00`).toLocaleDateString() : "No date"}</span>}{section === "news" && item.pinned === true && <span className="admin-status is-published">Pinned</span>}{/* The same rule the public card reads: no body and a link means the card goes straight to the outside article. */}
       {section === "news" && Boolean(String(item.link_url ?? "")) && !(Array.isArray(item.body) && item.body.length > 0) && <span>Links out ↗</span>}<div><button type="button" onClick={() => onEdit(item)}>Edit</button><button className={`admin-delete${confirmingDelete === String(item.id) ? " is-confirming" : ""}`} type="button" title={confirmingDelete === String(item.id) ? "Click again to delete permanently" : "Delete"} onClick={() => { if (confirmingDelete === String(item.id)) { setConfirmingDelete(null); onDelete(item); } else setConfirmingDelete(String(item.id)); }} onBlur={() => setConfirmingDelete((current) => current === String(item.id) ? null : current)}>{confirmingDelete === String(item.id) ? "Delete permanently?" : "Delete"}</button></div></div></article>)}</div>
   </div>;
 }
@@ -1718,3 +1723,78 @@ function JustifyToggle({ value, onChange, what }: { value: unknown; onChange: (n
 function Field({ label, value, onChange, type = "text", hint, required = false, dir }: { label: string; value: unknown; onChange: (value: string) => void; type?: string; hint?: string; required?: boolean; dir?: "auto" }) { return <label className="admin-label">{label}{type === "textarea" ? <textarea dir={dir} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/> : <input dir={dir} type={type} value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} required={required}/>} {hint && <small>{hint}</small>}</label>; }
 function Select({ label, value, onChange, options, hint }: { label: string; value: unknown; onChange: (value: string) => void; options: string[][]; hint?: string }) { return <label className="admin-label">{label}<select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)}>{options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}</select>{hint && <small>{hint}</small>}</label>; }
 function SimpleEditor({ title, fields, form, set, onCancel, onSave }: { title: string; fields: string[][]; form: RecordItem; set: (key: string, value: unknown) => void; onCancel: () => void; onSave: (event: FormEvent) => void }) { return <form className="admin-editor admin-simple-editor" onSubmit={onSave}><EditorHead title={title} onCancel={onCancel}/><div className="admin-simple-fields">{fields.map(([key, label]) => <Field key={key} label={label} hint={key === "highlights" ? "One highlight per line." : undefined} type={key === "summary" || key === "description" || key === "biography" || key === "highlights" ? "textarea" : key.includes("_at") ? "datetime-local" : key.includes("url") ? "url" : key === "sort_order" ? "number" : "text"} value={form[key]} onChange={(value) => set(key, value)}/>) }</div></form>; }
+
+/**
+ * Pulls coordinates out of a pasted Google Maps link. Handles the three
+ * shapes Maps produces: a place URL with "!3d<lat>!4d<lng>" (the pin itself,
+ * preferred), a view URL with "@<lat>,<lng>,<zoom>" (the map centre), and a
+ * "?q=<lat>,<lng>" or "ll=" query. Short maps.app.goo.gl links carry no
+ * coordinates; the editor says so.
+ */
+function coordinatesFromMapsLink(value: string): { lat: number; lng: number } | null {
+  const patterns = [/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/, /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/, /[?&](?:q|ll|query)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/, /^\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\s*$/];
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match) {
+      const lat = Number(match[1]), lng = Number(match[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) return { lat, lng };
+    }
+  }
+  return null;
+}
+
+/**
+ * One collaborating institution on the collaboration map (migration 0030).
+ * Publishing needs the written-consent date; the API and the database both
+ * refuse it otherwise, and this form says so before the save is attempted.
+ */
+function CollaboratorEditor({ value, onCancel, onSave }: { value: RecordItem; onCancel: () => void; onSave: (value: RecordItem) => boolean | void | Promise<boolean | void> }) {
+  const [form, setForm] = useState<RecordItem>(() => ({ ...value, lat: value.lat ?? "", lng: value.lng ?? "" }));
+  const [busy, setBusy] = useState(false);
+  const [mapsLink, setMapsLink] = useState("");
+  const [mapsNote, setMapsNote] = useState("");
+  const set = (key: string, next: unknown) => setForm((current) => ({ ...current, [key]: next }));
+  const countries = useMemo(() => countryCodeOptions("en"), []);
+  const publishing = form.status === "published";
+  const blocked = publishing && !String(form.consent_received_on ?? "") ? "Record the date written consent was received before publishing, or keep this as a draft." : "";
+
+  function applyMapsLink(link: string) {
+    setMapsLink(link);
+    if (!link.trim()) { setMapsNote(""); return; }
+    const found = coordinatesFromMapsLink(link);
+    if (found) {
+      setForm((current) => ({ ...current, lat: Number(found.lat.toFixed(5)), lng: Number(found.lng.toFixed(5)) }));
+      setMapsNote(`Coordinates set: ${found.lat.toFixed(5)}, ${found.lng.toFixed(5)}`);
+    } else setMapsNote(/goo\.gl|maps\.app/.test(link) ? "Short links carry no coordinates. Open the link, then copy the full address from the browser bar." : "No coordinates found in that link.");
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (blocked) return;
+    setBusy(true);
+    try { await onSave(form); } finally { setBusy(false); }
+  }
+
+  return <form className="admin-editor admin-simple-editor" onSubmit={submit}>
+    <EditorHead title={form.id ? "Edit institution" : "New institution"} onCancel={onCancel} busy={busy} blocked={blocked}/>
+    <section className="admin-safety"><h2>Only list an institution that has agreed in writing</h2><p>The public map says every institution shown has agreed to be listed. Record when that agreement arrived and where it is kept. A draft is never shown on the site.</p></section>
+    <div className="admin-simple-fields">
+      <Field label="Institution name (English)" value={form.name_en} onChange={(next) => set("name_en", next)} required/>
+      <Field label="Institution name (Arabic)" hint="Optional. Left empty, the Arabic page shows the English name." value={form.name_ar} onChange={(next) => set("name_ar", next)} dir="auto"/>
+      <Field label="City (English)" value={form.city_en} onChange={(next) => set("city_en", next)} required/>
+      <Field label="City (Arabic)" value={form.city_ar} onChange={(next) => set("city_ar", next)} dir="auto"/>
+      <label className="admin-label">Country<select value={String(form.country_code ?? "")} onChange={(event) => set("country_code", event.target.value)} required><option value="">Choose a country</option>{countries.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+      <label className="admin-label">Google Maps link<input type="url" value={mapsLink} onChange={(event) => applyMapsLink(event.target.value)} placeholder="Paste the institution's Google Maps address to fill the coordinates"/>{mapsNote && <small role="status">{mapsNote}</small>}</label>
+      <Field label="Latitude" type="number" hint="-90 to 90" value={form.lat} onChange={(next) => set("lat", next)} required/>
+      <Field label="Longitude" type="number" hint="-180 to 180" value={form.lng} onChange={(next) => set("lng", next)} required/>
+      <Field label="Short description (English)" type="textarea" hint="Optional, up to 600 characters. What the collaboration is." value={form.description_en} onChange={(next) => set("description_en", next)}/>
+      <Field label="Short description (Arabic)" type="textarea" value={form.description_ar} onChange={(next) => set("description_ar", next)} dir="auto"/>
+      <Field label="Website" type="url" value={form.website_url} onChange={(next) => set("website_url", next)}/>
+      <label className="admin-label">Status<select value={String(form.status ?? "draft")} onChange={(event) => set("status", event.target.value)}><option value="draft">Draft (not shown)</option><option value="published">Published</option><option value="archived">Archived (not shown)</option></select></label>
+      <Field label="Written consent received on" type="date" hint="Required to publish." value={form.consent_received_on} onChange={(next) => set("consent_received_on", next)}/>
+      <Field label="Consent note (internal)" type="textarea" hint="Who agreed, and where the email or letter is kept. Never shown publicly." value={form.consent_note} onChange={(next) => set("consent_note", next)}/>
+      <Field label="Order in the list" type="number" hint="Lower numbers first." value={form.sort_order} onChange={(next) => set("sort_order", next)}/>
+      <label className="admin-checkbox"><input type="checkbox" checked={form.featured === true} onChange={(event) => set("featured", event.target.checked)}/>Feature at the top of the list</label>
+    </div>
+  </form>;
+}

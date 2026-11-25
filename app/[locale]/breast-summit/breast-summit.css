@@ -1,0 +1,848 @@
+/* /:locale/breast-summit. Dressed in the official MEBS 2027 visual identity
+   (ibs.smarthealth.group): crisp white surfaces, calm charcoal-slate ink,
+   deep charcoal hero backdrop, and berry-crimson (#c43c63) / soft blush
+   (#fe8eae) accents. No literal letter-spacing (RTL tracking rule) and
+   logical properties throughout. */
+
+.summit-page {
+  --summit-ease: cubic-bezier(.16, 1, .3, 1);
+  --mebs-crimson: #c43c63;
+  --mebs-crimson-deep: #a02b4d;
+  --mebs-blush: #fe8eae;
+  --mebs-blush-soft: #fdf2f5;
+  --mebs-charcoal: #1c2529;
+  --mebs-charcoal-deep: #141b1f;
+
+  /* Local token overrides so every section, link, button, and map embed on the
+     Breast Summit page speaks one cohesive MEBS 2027 theme. */
+  --bg: #ffffff;
+  --bg-muted: #faf6f7;
+  --surface: #ffffff;
+  --surface-2: #f6eff1;
+  --line: #eadfe2;
+  --line-strong: #d8c7cc;
+  --text: #2e3136;
+  --text-muted: #626262;
+  --text-soft: #7b777a;
+  --primary: var(--mebs-crimson);
+  --primary-strong: var(--mebs-crimson-deep);
+  --primary-soft: var(--mebs-blush-soft);
+  --primary-ring: rgba(196, 60, 99, .28);
+  --on-primary: #ffffff;
+
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: clip;
+}
+
+[data-theme="dark"] .summit-page {
+  --bg: #14181b;
+  --bg-muted: #191f23;
+  --surface: #1d2429;
+  --surface-2: #242c32;
+  --line: #2d363d;
+  --line-strong: #3e4952;
+  --text: #f3eff1;
+  --text-muted: #b6b1b4;
+  --text-soft: #8d888b;
+  --primary: #f07b9d;
+  --primary-strong: #fe9ab7;
+  --primary-soft: rgba(240, 123, 157, .14);
+  --primary-ring: rgba(240, 123, 157, .34);
+  --on-primary: #1a0d12;
+}
+
+/* Crisp, blur-free scroll entrance. */
+html[data-motion-ready="true"] .summit-page [data-scroll-reveal] {
+  filter: none;
+  transform: translateY(14px);
+  transition:
+    opacity 360ms ease-out var(--reveal-delay, 0ms),
+    transform 420ms var(--summit-ease) var(--reveal-delay, 0ms);
+}
+html[data-motion-ready="true"] .summit-page [data-scroll-reveal].is-revealed {
+  opacity: 1;
+  filter: none;
+  transform: translateY(0);
+}
+
+.summit-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+[dir="rtl"] .summit-ext-icon { transform: scaleX(-1); }
+.summit-ext-link:hover .summit-ext-icon { transform: translate(2px, -2px); }
+[dir="rtl"] .summit-ext-link:hover .summit-ext-icon { transform: scaleX(-1) translate(2px, -2px); }
+
+/* --- Hero: serene charcoal-slate + berry-crimson MEBS 2027 identity ----- */
+
+.summit-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(2.25rem, 4.5vw, 3.5rem) clamp(1.5rem, 3vw, 2.15rem);
+  background:
+    radial-gradient(54% 92% at 78% 46%, rgba(196, 60, 99, .24), transparent 68%),
+    linear-gradient(135deg, var(--mebs-charcoal) 0%, var(--mebs-charcoal-deep) 100%);
+  color: #ffffff;
+}
+[dir="rtl"] .summit-hero {
+  background:
+    radial-gradient(54% 92% at 22% 46%, rgba(196, 60, 99, .24), transparent 68%),
+    linear-gradient(225deg, var(--mebs-charcoal) 0%, var(--mebs-charcoal-deep) 100%);
+}
+
+.summit-hero-inner {
+  position: relative;
+  display: grid;
+  gap: clamp(1.65rem, 3.2vw, 2.35rem);
+}
+
+.summit-hero-main {
+  position: relative;
+  display: grid;
+  align-items: center;
+  gap: clamp(1.5rem, 3.5vw, 3rem);
+}
+@media (min-width: 880px) {
+  .summit-hero-main {
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr);
+  }
+}
+
+.summit-intro {
+  position: relative;
+  z-index: 1;
+  max-width: 42rem;
+}
+
+/* Concentric dotted Iraq & Middle East map on the inline-end side of the hero.
+   Never flipped in RTL so geography stays true north-up / east-right. */
+.summit-hero-art {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  user-select: none;
+}
+.summit-hero-map {
+  display: block;
+  width: min(100%, 31.5rem);
+  height: auto;
+  filter: drop-shadow(0 0 28px rgba(196, 60, 99, .18));
+}
+@media (max-width: 879px) {
+  .summit-hero-art {
+    position: absolute;
+    z-index: 0;
+    inset-block-start: -1rem;
+    inset-inline-end: -3.5rem;
+    width: min(24rem, 74vw);
+    opacity: .24;
+  }
+}
+
+.summit-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(.95rem, 2vw, 1.35rem);
+  margin-block-end: clamp(1.35rem, 2.8vw, 1.75rem);
+}
+.summit-brand-logo {
+  display: block;
+  flex: none;
+  width: auto;
+  height: clamp(2.55rem, 4.4vw, 3.35rem);
+}
+.summit-brand-divider {
+  flex: none;
+  width: 1px;
+  height: clamp(2rem, 3.2vw, 2.5rem);
+  background: rgba(255, 255, 255, .18);
+}
+
+.summit-eyebrow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .32rem;
+  margin: 0;
+  line-height: 1.15;
+}
+.summit-eyebrow-mark {
+  color: var(--mebs-blush);
+  font-size: var(--step--2);
+  font-weight: 750;
+  letter-spacing: var(--tracking-label-wide);
+  text-transform: uppercase;
+}
+.summit-eyebrow-edition {
+  color: rgba(255, 255, 255, .74);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+[dir="rtl"] .summit-eyebrow-edition {
+  text-transform: none;
+  font-size: var(--step--1);
+}
+
+.summit-intro h1 {
+  max-width: 15ch;
+  margin: 0;
+  color: #ffffff;
+  font-family: var(--editorial-display);
+  font-size: clamp(2.5rem, 5.4vw, 4.35rem);
+  font-weight: 500;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+[dir="rtl"] .summit-intro h1 { line-height: 1.32; }
+
+.summit-slogan {
+  margin: 1.1rem 0 0;
+  color: #f8cad8;
+  font-size: clamp(1.1rem, 1.8vw, 1.32rem);
+  font-weight: 450;
+  line-height: 1.55;
+}
+
+.summit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.75rem;
+  margin-block-start: 2rem;
+}
+.summit-cta-primary {
+  min-height: 50px;
+  padding-inline: 1.5rem;
+  border-color: var(--mebs-crimson);
+  background: var(--mebs-crimson);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .26);
+}
+.summit-cta-primary:hover {
+  border-color: #d64971;
+  background: #d64971;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .32);
+  transform: translateY(-1px);
+}
+.summit-page .btn-primary {
+  box-shadow: 0 2px 8px rgba(196, 60, 99, .22);
+}
+[data-theme="dark"] .summit-page .btn-primary {
+  background: #c43c63;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .32);
+}
+[data-theme="dark"] .summit-page .btn-primary:hover {
+  background: #d64971;
+}
+.summit-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 44px;
+  color: rgba(255, 255, 255, .86);
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgba(254, 142, 174, .55);
+  text-underline-offset: 5px;
+  transition: color 180ms ease, text-decoration-color 180ms ease;
+}
+.summit-cta-link:hover {
+  color: #ffffff;
+  text-decoration-color: var(--mebs-blush);
+}
+.summit-cta-primary .summit-ext-icon,
+.summit-cta-link .summit-ext-icon { transition: translate 200ms var(--summit-ease); }
+.summit-cta-primary:hover .summit-ext-icon,
+.summit-cta-link:hover .summit-ext-icon { translate: 2px -2px; }
+[dir="rtl"] .summit-cta-primary:hover .summit-ext-icon,
+[dir="rtl"] .summit-cta-link:hover .summit-ext-icon { translate: -2px -2px; }
+
+@media (max-width: 560px) {
+  .summit-actions { gap: .85rem 1.25rem; }
+  .summit-cta-primary { width: 100%; }
+}
+
+/* Quiet bottom metadata + inline countdown bar (no heavy floating card). */
+.summit-hero-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem 2rem;
+  padding-block-start: 1.4rem;
+  border-block-start: 1px solid rgba(255, 255, 255, .14);
+}
+.summit-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .4rem 1rem;
+}
+.summit-hero-date {
+  margin: 0;
+  color: #ffffff;
+  font-size: var(--step-0);
+  font-weight: 650;
+}
+.summit-plate-day {
+  color: var(--mebs-blush);
+  font-weight: 750;
+  font-variant-numeric: lining-nums;
+  unicode-bidi: isolate;
+}
+.summit-hero-divider {
+  width: 1px;
+  height: .85rem;
+  align-self: center;
+  background: rgba(255, 255, 255, .24);
+}
+@media (max-width: 640px) {
+  .summit-hero-divider { display: none; }
+}
+.summit-hero-venue {
+  margin: 0;
+  color: rgba(255, 255, 255, .74);
+  font-size: var(--step--1);
+}
+
+/* Inline horizontal countdown inside the hero bar. */
+.summit-countdown {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .35rem .85rem;
+}
+.summit-countdown-label {
+  margin: 0;
+  color: rgba(255, 255, 255, .6);
+  font-size: var(--step--2);
+  font-weight: 650;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+[dir="rtl"] .summit-countdown-label { text-transform: none; }
+.summit-countdown-units {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.summit-countdown-units li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .28rem;
+}
+.summit-countdown-value {
+  color: #ffffff;
+  font-size: var(--step-0);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.summit-countdown-unit {
+  color: rgba(255, 255, 255, .66);
+  font-size: var(--step--2);
+  font-weight: 500;
+}
+.summit-countdown-state {
+  margin: 0;
+  color: #ffffff;
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+.summit-countdown-live { display: inline-flex; align-items: center; gap: .55rem; }
+.summit-countdown-live span {
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  background: var(--mebs-blush);
+  box-shadow: 0 0 0 0 rgba(254, 142, 174, .55);
+  animation: summit-pulse 1.8s var(--summit-ease) infinite;
+}
+@keyframes summit-pulse {
+  70% { box-shadow: 0 0 0 .55rem rgba(254, 142, 174, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(254, 142, 174, 0); }
+}
+
+/* --- Shared section heads ----------------------------------------------- */
+
+.summit-page h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--editorial-display);
+  font-size: clamp(1.75rem, 3.2vw, 2.45rem);
+  font-weight: 500;
+  line-height: 1.15;
+}
+[dir="rtl"] .summit-page h2 { line-height: 1.38; }
+
+.summit-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+}
+.summit-section-head p {
+  max-width: 60ch;
+  margin-block-start: .5rem;
+  color: var(--text-muted);
+  line-height: 1.62;
+}
+.summit-page .summit-kicker {
+  margin: 0 0 .45rem;
+  color: var(--primary);
+  font-family: var(--font-body-stack);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+[dir="rtl"] .summit-page .summit-kicker { text-transform: none; }
+
+/* --- About: scannable format, specialties & care continuum -------------- */
+
+.summit-about {
+  display: grid;
+  gap: clamp(1.35rem, 2.6vw, 1.85rem);
+  padding-block: clamp(3.25rem, 7vw, 5rem);
+  border-block-end: 1px solid var(--line);
+}
+.summit-about-lead {
+  max-width: 60ch;
+  font-size: var(--step-0);
+  line-height: 1.65;
+}
+
+.summit-about-grid {
+  display: grid;
+  gap: 1.15rem;
+}
+@media (min-width: 860px) {
+  .summit-about-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.summit-about-panel,
+.summit-continuum {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-muted);
+  padding: clamp(1.2rem, 2.3vw, 1.6rem);
+}
+.summit-about-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+.summit-about-panel-title {
+  margin: 0;
+  color: var(--primary);
+  font-family: var(--font-body-stack);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+[dir="rtl"] .summit-about-panel-title { text-transform: none; font-size: var(--step--1); }
+
+.summit-format-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (max-width: 520px) {
+  .summit-format-list { grid-template-columns: 1fr; }
+}
+.summit-format-list li {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem .95rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.summit-format-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.summit-format-text {
+  color: var(--text);
+  font-size: var(--step--1);
+  font-weight: 600;
+  line-height: 1.38;
+}
+
+.summit-specialty-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (max-width: 480px) {
+  .summit-specialty-list { grid-template-columns: 1fr; }
+}
+.summit-specialty-list li {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .72rem .9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--step--1);
+  font-weight: 550;
+  line-height: 1.38;
+}
+.summit-specialty-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.summit-continuum {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.summit-themes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.summit-themes li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .75rem;
+  text-align: center;
+}
+.summit-theme-track {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.summit-theme-num {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 34%, var(--line));
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: var(--step--1);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.summit-theme-line {
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--primary) 26%, var(--line));
+}
+.summit-theme-line-start { margin-inline-end: .6rem; }
+.summit-theme-line-end { margin-inline-start: .6rem; }
+.summit-themes li:first-child .summit-theme-line-start,
+.summit-themes li:last-child .summit-theme-line-end {
+  visibility: hidden;
+}
+.summit-theme-text {
+  padding-inline: .45rem;
+  color: var(--text);
+  font-size: var(--step-0);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+@media (max-width: 720px) {
+  .summit-themes {
+    grid-template-columns: 1fr;
+  }
+  .summit-themes li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0 .85rem;
+    text-align: start;
+  }
+  .summit-theme-track {
+    flex-direction: column;
+    width: auto;
+    align-self: stretch;
+  }
+  .summit-theme-line-start {
+    display: none;
+  }
+  .summit-theme-line-end {
+    width: 1px;
+    height: auto;
+    min-height: .9rem;
+    margin: .25rem 0;
+  }
+  .summit-themes li:last-child .summit-theme-line-end {
+    display: none;
+  }
+  .summit-theme-text {
+    padding: .32rem 0 1rem;
+  }
+  .summit-themes li:last-child .summit-theme-text {
+    padding-block-end: .25rem;
+  }
+}
+
+/* --- Faculty: airy square gallery matching official MEBS portraits ------ */
+
+.summit-faculty { padding-block: clamp(3.25rem, 7vw, 5rem); }
+.summit-faculty-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3vw, 2.25rem) clamp(1rem, 2.2vw, 1.5rem);
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 960px) {
+  .summit-faculty-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+.summit-faculty-grid a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-align: start;
+  text-decoration: none;
+}
+.summit-faculty-portrait {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-block-end: .85rem;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.summit-faculty-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transition: transform 320ms var(--summit-ease);
+}
+.summit-faculty-grid a:hover .summit-faculty-portrait img,
+.summit-faculty-grid a:focus-visible .summit-faculty-portrait img {
+  transform: scale(1.035);
+}
+.summit-faculty-ext {
+  position: absolute;
+  inset-block-start: .6rem;
+  inset-inline-end: .6rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: rgba(28, 37, 41, .76);
+  color: #ffffff;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.summit-faculty-grid a:hover .summit-faculty-ext,
+.summit-faculty-grid a:focus-visible .summit-faculty-ext { opacity: 1; }
+
+.summit-faculty-name {
+  font-size: var(--step-0);
+  font-weight: 700;
+  line-height: 1.32;
+  color: var(--text);
+  transition: color 160ms ease;
+}
+.summit-faculty-grid a:hover .summit-faculty-name { color: var(--primary); }
+.summit-faculty-role {
+  margin-block-start: .25rem;
+  margin-block-end: .7rem;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  line-height: 1.42;
+}
+.summit-faculty-country {
+  margin-block-start: auto;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid var(--line);
+  color: var(--primary);
+  font-size: var(--step--2);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+[dir="rtl"] .summit-faculty-country { text-transform: none; }
+
+/* --- Official summit directory (architectural hairline grid) ------------ */
+
+.summit-official {
+  padding-block: clamp(3.25rem, 7vw, 5rem);
+  border-block: 1px solid var(--line);
+  background: var(--bg-muted);
+}
+.summit-official-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 1.85rem 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--line);
+  overflow: hidden;
+  list-style: none;
+}
+@media (min-width: 1000px) {
+  .summit-official-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 559px) {
+  .summit-official-grid a { padding: 1.05rem .95rem 1.15rem; }
+  .summit-official-top { margin-block-end: .75rem; }
+}
+.summit-official-grid li { display: flex; }
+.summit-official-grid a {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 1.35rem 1.35rem 1.4rem;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 180ms ease;
+}
+.summit-official-grid a:hover,
+.summit-official-grid a:focus-visible {
+  background: color-mix(in srgb, var(--primary-soft) 72%, var(--surface));
+}
+.summit-official-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-block-end: 1.05rem;
+}
+.summit-official-icon { color: var(--primary); }
+.summit-official-arrow {
+  color: var(--text-soft);
+  transition: color 180ms ease, translate 200ms var(--summit-ease);
+}
+.summit-official-grid a:hover .summit-official-arrow,
+.summit-official-grid a:focus-visible .summit-official-arrow {
+  color: var(--primary);
+  translate: 2px -2px;
+}
+[dir="rtl"] .summit-official-grid a:hover .summit-official-arrow,
+[dir="rtl"] .summit-official-grid a:focus-visible .summit-official-arrow {
+  translate: -2px -2px;
+}
+.summit-official-label {
+  font-size: var(--step-0);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+.summit-official-hint {
+  margin-block-start: .28rem;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
+
+.summit-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin: 1.65rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--step--1);
+}
+.summit-contact svg { color: var(--primary); }
+
+/* --- Map embed, research, previous edition ------------------------------ */
+
+.summit-map { padding-block: clamp(3.25rem, 7vw, 5rem) 0; }
+.summit-map .cmap { margin-block-start: 1.75rem; }
+.summit-additions { padding-block: clamp(3.25rem, 7vw, 5rem) 0; }
+.summit-papers { margin-block-start: 1.75rem; }
+
+.summit-previous-wrap {
+  padding-block: clamp(2.75rem, 5.5vw, 4rem);
+}
+.summit-previous {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem 2rem;
+  padding-block-start: clamp(1.75rem, 3.5vw, 2.5rem);
+  border-block-start: 1px solid var(--line);
+}
+.summit-previous-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .35rem 1.25rem;
+}
+.summit-previous h2.summit-kicker { margin: 0; }
+.summit-previous p {
+  margin: 0;
+  font-family: var(--editorial-display);
+  font-size: var(--step-2);
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* --- Focus, motion ------------------------------------------------------ */
+
+.summit-page a:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 3px; }
+.summit-hero a:focus-visible { outline-color: var(--mebs-blush); }
+
+@media (prefers-reduced-motion: reduce) {
+  .summit-page *, .summit-page *::before, .summit-page *::after { transition: none !important; animation: none !important; }
+  .summit-faculty-grid a:hover .summit-faculty-portrait img,
+  .summit-official-grid a:hover .summit-official-arrow,
+  .summit-cta-primary:hover .summit-ext-icon,
+  .summit-cta-link:hover .summit-ext-icon { transform: none; translate: none; }
+}

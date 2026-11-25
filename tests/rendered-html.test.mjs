@@ -728,3 +728,26 @@ test("the MDT inbox refuses anyone without a staff session", async () => {
     assert.equal(response.status, 401, `${init.method} without a token`);
   }
 });
+
+test("the Breast Summit page renders the collaboration dashboard in both languages", async () => {
+  for (const [locale, dir, summitHeading] of [
+    ["en", "ltr", "Second Middle East Breast Summit"],
+    ["ar", "rtl", "قمة الشرق الأوسط الثانية لأمراض الثدي"],
+  ]) {
+    const summit = await fetchPath(`/${locale}/breast-summit`);
+    assert.equal(summit.status, 200, `/${locale}/breast-summit`);
+    const summitHtml = await summit.text();
+    assert.match(summitHtml, new RegExp(`<html[^>]+dir="${dir}"`));
+    assert.ok(summitHtml.includes(summitHeading), `${locale} summit heading`);
+    assert.match(summitHtml, /\/mebs-logo\.webp/, `${locale} hero renders optimized MEBS logo`);
+    assert.match(summitHtml, /class="summit-plate-day"[^>]*dir="ltr"/, `${locale} date range isolates LTR order`);
+    assert.match(summitHtml, /https:\/\/ibs\.smarthealth\.group\/register/, `${locale} links to official registration`);
+    assert.match(summitHtml, /"@type":"Event"/, `${locale} Event JSON-LD`);
+    assert.match(summitHtml, /class="cmap cmap-dashboard"/, `${locale} collaboration dashboard`);
+    assert.match(summitHtml, /class="cmap-panel-foot"/, `${locale} written-consent footer`);
+    assert.doesNotMatch(summitHtml, /collaboration"/, `${locale} no standalone collaboration link`);
+
+    const removed = await fetchPath(`/${locale}/collaboration`);
+    assert.equal(removed.status, 404, `/${locale}/collaboration removed`);
+  }
+});

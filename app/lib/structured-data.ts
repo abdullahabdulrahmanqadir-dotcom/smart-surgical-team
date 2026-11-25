@@ -305,3 +305,34 @@ export function eventJsonLd(locale: Locale, event: TeamEvent) {
     organizer: { "@id": ORGANIZATION_ID },
   };
 }
+
+/**
+ * The Breast Summit on /breast-summit. Its organiser is Smart Health Tower,
+ * whose site is the event's home, so the organizer is named as that site
+ * says rather than pointed at our own Organization node, and `url` points at
+ * the official site with our page as `sameAs`.
+ */
+export function summitEventJsonLd(locale: Locale, copy: { title: string; description: string; venue: string }) {
+  const page = absoluteUrl(localePath(locale, "breast-summit"));
+  return {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "@id": `${page}#event`,
+    name: copy.title,
+    alternateName: "MEBS 2027",
+    description: copy.description,
+    url: "https://ibs.smarthealth.group/",
+    sameAs: page,
+    startDate: "2027-09-02",
+    endDate: "2027-09-03",
+    eventStatus: "https://schema.org/EventScheduled",
+    location: {
+      "@type": "Place",
+      name: "Smart Health Tower",
+      address: { "@type": "PostalAddress", streetAddress: "Madam Mitterrand Street", addressLocality: "Sulaymaniyah", addressCountry: "IQ" },
+    },
+    organizer: { "@type": "Organization", name: "Smart Health Tower", url: "https://smarthealth.group/" },
+    offers: { "@type": "Offer", url: "https://ibs.smarthealth.group/register" },
+    inLanguage: locale,
+  };
+}

@@ -82,6 +82,11 @@ const revealSelectors = [
   // Not the MDT form card: React rewrites its class when it switches to the
   // sent message, which drops "is-revealed" and left the thank-you invisible.
   // The card has its own write-in motion (MdtInquiryForm).
+  ".summit-about > *",
+  ".summit-section-head",
+  ".summit-faculty-grid > li",
+  ".summit-official-grid",
+  ".summit-papers > .research-card",
 ];
 
 export default function ScrollMotion() {

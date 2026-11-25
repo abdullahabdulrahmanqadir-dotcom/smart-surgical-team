@@ -3,10 +3,11 @@ import { revalidateTag } from "next/cache";
 import { apiError, canAnswerQuestions, canDelete, canWrite, jsonObject, resolveAdminIdentity, roleLabel, safeRichText, slugify } from "../../../lib/admin-server";
 import { CACHE_TAGS, type PublicCacheTag } from "../../../lib/cache-tags";
 import { isPaletteName } from "../../../lib/research-palettes";
+import { isKnownCountryCode } from "../../../lib/countries";
 import { getSupabaseServerClient } from "../../../../lib/supabase/server";
 
 type RouteContext = { params: Promise<{ resource: string }> };
-const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research", "research-topics", "news", "news-categories"] as const;
+const allowedResources = ["overview", "content", "topics", "events", "contributors", "people", "research", "research-topics", "news", "news-categories", "collaborators"] as const;
 type Resource = (typeof allowedResources)[number];
 
 function asResource(value: string): Resource | null {
@@ -65,6 +66,14 @@ const NEWS_MIGRATION_HINT = "The news tables are not in the database yet. Apply 
 function missingNewsTables(message: string | undefined) {
   return Boolean(message) && /news_(items|categories|media)/.test(message!) && /does not exist|find the table|in the schema cache|schema cache/i.test(message!);
 }
+// Migration 0030 creates the collaborators table; until then the section has
+// nothing to show, so the raw error is replaced with the one step that fixes it.
+function collaboratorsError(message: string | undefined) {
+  return message && /collaborators/.test(message) && /does not exist|find the table|schema cache/i.test(message)
+    ? "The collaboration map table is not in the database yet. Apply supabase/migrations/0030_collaborators.sql, then reload this page."
+    : message ?? "Could not read the collaboration map.";
+}
+function numberValue(value: unknown) { const parsed = typeof value === "number" ? value : Number(text(value)); return Number.isFinite(parsed) ? parsed : NaN; }
 function newsError(message: string | undefined, fallback: string) {
   return missingNewsTables(message) ? NEWS_MIGRATION_HINT : message ?? fallback;
 }
@@ -117,6 +126,7 @@ function cacheTagsFor(resource: Resource): PublicCacheTag[] {
   if (resource === "research" || resource === "research-topics") return [CACHE_TAGS.research];
   // Renaming a category relabels every card filed under it and its filter chip.
   if (resource === "news" || resource === "news-categories") return [CACHE_TAGS.news];
+  if (resource === "collaborators") return [CACHE_TAGS.collaborators];
   return [];
 }
 
@@ -190,6 +200,11 @@ export async function GET(request: Request, context: RouteContext) {
   if (resource === "topics") {
     const { data, error } = await client.from("topics").select("id,name,slug,parent_id,description,sort_order,created_at").order("sort_order");
     if (error) return apiError(error.message, 500);
+    return Response.json({ data });
+  }
+  if (resource === "collaborators") {
+    const { data, error } = await client.from("collaborators").select("*").order("status").order("sort_order").order("name_en");
+    if (error) return apiError(collaboratorsError(error.message), 500);
     return Response.json({ data });
   }
   if (resource === "events") {
@@ -718,6 +733,35 @@ export async function POST(request: Request, context: RouteContext) {
     return Response.json({ data });
   }
 
+  if (resource === "collaborators") {
+    const name_en = text(body.name_en);
+    const city_en = text(body.city_en);
+    const country_code = text(body.country_code).toUpperCase();
+    const lat = numberValue(body.lat), lng = numberValue(body.lng);
+    const status = ["draft", "published", "archived"].includes(text(body.status)) ? text(body.status) : "draft";
+    const consent_received_on = date(body.consent_received_on);
+    if (name_en.length < 2) return apiError("Enter the institution's English name.");
+    if (!city_en) return apiError("Enter the city in English.");
+    if (!isKnownCountryCode(country_code)) return apiError("Choose the institution's country.");
+    if (!(lat >= -90 && lat <= 90) || !(lng >= -180 && lng <= 180)) return apiError("Enter a valid latitude (-90 to 90) and longitude (-180 to 180), or paste a Google Maps link.");
+    if (status === "published" && !consent_received_on) return apiError("An institution can only be published once its written consent is recorded. Enter the date consent was received, or save it as a draft.");
+    const website = text(body.website_url);
+    if (website && !externalUrl(website)) return apiError("The website must start with http:// or https://.");
+    const payload = {
+      name_en, name_ar: optionalText(body.name_ar), city_en, city_ar: optionalText(body.city_ar), country_code, lat, lng,
+      slug: slugify(text(body.slug) || `${name_en}-${city_en}`),
+      description_en: optionalText(body.description_en)?.slice(0, 600) ?? null,
+      description_ar: optionalText(body.description_ar)?.slice(0, 600) ?? null,
+      website_url: externalUrl(website), field: "breast", featured: body.featured === true,
+      sort_order: Number(body.sort_order) || 0, status, consent_received_on,
+      consent_note: optionalText(body.consent_note)?.slice(0, 1000) ?? null, updated_at: new Date().toISOString(),
+    };
+    const { data, error } = idValue(body.id) ? await client.from("collaborators").update(payload).eq("id", idValue(body.id)).select("id").single() : await client.from("collaborators").insert(payload).select("id").single();
+    if (error) return apiError(/duplicate key.*slug/i.test(error.message) ? "Another institution already uses that web address (slug). Change the name or city slightly." : collaboratorsError(error.message), 500);
+    await invalidatePublicCache(resource);
+    return Response.json({ data });
+  }
+
   if (resource === "contributors") {
     const display_name = text(body.display_name);
     if (!display_name) return apiError("A contributor name is required.");
@@ -744,7 +788,7 @@ export async function POST(request: Request, context: RouteContext) {
 
 export async function DELETE(request: Request, context: RouteContext) {
   const resource = asResource((await context.params).resource);
-  if (!resource || !["content", "topics", "events", "contributors", "research", "research-topics", "news", "news-categories"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
+  if (!resource || !["content", "topics", "events", "contributors", "research", "research-topics", "news", "news-categories", "collaborators"].includes(resource)) return apiError("This item cannot be deleted here.", 404);
   const access = await resolveAdminIdentity(request);
   if (!access.identity) return apiError(access.message, access.status);
   if (!canDelete(access.identity.role, resource)) return apiError(`${roleLabel(access.identity.role)} accounts cannot delete ${resource}. Ask the Owner or a Content manager.`, 403);

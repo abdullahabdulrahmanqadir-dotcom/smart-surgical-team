@@ -288,3 +288,25 @@ const ENGLISH_NAMES = new Set(COUNTRIES.map(([, english]) => english));
 export function isKnownCountry(value: string): boolean {
   return ENGLISH_NAMES.has(value);
 }
+
+/** A country's display name from its ISO code, in the page's language. Falls
+    back to the code itself so an unknown entry is visible rather than blank. */
+export function countryName(code: string, locale: string): string {
+  const row = COUNTRIES.find(([iso]) => iso === code.toUpperCase());
+  if (!row) return code;
+  return locale === "ar" ? row[2] : row[1];
+}
+
+/** Options keyed by ISO code, for fields that store the code (the
+    collaborators table) rather than the English name. */
+export function countryCodeOptions(locale: string): CountryOption[] {
+  const arabic = locale === "ar";
+  const collator = new Intl.Collator(arabic ? "ar" : "en", { sensitivity: "base" });
+  return COUNTRIES.map(([iso, english, arabicName]) => ({ value: iso, label: arabic ? arabicName : english }))
+    .sort((a, b) => collator.compare(a.label, b.label));
+}
+
+/** True for a code in the list. */
+export function isKnownCountryCode(code: string): boolean {
+  return COUNTRIES.some(([iso]) => iso === code);
+}

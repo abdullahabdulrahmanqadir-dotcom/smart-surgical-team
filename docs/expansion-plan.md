@@ -9,7 +9,7 @@ phased build, one goal at a time. Nothing here is decided until it is marked
 |---|---|---|---|
 | 1 | Fellowship programme (apply → train → certify) | Discovery | — |
 | 2 | External teams/institutes join our MDTs | **Design agreed; awaiting team facts** | `docs/superpowers/specs/2026-11-22-mdt-front-door-design.md` |
-| 3 | Breast Summit tab + International Breast Surgery Collaboration Map | Scope decided (world map) | — |
+| 3 | Breast Summit tab + International Breast Surgery Collaboration Map | **Page + map built 2026-11-23, unreleased** | `docs/superpowers/specs/2026-11-23-breast-summit-and-map-design.md` |
 | 4 | Research Desk (team research dashboard) | Built, not rolled out | `C:\A.smart researches\dashboard` |
 
 **Build order — easiest first, fellowship last (user, 2026-11-22).** Finish the
@@ -240,3 +240,5 @@ in 6 files; README describes a deploy that has not been confirmed done.
 | 2026-11-22 | Four goals locked in: fellowship, MDT front door, summit + map, Research Desk |
 | 2026-11-22 | Order: easiest first, fellowship last with full focus |
 | 2026-11-22 | MDT: `/mdt` "Our MDT", explainer then form, specialties only (no names); shared Admin Inbox with patient questions; Owner + Contributors; team alert email on every submission; reply from team mailbox; built on `feature/patient-questions` and launched with it. Spec in `docs/superpowers/specs/` |
+| 2026-11-23 | Summit + map design: 2nd MEBS 2027; real bordered map (country borders only, no Kurdistan Region line), TOSIC-style map + synced list, own SVG map not tiles; on `/breast-summit` and `/collaboration`; institutions only; launches empty; new Collaborate form → Admin Inbox |
+| 2026-11-23 | Build the Summit page and the map first; the Collaborate form is deferred (invitation links to /contact meanwhile) |
