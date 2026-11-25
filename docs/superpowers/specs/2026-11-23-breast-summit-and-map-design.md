@@ -170,3 +170,8 @@ Branch `feature/breast-summit`, cut from `main`.
   card, labels, list sync, the light and dark themes, Arabic RTL, phone layout, no horizontal
   overflow, and the empty state. **Not verified:** the Admin section in a browser (it needs a
   staff sign-in), and anything against the real table (migration not applied).
+
+## Update (2026-11-25)
+
+- `/[locale]/collaboration` was removed; the full collaboration map lives solely on `/[locale]/breast-summit` as a dashboard (small solid dots on neutral land, a ranked country bar chart in the sidebar, and a country-grouped institutions table below).
+- In the header, **Breast Summit** moved into an **Events** dropdown alongside **All events**.

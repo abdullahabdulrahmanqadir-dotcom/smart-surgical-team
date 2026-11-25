@@ -1,6 +1,6 @@
 "use client";
 
-import { geoEqualEarth, geoGraticule10, geoInterpolate, geoPath } from "d3-geo";
+import { geoEqualEarth, geoInterpolate, geoPath } from "d3-geo";
 import { interpolateZoom } from "d3-interpolate";
 import { select } from "d3-selection";
 import { zoom as d3zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform } from "d3-zoom";
@@ -12,7 +12,6 @@ import type { GeometryCollection, Topology } from "topojson-specification";
 import { HUB, collaboratorCounts, type Collaborator } from "../lib/collaborators";
 import { countryName } from "../lib/countries";
 import { fill } from "../lib/dictionaries";
-import FilterSelect from "./FilterSelect";
 import { IconArrowRight, IconArrowUpRight, IconClose, IconCrosshair, IconGlobe, IconMinus, IconPin, IconPlus } from "./icons";
 import "./collaboration-map.css";
 
@@ -47,7 +46,6 @@ const projection = geoEqualEarth()
   .translate([WORLD_W / 2, BASE_PROJ.translate()[1] - Y_NORTH + PAD_Y]);
 
 const geoPathGen = geoPath(projection);
-const GRATICULE_D = geoPathGen(geoGraticule10()) ?? "";
 
 const MAX_ZOOM_MULT = 12;
 const DETAIL_SCALE = 1.65;
@@ -61,7 +59,6 @@ type LoadedAtlas = {
   byCountry: Map<string, Path2D>;
   borders: Path2D;
   coast: Path2D;
-  graticule: Path2D;
   labels: LabelInfo[];
 };
 type Props = { a2?: string };
@@ -90,7 +87,6 @@ export type MapLabels = {
   emptyTitle: string;
   emptyBody: string;
   emptyCta: string;
-  compactEmptyBody: string;
   consentNote: string;
   legendHub: string;
   legendInstitution: string;
@@ -99,6 +95,14 @@ export type MapLabels = {
   showOnMap: string;
   clusterLabel: string;
   listLabel: string;
+  statInstitutions: string;
+  statCountries: string;
+  byCountryTitle: string;
+  tableTitle: string;
+  colCountry: string;
+  colInstitution: string;
+  colCity: string;
+  colFocus: string;
 };
 
 type Palette = {
@@ -118,6 +122,8 @@ type Palette = {
   hubBorder: string;
   rose: string;
   primary: string;
+  arcStart: string;
+  arcEnd: string;
   label: string;
   labelStrong: string;
   labelHalo: string;
@@ -210,7 +216,6 @@ function loadAtlas(scale: "110m" | "50m"): Promise<LoadedAtlas> {
         byCountry,
         borders: new Path2D(bordersD),
         coast: new Path2D(coastD),
-        graticule: new Path2D(GRATICULE_D),
         labels,
       };
     });
@@ -221,7 +226,7 @@ function project(lng: number, lat: number): [number, number] {
   return projection([lng, lat]) ?? [WORLD_W / 2, WORLD_H / 2];
 }
 
-type Placed = { item: Collaborator; x: number; y: number };
+type Placed = { item: Collaborator; x: number; y: number; arcWorldPts: [number, number][] };
 type Cluster = {
   key: string;
   x: number;
@@ -269,15 +274,37 @@ function reducedMotion() {
 
 /** Precompute world-space points along the true spherical geodesic path once
     when an institution is selected (re-projecting to screen space is trivial). */
-function computeGeodesicWorldPoints(targetLng: number, targetLat: number): [number, number][] {
+function computeGeodesicWorldPoints(targetLng: number, targetLat: number, steps = 32): [number, number][] {
   const interp = geoInterpolate([HUB.lng, HUB.lat], [targetLng, targetLat]);
-  const steps = 40;
   const pts: [number, number][] = [];
   for (let i = 0; i <= steps; i++) {
     const [lng, lat] = interp(i / steps);
     pts.push(project(lng, lat));
   }
   return pts;
+}
+
+function projectArcToScreen(worldPts: [number, number][], t: ZoomTransform): [number, number][] | null {
+  if (worldPts.length < 2) return null;
+  const pts = worldPts.map(([wx, wy]) => t.apply([wx, wy]));
+  const [sx0, sy0] = pts[0];
+  const [sx1, sy1] = pts[pts.length - 1];
+  const dx = sx1 - sx0;
+  const dy = sy1 - sy0;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 2) return null;
+  let nx = -dy / dist;
+  let ny = dx / dist;
+  if (ny > 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const lift = Math.min(24, Math.max(8, dist * 0.11));
+  return pts.map(([px, py], i) => {
+    const u = i / (pts.length - 1);
+    const offset = Math.sin(Math.PI * u) * lift;
+    return [px + nx * offset, py + ny * offset];
+  });
 }
 
 function clampTransform(transform: ZoomTransform, stageW: number, stageH: number, minScale: number): ZoomTransform {
@@ -317,12 +344,6 @@ function defaultTransformFor(stageW: number, stageH: number, hasPartners: boolea
   return clampTransform(zoomIdentity.translate(stageW / 2 - focusX * k, stageH / 2 - focusY * k).scale(k), stageW, stageH, fitW);
 }
 
-function formatCount(counts: { institutions: number; countries: number }, labels: MapLabels) {
-  if (counts.institutions === 1) return labels.countOne;
-  if (counts.countries === 1) return fill(labels.countOneCountry, { institutions: counts.institutions });
-  return fill(labels.countMany, { institutions: counts.institutions, countries: counts.countries });
-}
-
 function readPalette(element: HTMLElement): Palette {
   const s = getComputedStyle(element);
   const v = (name: string, fallback: string) => s.getPropertyValue(name).trim() || fallback;
@@ -343,6 +364,8 @@ function readPalette(element: HTMLElement): Palette {
     hubBorder: v("--cmap-hub-border", "#ad7e2f"),
     rose: v("--cmap-rose", "#b82e58"),
     primary: v("--primary", "#c43c63"),
+    arcStart: v("--cmap-arc-start", "rgba(196,60,99,0.1)"),
+    arcEnd: v("--cmap-arc-end", "rgba(196,60,99,0.44)"),
     label: v("--cmap-label", "#576067"),
     labelStrong: v("--cmap-label-strong", "#1c2226"),
     labelHalo: v("--cmap-label-halo", "rgba(255,255,255,0.94)"),
@@ -354,18 +377,12 @@ export default function CollaborationMap({
   collaborators,
   locale,
   labels,
-  variant = "full",
   emptyHref,
-  fullMapHref,
-  fullMapLabel,
 }: {
   collaborators: Collaborator[];
   locale: string;
   labels: MapLabels;
-  variant?: "full" | "compact";
   emptyHref: string;
-  fullMapHref?: string;
-  fullMapLabel?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -407,6 +424,7 @@ export default function CollaborationMap({
   const [detailTick, setDetailTick] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [country, setCountry] = useState("");
   const [hint, setHint] = useState<"" | "ctrl" | "touch">("");
   const [clusters, setClusters] = useState<Cluster[]>([]);
@@ -418,7 +436,7 @@ export default function CollaborationMap({
   const placed = useMemo<Placed[]>(
     () => collaborators.map((item) => {
       const [x, y] = project(item.lng, item.lat);
-      return { item, x, y };
+      return { item, x, y, arcWorldPts: computeGeodesicWorldPoints(item.lng, item.lat, 28) };
     }),
     [collaborators],
   );
@@ -441,7 +459,7 @@ export default function CollaborationMap({
   const hubSelected = selected === HUB_ID;
 
   const arcWorldPts = useMemo(
-    () => (activeInstitution ? computeGeodesicWorldPoints(activeInstitution.item.lng, activeInstitution.item.lat) : null),
+    () => activeInstitution?.arcWorldPts ?? null,
     [activeInstitution],
   );
 
@@ -456,6 +474,7 @@ export default function CollaborationMap({
     country,
     selected,
     hovered,
+    hoveredCountry,
     hoveredInstitutionCountry,
     activeInstitution,
     hubSelected,
@@ -475,6 +494,7 @@ export default function CollaborationMap({
       country,
       selected,
       hovered,
+      hoveredCountry,
       hoveredInstitutionCountry,
       activeInstitution,
       hubSelected,
@@ -485,7 +505,7 @@ export default function CollaborationMap({
       locale,
       hubPlace: labels.hubPlace,
     };
-  }, [size, visible, partnerCountries, country, selected, hovered, hoveredInstitutionCountry, activeInstitution, hubSelected, arcWorldPts, minScale, maxScale, isRtl, locale, labels.hubPlace]);
+  }, [size, visible, partnerCountries, country, selected, hovered, hoveredCountry, hoveredInstitutionCountry, activeInstitution, hubSelected, arcWorldPts, minScale, maxScale, isRtl, locale, labels.hubPlace]);
 
   const syncD3Transform = useCallback((transform: ZoomTransform) => {
     const node = canvasRef.current;
@@ -612,30 +632,22 @@ export default function CollaborationMap({
           octx.lineJoin = "round";
           octx.lineCap = "round";
 
-          // Graticule
-          octx.strokeStyle = pal.coast;
-          octx.globalAlpha = 0.2;
-          octx.lineWidth = 0.55 / t.k;
-          octx.stroke(atlas.graticule);
-          octx.globalAlpha = 1;
-
           // Subtle coastal bathymetry halo beneath land polygons
           octx.strokeStyle = pal.coastHalo;
           octx.lineWidth = 2.4 / t.k;
           octx.stroke(atlas.coast);
 
-          // All inhabited land in one Path2D draw
+          // All inhabited land in one neutral Path2D draw
           octx.fillStyle = pal.land;
           octx.fill(atlas.allLand);
 
-          // Coordinating hub country (Iraq) in dignified slate tone
+          // Whisper-subtle tint for Iraq hub + collaborating countries so every
+          // dot sits on gently lifted geography rather than flat grey alone.
           const hubCountryPath = atlas.byCountry.get(HUB.country);
           if (hubCountryPath) {
             octx.fillStyle = pal.hubCountry;
             octx.fill(hubCountryPath);
           }
-
-          // Collaborating countries in distinct MEBS satin rose
           for (const code of st.partnerCountries) {
             if (code === HUB.country) continue;
             const countryPath = atlas.byCountry.get(code);
@@ -654,11 +666,10 @@ export default function CollaborationMap({
           octx.lineWidth = 0.85 / t.k;
           octx.stroke(atlas.coast);
 
-          // Distinct rim outlines for Iraq hub + partner countries so even small
-          // participating countries stand out sharply at world zoom
+          // Crisp hairline rim around hub & participating countries
           if (hubCountryPath) {
             octx.strokeStyle = pal.hubBorder;
-            octx.lineWidth = 0.95 / t.k;
+            octx.lineWidth = 0.85 / t.k;
             octx.stroke(hubCountryPath);
           }
           for (const code of st.partnerCountries) {
@@ -666,7 +677,7 @@ export default function CollaborationMap({
             const countryPath = atlas.byCountry.get(code);
             if (!countryPath) continue;
             octx.strokeStyle = pal.partnerBorder;
-            octx.lineWidth = 1.05 / t.k;
+            octx.lineWidth = 0.9 / t.k;
             octx.stroke(countryPath);
           }
           octx.restore();
@@ -679,7 +690,7 @@ export default function CollaborationMap({
 
       // Live lightweight active + hover country highlights (0.05ms, zero cache rebuild).
       const activeCode = st.hubSelected ? HUB.country : focusCountry;
-      const liveHoverCountry = hoveredCountryRef.current ?? st.hoveredInstitutionCountry;
+      const liveHoverCountry = hoveredCountryRef.current ?? st.hoveredCountry ?? st.hoveredInstitutionCountry;
       if (activeCode || liveHoverCountry) {
         ctx.save();
         ctx.translate(t.x, t.y);
@@ -720,7 +731,7 @@ export default function CollaborationMap({
     }
 
     const spiderfy = t.k >= st.maxScale * 0.72;
-    const clusterRadius = w <= 480 ? 18 : 26;
+    const clusterRadius = w <= 480 ? 12 : 16;
     const currentClusters = clusterize(st.visible, t, clusterRadius, spiderfy);
     const sig = clusterSignature(currentClusters);
     if (sig !== clusterSigRef.current) {
@@ -761,31 +772,45 @@ export default function CollaborationMap({
       }
     }
 
+    // Ambient geodesic connection network radiating from Sulaymaniyah to every
+    // visible collaborating centre so the international reach reads at a glance.
+    if (st.visible.length > 0) {
+      const hasFocus = Boolean(st.activeInstitution || st.hovered || st.hoveredCountry);
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const entry of st.visible) {
+        if (entry.item.slug === st.selected) continue;
+        const pts = projectArcToScreen(entry.arcWorldPts, t);
+        if (!pts) continue;
+        const isHov = entry.item.slug === st.hovered || entry.item.country === st.hoveredCountry;
+        const [sx0, sy0] = pts[0];
+        const [sx1, sy1] = pts[pts.length - 1];
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i++) {
+          if (i === 0) ctx.moveTo(pts[i][0], pts[i][1]);
+          else ctx.lineTo(pts[i][0], pts[i][1]);
+        }
+        if (isHov) {
+          ctx.globalAlpha = 0.85;
+          ctx.strokeStyle = pal.rose;
+          ctx.lineWidth = 1.75;
+        } else {
+          const grad = ctx.createLinearGradient(sx0, sy0, sx1, sy1);
+          grad.addColorStop(0, pal.arcStart);
+          grad.addColorStop(1, pal.arcEnd);
+          ctx.globalAlpha = hasFocus ? 0.35 : 1;
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.25;
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // Precompute screen geodesic arc so both label collision clearance and arc
     // stroking share exact coordinates without labels getting bisected by arcs.
-    let fullArcPoints: [number, number][] | null = null;
-    if (st.arcWorldPts && st.arcWorldPts.length > 1) {
-      const pts = st.arcWorldPts.map(([wx, wy]) => t.apply([wx, wy]));
-      const [sx0, sy0] = pts[0];
-      const [sx1, sy1] = pts[pts.length - 1];
-      const dx = sx1 - sx0;
-      const dy = sy1 - sy0;
-      const dist = Math.hypot(dx, dy);
-      if (dist >= 2) {
-        let nx = -dy / dist;
-        let ny = dx / dist;
-        if (ny > 0) {
-          nx = -nx;
-          ny = -ny;
-        }
-        const lift = Math.min(24, Math.max(8, dist * 0.11));
-        fullArcPoints = pts.map(([px, py], i) => {
-          const u = i / (pts.length - 1);
-          const offset = Math.sin(Math.PI * u) * lift;
-          return [px + nx * offset, py + ny * offset];
-        });
-      }
-    }
+    const fullArcPoints = st.arcWorldPts ? projectArcToScreen(st.arcWorldPts, t) : null;
 
     // 4. Collision-filtered country labels past regional zoom.
     if (atlas && t.k >= LABEL_SCALE) {
@@ -969,9 +994,11 @@ export default function CollaborationMap({
     return () => observer.disconnect();
   }, [renderFrame]);
 
-  // Load 1:110m world atlas immediately on full page or near viewport on embed.
+  // Load 1:110m world atlas lazily when the map nears the viewport.
   useEffect(() => {
     let cancelled = false;
+    const node = canvasWrapRef.current;
+    if (!node) return;
     const startLoad = () => {
       loadAtlas("110m")
         .then((loaded) => {
@@ -982,12 +1009,6 @@ export default function CollaborationMap({
         })
         .catch((error) => console.error(error));
     };
-    if (variant === "full") {
-      startLoad();
-      return () => { cancelled = true; };
-    }
-    const node = canvasWrapRef.current;
-    if (!node) return;
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
       observer.disconnect();
@@ -995,7 +1016,7 @@ export default function CollaborationMap({
     }, { rootMargin: "500px" });
     observer.observe(node);
     return () => { cancelled = true; observer.disconnect(); };
-  }, [variant, renderFrame]);
+  }, [renderFrame]);
 
   // Repaint before browser paint whenever selection, hover, filter, or cluster
   // grouping changes so newly mounted pins never flash at (0, 0). Only force a
@@ -1005,7 +1026,7 @@ export default function CollaborationMap({
     lastDetailTickRef.current = detailTick;
     renderFrame(undefined, detailUpgraded);
     syncZoomControls();
-  }, [selected, hovered, country, clusters, size, detailTick, renderFrame, syncZoomControls]);
+  }, [selected, hovered, hoveredCountry, country, clusters, size, detailTick, renderFrame, syncZoomControls]);
 
   // Unified geodesic arc draw-in: renderFrame derives arc progress directly from
   // arcStartRef, so a flight animation drives it with zero competing RAF loops.
@@ -1322,8 +1343,8 @@ export default function CollaborationMap({
     );
   }, [flyToTransform]);
 
-  const scrollMapIntoViewOnMobile = useCallback(() => {
-    if (typeof window === "undefined" || window.innerWidth > 1000) return;
+  const scrollMapIntoView = useCallback(() => {
+    if (typeof window === "undefined") return;
     stageRef.current?.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "nearest" });
   }, []);
 
@@ -1331,8 +1352,8 @@ export default function CollaborationMap({
     setSelected((current) => (openCard ? HUB_ID : current === HUB_ID ? null : current));
     const { w } = sizeRef.current;
     flyTo(hubX, hubY + (w > 640 ? 22 : 0), Math.max(fitWidthScale * 3.4, minScale * 3.4), 500);
-    if (fromList) scrollMapIntoViewOnMobile();
-  }, [hubX, hubY, fitWidthScale, minScale, flyTo, scrollMapIntoViewOnMobile]);
+    if (fromList) scrollMapIntoView();
+  }, [hubX, hubY, fitWidthScale, minScale, flyTo, scrollMapIntoView]);
 
   const choose = useCallback((slug: string | null, fromList = false) => {
     if (slug && slug !== HUB_ID && !reducedMotion()) {
@@ -1348,7 +1369,7 @@ export default function CollaborationMap({
     }
     const point = placed.find((entry) => entry.item.slug === slug);
     if (!point) return;
-    if (fromList) scrollMapIntoViewOnMobile();
+    if (fromList) scrollMapIntoView();
     const { w, h } = sizeRef.current;
     const dx = Math.abs(point.x - hubX);
     const dy = Math.abs(point.y - hubY);
@@ -1359,7 +1380,37 @@ export default function CollaborationMap({
     // nudge the arc slightly down to clear the horizontal top zoom toolbar.
     const yOffset = isPhone ? -14 / k : (h * 0.1) / k;
     flyTo((point.x + hubX) / 2, (point.y + hubY) / 2 + yOffset, k, 520);
-  }, [placed, focusHub, scrollMapIntoViewOnMobile, hubX, hubY, fitWidthScale, flyTo]);
+  }, [placed, focusHub, scrollMapIntoView, hubX, hubY, fitWidthScale, flyTo]);
+
+  const focusCountry = useCallback((code: string) => {
+    if (!code || code === country) {
+      setCountry("");
+      setSelected(null);
+      resetWorld();
+      return;
+    }
+    setCountry(code);
+    setSelected(null);
+    const matches = placed.filter((entry) => entry.item.country === code);
+    if (matches.length === 0) return;
+    if (matches.length === 1) {
+      const { x, y } = matches[0];
+      flyTo(x, y, Math.max(fitWidthScale * 3.4, minScale * 3.4), 480);
+      return;
+    }
+    const xs = matches.map((entry) => entry.x);
+    const ys = matches.map((entry) => entry.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const spreadX = maxX - minX;
+    const spreadY = maxY - minY;
+    const { w, h } = sizeRef.current;
+    const sameCity = Math.max(spreadX, spreadY) < 4;
+    const fitK = sameCity
+      ? stateRef.current.maxScale * 0.86
+      : Math.min((w * 0.52) / Math.max(spreadX, 8), (h * 0.52) / Math.max(spreadY, 8));
+    flyTo((minX + maxX) / 2, (minY + maxY) / 2, Math.min(stateRef.current.maxScale, fitK), 480);
+  }, [country, placed, resetWorld, flyTo, fitWidthScale, minScale]);
 
   const expandCluster = useCallback((cluster: Cluster) => {
     const xs = cluster.members.map((member) => member.x);
@@ -1411,17 +1462,29 @@ export default function CollaborationMap({
     return null;
   }, []);
 
-  const countriesInList = useMemo(
-    () => [...partnerCountries].sort((a, b) => countryName(a, locale).localeCompare(countryName(b, locale), locale)),
-    [partnerCountries, locale],
-  );
-  const countryFilterOptions = useMemo(
-    () => [
-      { value: "", label: labels.allCountries },
-      ...countriesInList.map((code) => ({ value: code, label: countryName(code, locale) })),
-    ],
-    [countriesInList, labels.allCountries, locale],
-  );
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale), [locale]);
+  const countryStats = useMemo(() => {
+    const countsByCode = new Map<string, number>();
+    for (const item of collaborators) {
+      countsByCode.set(item.country, (countsByCode.get(item.country) ?? 0) + 1);
+    }
+    const rows = [...countsByCode.entries()]
+      .map(([code, count]) => ({ code, name: countryName(code, locale), count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, locale));
+    return { rows, max: rows[0]?.count ?? 1 };
+  }, [collaborators, locale]);
+
+  const tableRows = useMemo(() => {
+    const sorted = [...visible].sort((a, b) => {
+      const countryCmp = countryName(a.item.country, locale).localeCompare(countryName(b.item.country, locale), locale);
+      if (countryCmp !== 0) return countryCmp;
+      return a.item.name.localeCompare(b.item.name, locale);
+    });
+    return sorted.map((point, index) => {
+      const showCountry = index === 0 || sorted[index - 1].item.country !== point.item.country;
+      return { point, countryLabel: showCountry ? countryName(point.item.country, locale) : "" };
+    });
+  }, [visible, locale]);
 
   const card = activeInstitution ? (
     <div className="cmap-card" role="dialog" aria-label={activeInstitution.item.name}>
@@ -1600,104 +1663,171 @@ export default function CollaborationMap({
     </div>
   );
 
-  if (variant === "compact") {
-    return (
-      <div className="cmap cmap-compact" ref={rootRef}>
-        {map}
-        <div className="cmap-compact-bar">
-          <p>{hasEntries ? formatCount(counts, labels) : labels.compactEmptyBody}</p>
-          <div className="cmap-compact-actions">
-            {!hasEntries && (
-              <Link className="text-link cmap-compact-secondary" href={emptyHref}>
-                {labels.emptyCta}<IconArrowRight size={15} />
-              </Link>
-            )}
-            {fullMapHref && (
-              <Link className="btn btn-primary" href={fullMapHref}>
-                {fullMapLabel}<IconArrowRight size={17} />
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="cmap cmap-full" ref={rootRef}>
+    <div className="cmap cmap-dashboard" ref={rootRef}>
       {map}
       <aside className="cmap-panel" aria-label={labels.listLabel}>
-        <header className="cmap-panel-head">
-          <p className="cmap-panel-kicker">{labels.listLabel}</p>
-          {hasEntries && <p className="cmap-panel-count">{formatCount(counts, labels)}</p>}
-        </header>
-
-        {hasEntries && countriesInList.length > 1 && (
-          <div className="cmap-filter">
-            <FilterSelect
-              label={labels.filterLabel}
-              value={country}
-              options={countryFilterOptions}
-              onChange={(next) => { setCountry(next); setSelected(null); }}
-            />
-            {country && (
-              <div className="cmap-filter-meta">
-                <span>{fill(labels.showingFiltered, { count: visible.length, country: countryName(country, locale) })}</span>
-                <button type="button" className="cmap-filter-clear" onClick={() => { setCountry(""); setSelected(null); }}>
-                  {labels.clearFilter}
-                </button>
+        {hasEntries ? (
+          <>
+            <div className="cmap-stats">
+              <div className="cmap-stat">
+                <strong>{numberFormat.format(counts.institutions)}</strong>
+                <span>{labels.statInstitutions}</span>
               </div>
-            )}
-          </div>
-        )}
+              <div className="cmap-stat">
+                <strong>{numberFormat.format(counts.countries)}</strong>
+                <span>{labels.statCountries}</span>
+              </div>
+            </div>
 
-        <div className="cmap-panel-scroll">
-          <button
-            type="button"
-            className={`cmap-hub-row${hubSelected ? " is-active" : ""}`}
-            onClick={() => focusHub(true, true)}
-          >
-            <span className="cmap-hub-row-tag">{labels.hubTag}</span>
-            <span className="cmap-hub-row-name">{labels.hubName}</span>
-            <span className="cmap-hub-row-place">{labels.hubCity}</span>
-          </button>
-
-          {hasEntries ? (
-            <ul className="cmap-list">
-              {visible.map((point) => (
-                <li key={point.item.slug}>
-                  <button
-                    type="button"
-                    className={`cmap-item${point.item.slug === selected ? " is-active" : ""}${point.item.slug === hovered ? " is-hovered" : ""}`}
-                    onClick={() => choose(point.item.slug, true)}
-                    onMouseEnter={() => setHovered(point.item.slug)}
-                    onMouseLeave={() => setHovered(null)}
-                    onFocus={() => setHovered(point.item.slug)}
-                    onBlur={() => setHovered(null)}
-                  >
-                    <span className="cmap-item-name" dir="auto">{point.item.name}</span>
-                    <span className="cmap-item-place">{point.item.city}{comma}{countryName(point.item.country, locale)}</span>
-                    {point.item.description && <span className="cmap-item-body" dir="auto">{point.item.description}</span>}
-                    <span className="cmap-item-go">{labels.showOnMap}<IconArrowRight size={14} /></span>
+            <div className="cmap-countries">
+              <div className="cmap-countries-head">
+                <p className="cmap-countries-title">{labels.byCountryTitle}</p>
+                {country && (
+                  <button type="button" className="cmap-filter-clear" onClick={() => focusCountry("")}>
+                    {labels.allCountries}
                   </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
+                )}
+              </div>
+              <ul className="cmap-country-list" aria-label={labels.filterLabel}>
+                {countryStats.rows.map((row, index) => {
+                  const isActive = country === row.code;
+                  const pct = Math.max(12, Math.round((row.count / countryStats.max) * 100));
+                  return (
+                    <li key={row.code}>
+                      <button
+                        type="button"
+                        className={`cmap-country-row${index === 0 ? " is-top" : ""}${isActive ? " is-active" : ""}`}
+                        aria-pressed={isActive}
+                        onClick={() => focusCountry(row.code)}
+                        onMouseEnter={() => setHoveredCountry(row.code)}
+                        onMouseLeave={() => setHoveredCountry(null)}
+                        onFocus={() => setHoveredCountry(row.code)}
+                        onBlur={() => setHoveredCountry(null)}
+                      >
+                        <span className="cmap-country-name">{row.name}</span>
+                        <span className="cmap-country-bar" aria-hidden="true">
+                          <i style={{ width: `${pct}%` }} />
+                        </span>
+                        <span className="cmap-country-count">{numberFormat.format(row.count)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              className={`cmap-hub-row${hubSelected ? " is-active" : ""}`}
+              onClick={() => focusHub(true, true)}
+            >
+              <span className="cmap-hub-row-dot" aria-hidden="true" />
+              <span className="cmap-hub-row-copy">
+                <span className="cmap-hub-row-top">
+                  <span className="cmap-hub-row-name">{labels.hubName}</span>
+                  <span className="cmap-hub-row-tag">{labels.hubTag}</span>
+                </span>
+                <span className="cmap-hub-row-place">{labels.hubCity}</span>
+              </span>
+            </button>
+          </>
+        ) : (
+          <>
+            <header className="cmap-panel-head">
+              <p className="cmap-panel-kicker">{labels.listLabel}</p>
+            </header>
+
+            <button
+              type="button"
+              className={`cmap-hub-row${hubSelected ? " is-active" : ""}`}
+              onClick={() => focusHub(true, true)}
+            >
+              <span className="cmap-hub-row-dot" aria-hidden="true" />
+              <span className="cmap-hub-row-copy">
+                <span className="cmap-hub-row-top">
+                  <span className="cmap-hub-row-name">{labels.hubName}</span>
+                  <span className="cmap-hub-row-tag">{labels.hubTag}</span>
+                </span>
+                <span className="cmap-hub-row-place">{labels.hubCity}</span>
+              </span>
+            </button>
+
             <div className="cmap-empty">
-              <h2>{labels.emptyTitle}</h2>
+              <h3>{labels.emptyTitle}</h3>
               <p>{labels.emptyBody}</p>
               <Link className="btn btn-primary cmap-empty-btn" href={emptyHref}>
                 {labels.emptyCta}<IconArrowRight size={17} />
               </Link>
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         <footer className="cmap-panel-foot">
           <p>{labels.consentNote}</p>
         </footer>
       </aside>
+
+      {hasEntries && (
+        <section className="cmap-table-wrap" aria-labelledby="cmap-table-title">
+          <div className="cmap-table-head">
+            <h3 id="cmap-table-title" className="cmap-table-title">{labels.tableTitle}</h3>
+            {country && (
+              <div className="cmap-table-filter">
+                <span>{fill(labels.showingFiltered, { count: visible.length, country: countryName(country, locale) })}</span>
+                <button type="button" className="cmap-filter-clear" onClick={() => focusCountry("")}>
+                  {labels.clearFilter}
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="cmap-table-scroll">
+            <table className="cmap-table">
+              <thead>
+                <tr>
+                  <th scope="col">{labels.colCountry}</th>
+                  <th scope="col">{labels.colInstitution}</th>
+                  <th scope="col">{labels.colCity}</th>
+                  <th scope="col">{labels.colFocus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map(({ point, countryLabel }) => {
+                  const isActive = point.item.slug === selected;
+                  const isHovered = point.item.slug === hovered;
+                  return (
+                    <tr
+                      key={point.item.slug}
+                      className={`${isActive ? "is-active" : ""}${isHovered ? " is-hovered" : ""}`.trim() || undefined}
+                      onMouseEnter={() => setHovered(point.item.slug)}
+                      onMouseLeave={() => setHovered(null)}
+                    >
+                      <td className="cmap-table-country">{countryLabel}</td>
+                      <td className="cmap-table-inst">
+                        <button
+                          type="button"
+                          className="cmap-table-btn"
+                          dir="auto"
+                          title={labels.showOnMap}
+                          onClick={() => choose(point.item.slug, true)}
+                          onFocus={() => setHovered(point.item.slug)}
+                          onBlur={() => setHovered(null)}
+                        >
+                          {point.item.name}
+                        </button>
+                      </td>
+                      <td className="cmap-table-city">{point.item.city}</td>
+                      <td className="cmap-table-focus" dir="auto" title={point.item.description}>
+                        <span>{point.item.description ?? ""}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

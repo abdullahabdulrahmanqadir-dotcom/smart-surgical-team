@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabase/browser";
 import { BrandMark, IconChevronDown, IconClose, IconMenu, IconMoon, IconSun, IconUser } from "./icons";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -41,8 +41,9 @@ export default function SiteHeader({
   dict: Dictionary;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [contactOpen, setContactOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<"events" | "contact" | null>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const eventsButton = useRef<HTMLButtonElement>(null);
   const contactButton = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const [member, setMember] = useState<HeaderMember | null>(null);
@@ -55,47 +56,51 @@ export default function SiteHeader({
 
   const home = localePath(locale);
 
-  const navLinks = [
+  const navLinksBefore = [
     [dict.nav.library, "topics"],
     [dict.nav.research, "research"],
     [dict.nav.posters, "posters"],
-    [dict.nav.events, "events"],
-    [dict.nav.breastSummit, "breast-summit"],
+  ];
+
+  const eventsLinks: [string, string, string][] = [
+    [dict.nav.allEvents, dict.nav.allEventsHint, "events"],
+    [dict.nav.breastSummit, dict.nav.breastSummitHint, "breast-summit"],
+  ];
+
+  const navLinksAfter = [
     [dict.nav.news, "news"],
     [dict.nav.about, "about"],
   ];
 
   // Two doors: patients and visitors (address, hours and the question form all
   // live on /contact), and doctors or institutes (the MDT inquiry).
-  const contactLinks = [
+  const contactLinks: [string, string, string][] = [
     [dict.nav.contactUs, dict.nav.contactUsHint, "contact"],
     [dict.nav.mdt, dict.mdt.kicker, "mdt"],
   ];
-  const contactCurrent = contactLinks.some(([, , path]) => currentPage(path)) ? "location" : undefined;
 
   function currentPage(path: string) {
     const href = localePath(locale, path);
     if (pathname === href) return "page";
     const library = localePath(locale, "library");
-    const collaboration = localePath(locale, "collaboration");
     if (pathname?.startsWith(`${href}/`) ||
-      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`))) ||
-      (path === "breast-summit" && (pathname === collaboration || pathname?.startsWith(`${collaboration}/`)))) return "location";
+      (path === "topics" && (pathname === library || pathname?.startsWith(`${library}/`)))) return "location";
   }
 
   // A client-side navigation keeps the header mounted, so close the menu here.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setContactOpen(false); }, [pathname]);
+  useEffect(() => { setOpenMenu(null); }, [pathname]);
 
   useEffect(() => {
-    if (!contactOpen) return;
+    if (!openMenu) return;
     const closeOnOutsideClick = (event: PointerEvent) => {
-      const menu = contactButton.current?.parentElement;
-      if (menu && !menu.contains(event.target as Node)) setContactOpen(false);
+      const button = openMenu === "events" ? eventsButton.current : contactButton.current;
+      const menu = button?.parentElement;
+      if (menu && !menu.contains(event.target as Node)) setOpenMenu(null);
     };
     document.addEventListener("pointerdown", closeOnOutsideClick);
     return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
-  }, [contactOpen]);
+  }, [openMenu]);
 
   useEffect(() => {
     const desktop = window.matchMedia("(width > 900px)");
@@ -175,6 +180,60 @@ export default function SiteHeader({
     </>
   );
 
+  function renderDropdown({
+    key,
+    id,
+    label,
+    links,
+    buttonRef,
+    dropdownClassName,
+  }: {
+    key: "events" | "contact";
+    id: string;
+    label: string;
+    links: [string, string, string][];
+    buttonRef: RefObject<HTMLButtonElement | null>;
+    dropdownClassName?: string;
+  }) {
+    const isOpen = openMenu === key;
+    const isCurrent = links.some(([, , path]) => currentPage(path)) ? "location" : undefined;
+    return (
+      <div
+        className="primary-nav-more"
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setOpenMenu((current) => (current === key ? null : current));
+          }
+        }}
+      >
+        <button
+          type="button"
+          className="primary-nav-trigger"
+          ref={buttonRef}
+          aria-expanded={isOpen}
+          aria-controls={id}
+          data-current={isCurrent}
+          onClick={() => setOpenMenu((current) => (current === key ? null : key))}
+        >
+          {label}
+          <IconChevronDown size={15} />
+        </button>
+        <div
+          className={`primary-nav-dropdown primary-nav-contact${dropdownClassName ? ` ${dropdownClassName}` : ""}`}
+          id={id}
+          hidden={!isOpen}
+        >
+          {links.map(([itemLabel, hint, path]) => (
+            <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)} onClick={() => setOpenMenu(null)}>
+              <span className="primary-nav-dropdown-label">{itemLabel}</span>
+              <span className="primary-nav-dropdown-hint">{hint}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <header
       className="site-header"
@@ -182,10 +241,11 @@ export default function SiteHeader({
         if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
       }}
       onKeyDown={(event) => {
-        if (event.key === "Escape" && contactOpen) {
+        if (event.key === "Escape" && openMenu) {
           event.preventDefault();
-          setContactOpen(false);
-          contactButton.current?.focus();
+          const button = openMenu === "events" ? eventsButton.current : contactButton.current;
+          setOpenMenu(null);
+          button?.focus();
           return;
         }
         if (event.key === "Escape" && menuOpen && !event.defaultPrevented) {
@@ -234,36 +294,27 @@ export default function SiteHeader({
         </Link>
 
         <nav className="primary-nav" aria-label={dict.header.mainNavigation}>
-          {navLinks.map(([label, path]) => (
+          {navLinksBefore.map(([label, path]) => (
             <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)}>{label}</Link>
           ))}
-          <div
-            className="primary-nav-more"
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) setContactOpen(false);
-            }}
-          >
-            <button
-              type="button"
-              className="primary-nav-trigger"
-              ref={contactButton}
-              aria-expanded={contactOpen}
-              aria-controls="contact-menu"
-              data-current={contactCurrent}
-              onClick={() => setContactOpen((open) => !open)}
-            >
-              {dict.nav.contactMenu}
-              <IconChevronDown size={15} />
-            </button>
-            <div className="primary-nav-dropdown primary-nav-contact" id="contact-menu" hidden={!contactOpen}>
-              {contactLinks.map(([label, hint, path]) => (
-                <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)} onClick={() => setContactOpen(false)}>
-                  <span className="primary-nav-dropdown-label">{label}</span>
-                  <span className="primary-nav-dropdown-hint">{hint}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+          {renderDropdown({
+            key: "events",
+            id: "events-menu",
+            label: dict.nav.events,
+            links: eventsLinks,
+            buttonRef: eventsButton,
+            dropdownClassName: "primary-nav-events",
+          })}
+          {navLinksAfter.map(([label, path]) => (
+            <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)}>{label}</Link>
+          ))}
+          {renderDropdown({
+            key: "contact",
+            id: "contact-menu",
+            label: dict.nav.contactMenu,
+            links: contactLinks,
+            buttonRef: contactButton,
+          })}
         </nav>
         <button
           type="button"
@@ -278,7 +329,12 @@ export default function SiteHeader({
         </button>
       </div>
       <nav className="mobile-nav" id="mobile-nav" aria-label={dict.header.mainNavigation} hidden={!menuOpen}>
-        {[...navLinks, ...contactLinks.map(([label, , path]) => [label, path])].map(([label, path]) => (
+        {[
+          ...navLinksBefore,
+          ...eventsLinks.map(([label, , path]) => [label, path]),
+          ...navLinksAfter,
+          ...contactLinks.map(([label, , path]) => [label, path]),
+        ].map(([label, path]) => (
           <Link key={path} href={localePath(locale, path)} aria-current={currentPage(path)} onClick={() => setMenuOpen(false)}>{label}</Link>
         ))}
         {(!member || isStaff) && (

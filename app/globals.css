@@ -664,6 +664,7 @@ input {
 .primary-nav-dropdown-label { color:var(--text); font-size:.92rem; font-weight:650; }
 .primary-nav-dropdown-hint { color:var(--text-soft); font-size:.8rem; font-weight:450; line-height:1.35; }
 .primary-nav-contact a:hover .primary-nav-dropdown-label,.primary-nav-contact a:focus-visible .primary-nav-dropdown-label { color:var(--primary-strong); }
+.primary-nav-events { inset-inline-start: 0; inset-inline-end: auto; min-width: 16rem; }
 
 .header-actions {
   display: flex;

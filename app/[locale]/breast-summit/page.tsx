@@ -19,8 +19,10 @@ import {
   IconCalendar,
   IconClipboard,
   IconCompass,
+  IconEye,
   IconMail,
   IconPassport,
+  IconPenSquare,
   IconPin,
   IconUsers,
 } from "../../components/icons";
@@ -53,30 +55,9 @@ const OFFICIAL_LINKS = [
   ["sponsors", "linkSponsors", "linkSponsorsHint", IconAward],
 ] as const satisfies readonly (readonly [SummitLinkKey, string, string, unknown])[];
 
-const BREAST = /breast/i;
+const FORMAT_ICONS = [IconCalendar, IconUsers, IconEye, IconPenSquare] as const;
 
-/** Deterministic concentric dotted radial rings echoing the official MEBS 2027
-    banner's signature blush-pink dotted motif without using heavy raster art. */
-const HERO_DOTS = (() => {
-  const dots: { cx: number; cy: number; r: number; o: number }[] = [];
-  const rings = [64, 112, 160, 208, 256, 304, 352];
-  for (let ri = 0; ri < rings.length; ri++) {
-    const radius = rings[ri];
-    const count = 18 + ri * 9;
-    const opacity = Number((0.46 - ri * 0.055).toFixed(2));
-    const dotR = ri < 2 ? 2.1 : ri < 5 ? 1.75 : 1.4;
-    for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2;
-      dots.push({
-        cx: Math.round((400 + Math.cos(a) * radius) * 10) / 10,
-        cy: Math.round((400 + Math.sin(a) * radius) * 10) / 10,
-        r: dotR,
-        o: opacity,
-      });
-    }
-  }
-  return dots;
-})();
+const BREAST = /breast/i;
 
 /**
  * /:locale/breast-summit: companion page for the Second Middle East Breast
@@ -102,7 +83,7 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
   const countries = new Set(SUMMIT_FACULTY.map((member) => member.country)).size;
   const external = { target: "_blank", rel: "noopener" } as const;
   const newTab = <span className="visually-hidden"> {t.newTab}</span>;
-  const stepFormat = new Intl.NumberFormat(active === "ar" ? "ar" : "en", { minimumIntegerDigits: 2 });
+  const stepFormat = new Intl.NumberFormat(active === "ar" ? "ar" : "en");
 
   return (
     <>
@@ -112,44 +93,51 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
       <ScrollMotion />
       <main id="main-content" className="summit-page">
         <section className="summit-hero" aria-labelledby="summit-title">
-          {/* Subtle blush-rose dotted radial field echoing the official MEBS 2027
-              hero artwork without crowding the typography. */}
-          <svg className="summit-hero-dots" viewBox="0 0 800 800" aria-hidden="true" focusable="false">
-            <circle cx="400" cy="400" r="6" className="summit-hero-hub-dot" />
-            {HERO_DOTS.map((dot, index) => (
-              <circle key={index} cx={dot.cx} cy={dot.cy} r={dot.r} fillOpacity={dot.o} />
-            ))}
-          </svg>
-
           <div className="summit-shell summit-hero-inner">
-            <header className="summit-intro">
-              <div className="summit-brand">
+            <div className="summit-hero-main">
+              <header className="summit-intro">
+                <div className="summit-brand">
+                  <img
+                    className="summit-brand-logo"
+                    src="/mebs-logo.webp"
+                    alt=""
+                    width={560}
+                    height={270}
+                    decoding="async"
+                    fetchPriority="high"
+                  />
+                  <span className="summit-brand-divider" aria-hidden="true" />
+                  <p className="summit-eyebrow">
+                    <span className="summit-eyebrow-mark" dir="ltr">{t.kicker}</span>
+                    <span className="summit-eyebrow-edition">{t.edition}</span>
+                  </p>
+                </div>
+                <h1 id="summit-title">{t.title}</h1>
+                <p className="summit-slogan">{t.slogan}</p>
+                <div className="summit-actions">
+                  <a className="btn btn-lg summit-cta-primary" href={SUMMIT.links.register} {...external}>
+                    {t.register}{newTab}<IconArrowUpRight size={18} className="summit-ext-icon" />
+                  </a>
+                  <a className="summit-cta-link" href={SUMMIT.officialUrl} {...external}>
+                    <span dir="ltr">{t.visitOfficial}</span>{newTab}<IconArrowUpRight size={16} className="summit-ext-icon" />
+                  </a>
+                </div>
+              </header>
+
+              {/* Concentric dotted Iraq & Middle East map echoing the official
+                  MEBS 2027 banner (generated from Natural Earth 1:50m shapes). */}
+              <div className="summit-hero-art" aria-hidden="true">
                 <img
-                  className="summit-brand-logo"
-                  src="/mebs-logo.webp"
+                  className="summit-hero-map"
+                  src="/mebs-middle-east-map.svg"
                   alt=""
-                  width={560}
-                  height={270}
+                  width={680}
+                  height={560}
                   decoding="async"
                   fetchPriority="high"
                 />
-                <span className="summit-brand-divider" aria-hidden="true" />
-                <p className="summit-eyebrow">
-                  <span className="summit-eyebrow-mark" dir="ltr">{t.kicker}</span>
-                  <span className="summit-eyebrow-edition">{t.edition}</span>
-                </p>
               </div>
-              <h1 id="summit-title">{t.title}</h1>
-              <p className="summit-slogan">{t.slogan}</p>
-              <div className="summit-actions">
-                <a className="btn btn-lg summit-cta-primary" href={SUMMIT.links.register} {...external}>
-                  {t.register}{newTab}<IconArrowUpRight size={18} className="summit-ext-icon" />
-                </a>
-                <a className="summit-cta-link" href={SUMMIT.officialUrl} {...external}>
-                  <span dir="ltr">{t.visitOfficial}</span>{newTab}<IconArrowUpRight size={16} className="summit-ext-icon" />
-                </a>
-              </div>
-            </header>
+            </div>
 
             <div className="summit-hero-bar">
               <div className="summit-hero-facts">
@@ -171,24 +159,61 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
         </section>
 
         <section className="summit-shell summit-about" aria-labelledby="summit-about-title">
-          <div className="summit-about-head">
-            <h2 id="summit-about-title">{t.aboutTitle}</h2>
+          <div className="summit-section-head">
+            <div>
+              <h2 id="summit-about-title">{t.aboutTitle}</h2>
+              <p className="summit-about-lead">{t.aboutLead}</p>
+            </div>
+            <a className="text-link summit-ext-link" href={SUMMIT.links.about} {...external}>
+              {t.aboutMore}<IconArrowUpRight size={16} className="summit-ext-icon" />{newTab}
+            </a>
           </div>
-          <div className="summit-about-body">
-            <p>{t.aboutBody1}</p>
-            <p>{t.aboutBody2}</p>
-            <p className="summit-themes-label">{t.themesLabel}</p>
+
+          <div className="summit-about-grid">
+            <div className="summit-about-panel">
+              <h3 className="summit-about-panel-title">{t.aboutFormatLabel}</h3>
+              <ul className="summit-format-list">
+                {t.aboutFormats.map((item, index) => {
+                  const Icon = FORMAT_ICONS[index] ?? IconCalendar;
+                  return (
+                    <li key={item}>
+                      <span className="summit-format-icon" aria-hidden="true">
+                        <Icon size={17} />
+                      </span>
+                      <span className="summit-format-text">{item}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="summit-about-panel">
+              <h3 className="summit-about-panel-title">{t.aboutAudienceLabel}</h3>
+              <ul className="summit-specialty-list">
+                {t.aboutSpecialties.map((specialty) => (
+                  <li key={specialty}>
+                    <span className="summit-specialty-dot" aria-hidden="true" />
+                    <span>{specialty}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="summit-continuum">
+            <h3 className="summit-about-panel-title">{t.themesLabel}</h3>
             <ol className="summit-themes">
               {t.themes.map((theme, index) => (
                 <li key={theme}>
-                  <span className="summit-theme-num" aria-hidden="true">{stepFormat.format(index + 1)}</span>
+                  <span className="summit-theme-track" aria-hidden="true">
+                    <span className="summit-theme-line summit-theme-line-start" />
+                    <span className="summit-theme-num">{stepFormat.format(index + 1)}</span>
+                    <span className="summit-theme-line summit-theme-line-end" />
+                  </span>
                   <span className="summit-theme-text">{theme}</span>
                 </li>
               ))}
             </ol>
-            <a className="text-link summit-ext-link" href={SUMMIT.links.about} {...external}>
-              {t.aboutMore}<IconArrowUpRight size={16} className="summit-ext-icon" />{newTab}
-            </a>
           </div>
         </section>
 
@@ -265,10 +290,7 @@ export default async function BreastSummitPage({ params }: { params: Promise<{ l
             collaborators={collaborators}
             locale={active}
             labels={mapLabels(dict.collab)}
-            variant="compact"
             emptyHref={localePath(active, "contact")}
-            fullMapHref={localePath(active, "collaboration")}
-            fullMapLabel={dict.collab.openFullMap}
           />
         </section>
 

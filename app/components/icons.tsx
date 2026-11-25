@@ -374,6 +374,15 @@ export function IconFile(props: IconProps) {
   );
 }
 
+export function IconPenSquare(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      <path d="M12 4.5H6.5A2.5 2.5 0 0 0 4 7v10.5A2.5 2.5 0 0 0 6.5 20H17a2.5 2.5 0 0 0 2.5-2.5V12" />
+      <path d="M18.4 3.6a2.1 2.1 0 0 1 3 3L12.5 15.5 8.5 16.5l1-4 8.9-8.9Z" />
+    </svg>
+  );
+}
+
 export function IconLayers(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

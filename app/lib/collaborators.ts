@@ -54,7 +54,6 @@ export function mapLabels(t: Record<
   | "emptyTitle"
   | "emptyBody"
   | "emptyCta"
-  | "compactEmptyBody"
   | "consentNote"
   | "legendHub"
   | "legendInstitution"
@@ -62,7 +61,15 @@ export function mapLabels(t: Record<
   | "close"
   | "showOnMap"
   | "clusterLabel"
-  | "listLabel",
+  | "listLabel"
+  | "statInstitutions"
+  | "statCountries"
+  | "byCountryTitle"
+  | "tableTitle"
+  | "colCountry"
+  | "colInstitution"
+  | "colCity"
+  | "colFocus",
   string
 >) {
   const {
@@ -88,7 +95,6 @@ export function mapLabels(t: Record<
     emptyTitle,
     emptyBody,
     emptyCta,
-    compactEmptyBody,
     consentNote,
     legendHub,
     legendInstitution,
@@ -97,6 +103,14 @@ export function mapLabels(t: Record<
     showOnMap,
     clusterLabel,
     listLabel,
+    statInstitutions,
+    statCountries,
+    byCountryTitle,
+    tableTitle,
+    colCountry,
+    colInstitution,
+    colCity,
+    colFocus,
   } = t;
   return {
     mapLabel,
@@ -121,7 +135,6 @@ export function mapLabels(t: Record<
     emptyTitle,
     emptyBody,
     emptyCta,
-    compactEmptyBody,
     consentNote,
     legendHub,
     legendInstitution,
@@ -130,5 +143,13 @@ export function mapLabels(t: Record<
     showOnMap,
     clusterLabel,
     listLabel,
+    statInstitutions,
+    statCountries,
+    byCountryTitle,
+    tableTitle,
+    colCountry,
+    colInstitution,
+    colCity,
+    colFocus,
   };
 }
