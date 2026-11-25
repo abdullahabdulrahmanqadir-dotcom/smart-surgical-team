@@ -37,11 +37,22 @@ test("a question with more than two links is refused as link spam", () => {
 test("MDT text is stripped of hidden characters too", () => {
   const result = validateMdtInquiry({
     name: "Dr‮ Test", role: "surgeon", institution: "City​ Hospital", country: "Iraq",
-    email: "dr@example.org", phone: "", interest: "attend", message: "We would like to attend the meeting.",
+    email: "dr@example.org", phone: "", interest: "collaborate", message: "We would like to discuss a link with your team.",
   });
   assert.equal(result.ok, true);
   assert.equal(result.value.name, "Dr Test");
   assert.equal(result.value.institution, "City Hospital");
+});
+
+test("withdrawn MDT options (attending, observing) are refused", () => {
+  for (const interest of ["attend", "observe"]) {
+    const result = validateMdtInquiry({
+      name: "Dr Test", role: "surgeon", institution: "City Hospital", country: "Iraq",
+      email: "dr@example.org", phone: "", interest, message: "We would like to join the meeting.",
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.errors.interest, "invalid");
+  }
 });
 
 const post = (headers) => new Request("https://ssthyroid.com/api/questions", { method: "POST", headers, body: "{}" });

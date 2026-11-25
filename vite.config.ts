@@ -33,6 +33,10 @@ const localBindingConfig = {
   compatibility_date: "2026-05-22",
   compatibility_flags: ["nodejs_compat"],
   observability: { enabled: true, head_sampling_rate: 1 },
+  // The id of the Worker version serving a request. worker/page-cache.ts
+  // stores it with every rendered document and will not serve a document from
+  // another version: its HTML names hashed assets that deploy no longer has.
+  version_metadata: { binding: "CF_VERSION_METADATA" },
   r2_buckets: [
     // Editorial media is bound to the real bucket even in dev. A local
     // Miniflare bucket starts empty, so every existing image 404s while

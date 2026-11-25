@@ -79,7 +79,9 @@ const revealSelectors = [
   ".mdt-step",
   ".mdt-form-layout .ask-emergency",
   ".mdt-form-layout .ask-facts",
-  ".mdt-form-layout > .ask-card",
+  // Not the MDT form card: React rewrites its class when it switches to the
+  // sent message, which drops "is-revealed" and left the thank-you invisible.
+  // The card has its own write-in motion (MdtInquiryForm).
   ".summit-about > *",
   ".summit-section-head",
   ".summit-faculty-grid > li",

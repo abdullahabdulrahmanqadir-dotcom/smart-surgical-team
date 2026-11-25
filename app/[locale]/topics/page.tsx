@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
 import SiteFooter from "../../components/SiteFooter";
+import TitleMotion from "../../components/TitleMotion";
 import TopicsExplorer from "../../components/TopicsExplorer";
 import { IconArrowRight } from "../../components/icons";
 import { LOCALES, isLocale, localePath, type Locale } from "../../lib/i18n";
@@ -53,7 +54,7 @@ export default async function TopicsPage({ params }: { params: Promise<{ locale:
       <main id="main-content">
         <section className="section section-topic-index editorial-topic-index" aria-labelledby="topic-index-heading">
           <div className="topic-index-heading">
-            <h1 id="topic-index-heading">{dict.topics.title}</h1>
+            <TitleMotion as="h1" id="topic-index-heading" text={dict.topics.title} variant="curtain" immediate delayMs={60} />
             <Link className="text-link" href={localePath(active, "library")}>
               {dict.libraryIndex.allCases}<IconArrowRight size={16} />
             </Link>

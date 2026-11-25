@@ -5,6 +5,7 @@ import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
 import SocialLinks from "../../components/SocialLinks";
+import TitleMotion from "../../components/TitleMotion";
 import { IconAlert, IconArrowRight, IconCheck, IconClock, IconClose, IconMail, IconUsers } from "../../components/icons";
 import { fill, getDictionary } from "../../lib/dictionaries";
 import { isLocale, localePath, type Locale } from "../../lib/i18n";
@@ -47,7 +48,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
         <div className="contact-backdrop" aria-hidden="true"/>
         <div className="contact-shell">
           <header className="contact-intro">
-            <h1>{dict.contact.title}</h1>
+            <TitleMotion as="h1" text={dict.contact.title} variant="write" immediate delayMs={70} cursor />
             <p>{dict.contact.intro}</p>
             <a className="btn btn-primary" href={DIRECTIONS_URL} target="_blank" rel="noreferrer">
               {dict.contact.getDirections}<IconArrowRight size={17} />
@@ -55,7 +56,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           </header>
           <div className="contact-layout">
             <aside className="contact-details" aria-labelledby="contact-details-heading">
-              <h2 id="contact-details-heading">{dict.contact.detailsTitle}</h2>
+              <TitleMotion as="h2" id="contact-details-heading" text={dict.contact.detailsTitle} variant="focus" />
               <dl>
                 <div><dt><IconMail size={19} /> {dict.contact.email}</dt><dd><a href={`mailto:${dict.contact.emailAddress}`} dir="ltr">{dict.contact.emailAddress}</a></dd></div>
                 <div><dt><IconClock size={19} /> {dict.contact.hours}</dt><dd>{dict.contact.hoursValue}</dd></div>
@@ -78,7 +79,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
             </aside>
             <section className="contact-location" aria-labelledby="visit-heading">
               <div className="contact-location-orbit" aria-hidden="true"><span /><span /><i /></div>
-              <h2 id="visit-heading">{dict.contact.towerTitle}</h2>
+              <TitleMotion as="h2" id="visit-heading" text={dict.contact.towerTitle} variant="ink" />
               <p>{dict.contact.visitBody}</p>
             </section>
           </div>
@@ -90,7 +91,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
               screens the grid puts the form on the leading side. */}
           <section id="ask" className="contact-ask-section" aria-labelledby="ask-heading">
             <header className="contact-ask-head">
-              <h2 id="ask-heading">{t.title}</h2>
+              <TitleMotion as="h2" id="ask-heading" text={t.title} variant="write" cursor />
               <p>{t.intro}</p>
             </header>
             <div className="ask-layout contact-ask-layout">
@@ -130,7 +131,7 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
           <section className="contact-map-section" aria-labelledby="map-heading">
             <div className="contact-map-head">
               <div>
-                <h2 id="map-heading">{dict.contact.mapTitle}</h2>
+                <TitleMotion as="h2" id="map-heading" text={dict.contact.mapTitle} variant="curtain" />
               </div>
             </div>
             <div className="contact-map">

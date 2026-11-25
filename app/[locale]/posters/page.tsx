@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
+import TitleMotion from "../../components/TitleMotion";
 import { IconArrowRight } from "../../components/icons";
 import { getDictionary } from "../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
@@ -47,7 +48,7 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
     <ScrollMotion />
     <main id="main-content" className="posters-page">
       <header className="posters-intro">
-        <h1>{t.heroTitle}</h1>
+        <TitleMotion as="h1" text={t.heroTitle} variant="curtain" immediate delayMs={60} />
         {archive.length > 0 && (
           <a className="text-link" href="#poster-archive-title">{t.archiveTitle}<IconArrowRight size={16} /></a>
         )}
@@ -65,7 +66,7 @@ export default async function PostersPage({ params }: { params: Promise<{ locale
       </article>}
 
       {archive.length > 0 && <section className="poster-archive" aria-labelledby="poster-archive-title">
-        <div className="poster-archive-heading"><h2 id="poster-archive-title">{t.archiveTitle}</h2></div>
+        <div className="poster-archive-heading"><TitleMotion as="h2" id="poster-archive-title" text={t.archiveTitle} variant="ink" /></div>
         <div className="poster-card-grid">{archive.map((poster) => <PosterCard key={poster.id} poster={poster} locale={active} label={t.viewDetails}/>)}</div>
       </section>}
     </main>

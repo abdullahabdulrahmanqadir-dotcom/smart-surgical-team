@@ -198,3 +198,83 @@ test("only public content pages are made restorable", async () => {
     new Response("payload", { headers: { "content-type": "text/x-component", "cache-control": "no-store" } }));
   assert.equal(rscResponse.headers.get("cache-control"), "no-store");
 });
+
+test("a document stored by another deploy is re-rendered, not served", async () => {
+  // Its HTML names the old build's hashed assets, which the new deploy no
+  // longer serves: on 2026-11-23 the first readers after a deploy got /en/mdt
+  // unstyled, with the inquiry form's chunk a 404.
+  edgeCache.clear();
+  const bucket = new MemoryR2();
+  let renders = 0;
+  const render = async () => new Response(`<html>render-${++renders}</html>`, { headers: { "content-type": "text/html; charset=utf-8" } });
+  const oldDeploy = { CACHE_BUCKET: bucket, CF_VERSION_METADATA: { id: "old" } };
+  const newDeploy = { CACHE_BUCKET: bucket, CF_VERSION_METADATA: { id: "new" } };
+
+  const first = context();
+  await (await servePublicDocument(publicRequest(), oldDeploy, first, render)).text();
+  await Promise.all(first.pending);
+  assert.equal((await bucket.get(KEY)).customMetadata.version, "old");
+
+  // Fresh by age, and still in the old deploy's edge entry: neither is used.
+  const ctx = context();
+  const response = await servePublicDocument(publicRequest(), newDeploy, ctx, render);
+  assert.equal(response.headers.get("x-sst-page-cache"), "MISS");
+  assert.match(await response.text(), /render-2/);
+  await Promise.all(ctx.pending);
+  assert.equal((await bucket.get(KEY)).customMetadata.version, "new");
+
+  const settled = context();
+  const hit = await servePublicDocument(publicRequest(), newDeploy, settled, render);
+  assert.equal(hit.headers.get("x-sst-page-cache"), "HIT");
+  assert.match(await hit.text(), /render-2/);
+  await Promise.all(settled.pending);
+  assert.equal(renders, 2);
+});
+
+test("an entry with no recorded deploy counts as another deploy's", async () => {
+  edgeCache.clear();
+  const bucket = new MemoryR2();
+  let renders = 0;
+  const render = async () => new Response(`<html>render-${++renders}</html>`, { headers: { "content-type": "text/html; charset=utf-8" } });
+
+  const first = context();
+  await (await servePublicDocument(publicRequest(), { CACHE_BUCKET: bucket }, first, render)).text();
+  await Promise.all(first.pending);
+  assert.equal((await bucket.get(KEY)).customMetadata.version, undefined);
+  edgeCache.clear();
+
+  const ctx = context();
+  const response = await servePublicDocument(publicRequest(), { CACHE_BUCKET: bucket, CF_VERSION_METADATA: { id: "new" } }, ctx, render);
+  assert.equal(response.headers.get("x-sst-page-cache"), "MISS");
+  assert.match(await response.text(), /render-2/);
+  await Promise.all(ctx.pending);
+});
+
+test("another deploy's document is the fallback only when the new render fails", async () => {
+  edgeCache.clear();
+  const bucket = new MemoryR2();
+  const first = context();
+  await (await servePublicDocument(publicRequest(), { CACHE_BUCKET: bucket, CF_VERSION_METADATA: { id: "old" } }, first, async () =>
+    new Response("<html>old</html>", { headers: { "content-type": "text/html" } }),
+  )).text();
+  await Promise.all(first.pending);
+
+  const newDeploy = { CACHE_BUCKET: bucket, CF_VERSION_METADATA: { id: "new" } };
+  const failing = context();
+  const fallback = await servePublicDocument(publicRequest(), newDeploy, failing, async () =>
+    new Response("boom", { status: 500, headers: { "content-type": "text/html" } }),
+  );
+  assert.equal(fallback.headers.get("x-sst-page-cache"), "STALE");
+  assert.equal(await fallback.text(), "<html>old</html>");
+  await Promise.all(failing.pending);
+
+  // Not promoted to the edge, so the next reader tries again; a 404 for a page
+  // withdrawn since the old deploy is answered as a 404, not resurrected.
+  const gone = context();
+  const notFound = await servePublicDocument(publicRequest(), newDeploy, gone, async () =>
+    new Response("not found", { status: 404, headers: { "content-type": "text/html" } }),
+  );
+  assert.equal(notFound.status, 404);
+  assert.equal(await notFound.text(), "not found");
+  await Promise.all(gone.pending);
+});

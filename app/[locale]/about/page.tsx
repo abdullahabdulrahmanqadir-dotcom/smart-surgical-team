@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import SiteFooter from "../../components/SiteFooter";
 import SiteHeader from "../../components/SiteHeader";
 import ScrollMotion from "../../components/ScrollMotion";
+import TitleMotion from "../../components/TitleMotion";
 import { fill, getDictionary } from "../../lib/dictionaries";
 import { authoredTitleProps, isLocale, localePath, type Locale } from "../../lib/i18n";
 import { getLocalizedTeamGroups } from "../../lib/team";
@@ -34,10 +35,10 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     <main id="main-content" className="about-page">
       <header className="about-statement">
         <div>
-          <h1>{dict.about.pageTitle}</h1>
+          <TitleMotion as="h1" text={dict.about.pageTitle} variant="write" immediate delayMs={80} cursor />
         </div>
         <div className="about-mission">
-          <h2>{dict.about.missionTitle}</h2>
+          <TitleMotion as="h2" text={dict.about.missionTitle} variant="curtain" immediate delayMs={200} />
           <p>{dict.about.missionBody} {dict.about.locationBody}</p>
         </div>
       </header>
@@ -63,7 +64,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       </section>
 
       {/* How the team works together reads better once you have met them. */}
-      <section className="about-closing"><div><h2>{dict.about.approachTitle}</h2></div><div><p>{dict.about.approachBody}</p><nav className="about-closing-links" aria-label={dict.about.exploreTopics}><Link className="text-link" href={localePath(active, "topics")}>{dict.about.exploreTopics}</Link><Link className="text-link" href={localePath(active, "research")}>{dict.about.exploreResearch}</Link></nav></div></section>
+      <section className="about-closing"><div><TitleMotion as="h2" text={dict.about.approachTitle} variant="ink" /></div><div><p>{dict.about.approachBody}</p><nav className="about-closing-links" aria-label={dict.about.exploreTopics}><Link className="text-link" href={localePath(active, "topics")}>{dict.about.exploreTopics}</Link><Link className="text-link" href={localePath(active, "research")}>{dict.about.exploreResearch}</Link></nav></div></section>
     </main>
     <SiteFooter locale={active} dict={dict} />
   </>;

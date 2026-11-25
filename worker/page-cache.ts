@@ -9,6 +9,10 @@ import { putThroughContention, sameObjectContention } from "./r2-put";
 // only guarantee the whole site re-renders at once, which is the exact CPU
 // spike the Free plan's 10 ms ceiling cannot absorb. Bump it for a change that
 // alters what a stored entry *means*.
+//
+// This is not the deploy version. Each stored document also records the
+// Worker version that rendered it — see `fromAnotherDeploy` below — because a
+// document is only valid next to the hashed assets of the build that wrote it.
 const PAGE_CACHE_VERSION = "v1";
 const PAGE_CACHE_PREFIX = `page:${PAGE_CACHE_VERSION}:`;
 const FRESH_SECONDS = 60;
@@ -26,6 +30,10 @@ type PageCacheEnv = {
   /** The `smart-cache` R2 bucket. Rendered documents live under `page:`; the
       vinext data cache shares the bucket under `data:`. */
   CACHE_BUCKET?: R2Bucket;
+  /** Cloudflare's `version_metadata` binding: the id of the Worker version
+      serving this request. Optional, so an unbound deployment caches exactly as
+      it did before the binding existed. */
+  CF_VERSION_METADATA?: { id: string };
 };
 
 type RenderPage = () => Promise<Response>;
@@ -97,9 +105,35 @@ function pageCacheKey(request: Request): string {
   return PAGE_CACHE_PREFIX + new URL(request.url).pathname;
 }
 
-function edgeCacheRequest(request: Request): Request {
+function deployVersion(env: PageCacheEnv): string | undefined {
+  return env.CF_VERSION_METADATA?.id || undefined;
+}
+
+/**
+ * A stored document rendered by another Worker version.
+ *
+ * Its HTML names that build's hashed `/assets/` files, and Workers static
+ * assets serve only the current version's. Served after a deploy, it arrives
+ * unstyled with every client chunk a 404, so nothing hydrates — on 2026-11-23
+ * that was every public page's first reader for hours after the deploy, the
+ * MDT inquiry form included. Such an entry is not a stale answer but a broken
+ * one, so it is re-rendered rather than served while a refresh lands.
+ *
+ * An entry with no recorded version predates this check and counts as another
+ * deploy's. With the binding absent there is nothing to compare, and every
+ * entry is accepted as before. Split-percentage rollouts would make two
+ * versions overwrite each other's entries; this site deploys at 100%.
+ */
+function fromAnotherDeploy(stored: R2ObjectBody, version: string | undefined): boolean {
+  return version !== undefined && stored.customMetadata?.version !== version;
+}
+
+// The deploy version is part of the edge key too. The Cache API is not purged
+// by a deploy, so without it each colo would keep answering with the previous
+// build's document until its 60 s `max-age` ran out.
+function edgeCacheRequest(request: Request, version: string | undefined): Request {
   const url = new URL(request.url);
-  url.search = "";
+  url.search = version ? `?deploy=${encodeURIComponent(version)}` : "";
   return new Request(url.toString(), { method: "GET" });
 }
 
@@ -130,6 +164,7 @@ async function writeCaches(
   const contentType = response.headers.get("content-type") ?? "text/html; charset=utf-8";
   const key = pageCacheKey(request);
   const storedAt = Date.now();
+  const version = deployVersion(env);
 
   // Buffered rather than streamed into R2. A vinext document streams with no
   // declared length, and buffering it here is also what makes the degradation
@@ -149,6 +184,7 @@ async function writeCaches(
         // R2 has no TTL of its own. Readers below treat anything past this as
         // absent; the bucket's lifecycle rule reclaims the bytes. See HANDOFF.md.
         expiresAt: String(storedAt + STALE_FALLBACK_SECONDS * 1000),
+        ...(version ? { version } : {}),
       },
     });
   } catch (error) {
@@ -238,7 +274,9 @@ export async function servePublicDocument(
     return isPublicDocumentPath(request) ? restorableDocument(response) : response;
   }
 
-  const edgeHit = await defaultCache().match(edgeCacheRequest(request));
+  const version = deployVersion(env);
+  const edgeKey = edgeCacheRequest(request, version);
+  const edgeHit = await defaultCache().match(edgeKey);
   if (edgeHit) {
     const response = new Response(edgeHit.body, edgeHit);
     response.headers.set("x-sst-page-cache", "HIT");
@@ -248,10 +286,25 @@ export async function servePublicDocument(
   const stored = await env.CACHE_BUCKET.get(pageCacheKey(request));
   const storedAt = Number(stored?.customMetadata?.storedAt);
   const ageSeconds = (Date.now() - storedAt) / 1000;
-
   // Past the stale window the entry is no longer an answer, only bytes the
   // lifecycle rule has not swept yet. KV expired these for us; R2 does not.
-  if (stored && Number.isFinite(ageSeconds) && ageSeconds <= STALE_FALLBACK_SECONDS) {
+  const withinStaleWindow = Number.isFinite(ageSeconds) && ageSeconds <= STALE_FALLBACK_SECONDS;
+
+  if (stored && withinStaleWindow && fromAnotherDeploy(stored, version)) {
+    const fresh = await renderAndStore(request, env, ctx, render);
+    if (fresh.status < 500) {
+      await stored.body.cancel();
+      return fresh;
+    }
+    // The render failed outright. The old document names assets that are gone,
+    // but its text is still readable, which beats an error page. It is not
+    // promoted to the edge, so the next reader tries a render again.
+    await fresh.body?.cancel();
+    const contentType = stored.httpMetadata?.contentType ?? "text/html; charset=utf-8";
+    return cachedResponse(stored.body, contentType, "STALE");
+  }
+
+  if (stored && withinStaleWindow) {
     const state = ageSeconds <= FRESH_SECONDS ? "HIT" : "STALE";
     const contentType = stored.httpMetadata?.contentType ?? "text/html; charset=utf-8";
     const response = cachedResponse(stored.body, contentType, state);
@@ -261,7 +314,7 @@ export async function servePublicDocument(
     // every request that reaches it costs a round trip and — in the stale
     // branch — schedules another render. Holding the answer at the edge for the
     // 60 s `max-age` caps both at one per colo per minute while a refresh lands.
-    ctx.waitUntil(defaultCache().put(edgeCacheRequest(request), response.clone()));
+    ctx.waitUntil(defaultCache().put(edgeKey, response.clone()));
 
     if (state === "STALE") {
       // Serve the last known-good document immediately. If SSR ever crosses
