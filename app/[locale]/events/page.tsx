@@ -51,7 +51,6 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
             <TitleMotion as="span" className="events-hero-lead" text={hero.title} variant="curtain" immediate delayMs={60} />{" "}
             <TitleMotion as="span" text={hero.accent} variant="write" immediate delayMs={240} />
           </h1>
-          <a className="text-link" href="#all-events">{dict.events.allEvents}<IconArrowRight size={16}/></a>
         </div>
       </div>
     </section>
